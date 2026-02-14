@@ -1,0 +1,68 @@
+# Release Checklist
+
+버전을 올리고 푸시할 때 따르는 단계별 체크리스트입니다.
+
+## 1. 버전 결정
+
+- patch (0.2.0 → 0.2.1): 버그 수정, 매니페스트 수정
+- minor (0.2.0 → 0.3.0): 새 기능, 새 에이전트/스킬 추가
+- major (0.2.0 → 1.0.0): 호환성 깨지는 변경
+
+## 2. 버전 동기화 (3파일)
+
+아래 3개 파일의 버전을 동일하게 업데이트합니다:
+
+```
+.claude-plugin/plugin.json       → "version": "X.Y.Z"
+package.json                     → "version": "X.Y.Z"
+.claude-plugin/marketplace.json  → plugins[0].version: "X.Y.Z"
+```
+
+## 3. 매니페스트 정합성 확인
+
+### agents 배열 검증
+
+`plugin.json`의 `agents` 배열이 `agents/` 디렉토리의 모든 `.md` 파일과 일치하는지 확인합니다.
+
+```bash
+# agents/ 디렉토리 실제 파일
+ls agents/*.md
+
+# plugin.json에 선언된 agents
+cat .claude-plugin/plugin.json | grep "agents/"
+```
+
+누락된 파일이 있으면 `agents` 배열에 추가합니다.
+
+### skills 디렉토리 확인
+
+`skills/`는 디렉토리 경로로 자동 탐색되므로 별도 매니페스트 수정 불필요.
+새 스킬 추가 시 `skills/<name>/SKILL.md` 파일만 생성하면 됩니다.
+
+## 4. 빌드 검증 (src/ 변경 시)
+
+```bash
+npx tsc --noEmit
+```
+
+## 5. 커밋 & 푸시
+
+```bash
+git add .claude-plugin/plugin.json package.json .claude-plugin/marketplace.json
+# + 변경된 파일들
+git commit -m "Release vX.Y.Z — <변경 요약>"
+git push
+```
+
+## 6. 캐시 갱신 (로컬 테스트 시)
+
+플러그인 캐시가 자동 갱신되지 않을 경우:
+
+```bash
+# 캐시 위치
+~/.claude/plugins/cache/gran-maestro/gran-maestro/<version>/
+
+# 수동 갱신: 캐시 삭제 후 플러그인 재로드
+rm -rf ~/.claude/plugins/cache/gran-maestro/
+# Claude Code에서 /plugin 실행으로 재로드
+```
