@@ -1,12 +1,11 @@
 ---
-name: maestro:priority
+name: priority
 description: "태스크 우선순위 및 실행 순서를 변경합니다"
 user-invocable: true
 argument-hint: "<TASK-ID> --before <TASK-ID>"
-aliases: ["mp"]
 ---
 
-# maestro:priority
+# mst:priority
 
 태스크의 우선순위나 실행 순서를 변경합니다.
 PM이 자동 결정한 순서를 사용자가 오버라이드할 때 사용합니다.

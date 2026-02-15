@@ -1,12 +1,11 @@
 ---
-name: maestro:list
+name: list
 description: "모든 요청 및 태스크의 현황 목록을 표시합니다"
 user-invocable: true
 argument-hint: "[--all | --active | --completed]"
-aliases: ["ml"]
 ---
 
-# maestro:list
+# mst:list
 
 모든 Gran Maestro 요청과 태스크의 현황을 터미널에 표시합니다.
 

@@ -1,12 +1,11 @@
 ---
-name: maestro:cancel
+name: cancel
 description: "요청 또는 태스크를 취소하고 worktree를 정리합니다"
 user-invocable: true
 argument-hint: "<REQ-ID> [--force]"
-aliases: ["mc"]
 ---
 
-# maestro:cancel
+# mst:cancel
 
 진행 중인 요청 또는 태스크를 취소하고 관련 리소스를 정리합니다.
 

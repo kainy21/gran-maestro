@@ -1,12 +1,11 @@
 ---
-name: maestro:start
+name: start
 description: "새 요청을 시작하고 PM 분석 워크플로우에 진입합니다"
 user-invocable: true
 argument-hint: "<요청 내용> [--auto]"
-aliases: ["ms"]
 ---
 
-# maestro:start
+# mst:start
 
 Gran Maestro 워크플로우의 시작점. 사용자의 요청을 받아 PM 분석 Phase에 진입합니다.
 
@@ -58,7 +57,7 @@ Maestro 모드가 비활성 상태이면 자동으로 활성화합니다:
    ```
    - `--auto` 플래그가 설정된 경우: `"auto_approve": true`로 설정
 4. `.gran-maestro/mode.json`의 `active_requests` 배열에 새 요청 ID 추가
-5. PM Conductor 에이전트 활성화 (`gran-maestro:pm-conductor`)
+5. PM Conductor 에이전트 활성화 (`mst:pm-conductor`)
 6. 복잡도 판단:
    - **Simple**: PM Conductor 단독 분석
    - **Standard/Complex**: Analysis Squad 팀 소환 (Explorer x2 + Analyst + Design Wing)

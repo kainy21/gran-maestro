@@ -1,12 +1,11 @@
 ---
-name: maestro:codex
+name: codex
 description: "Codex CLI를 직접 호출하여 코드 작업을 실행합니다"
 user-invocable: true
 argument-hint: "<프롬프트> [--dir <경로>] [--json]"
-aliases: ["mx"]
 ---
 
-# maestro:codex
+# mst:codex
 
 Gran Maestro 워크플로우 외부에서 Codex CLI를 직접 호출합니다.
 결과는 터미널에 출력되며, 선택적으로 파일로 저장 가능합니다.

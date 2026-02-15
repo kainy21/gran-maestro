@@ -1,12 +1,11 @@
 ---
-name: maestro:history
+name: history
 description: "완료된 요청의 이력을 조회합니다"
 user-invocable: true
 argument-hint: "[<REQ-ID>] [--limit <N>]"
-aliases: ["mh"]
 ---
 
-# maestro:history
+# mst:history
 
 완료된 Gran Maestro 요청의 이력을 조회합니다.
 요청별 요약, 소요 시간, 에이전트 사용량, 피드백 라운드 수 등을 확인할 수 있습니다.

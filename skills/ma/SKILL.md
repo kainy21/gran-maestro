@@ -1,12 +1,11 @@
 ---
-name: maestro:approve
+name: approve
 description: "스펙을 승인하거나 최종 결과물을 수락합니다"
 user-invocable: true
 argument-hint: "<REQ-ID> [--final]"
-aliases: ["ma"]
 ---
 
-# maestro:approve
+# mst:approve
 
 PM이 작성한 구현 스펙을 승인하거나, 완료된 결과물을 최종 수락합니다.
 

@@ -1,12 +1,11 @@
 ---
-name: maestro:gemini
+name: gemini
 description: "Gemini CLI를 직접 호출하여 대용량 컨텍스트 작업을 실행합니다"
 user-invocable: true
 argument-hint: "<프롬프트> [--files <패턴>] [--sandbox]"
-aliases: ["mg"]
 ---
 
-# maestro:gemini
+# mst:gemini
 
 Gran Maestro 워크플로우 외부에서 Gemini CLI를 직접 호출합니다.
 대용량 문서, 프론트엔드, 넓은 컨텍스트가 필요한 작업에 적합합니다.

@@ -1,12 +1,11 @@
 ---
-name: maestro:dashboard
+name: dashboard
 description: "로컬 대시보드 서버를 시작하거나 엽니다"
 user-invocable: true
 argument-hint: "[--port <포트>] [--stop]"
-aliases: ["md"]
 ---
 
-# maestro:dashboard
+# mst:dashboard
 
 Gran Maestro 로컬 대시보드 서버를 시작하고 브라우저에서 엽니다.
 워크플로우 그래프, 에이전트 활동 스트림, 문서 브라우저를 제공합니다.

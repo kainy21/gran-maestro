@@ -1,12 +1,11 @@
 ---
-name: maestro:feedback
+name: feedback
 description: "수동으로 피드백을 제공합니다 (Phase 4)"
 user-invocable: true
 argument-hint: "<REQ-ID> <피드백 내용>"
-aliases: ["mf"]
 ---
 
-# maestro:feedback
+# mst:feedback
 
 사용자가 직접 피드백을 제공하여 Phase 4 (피드백 루프)를 트리거합니다.
 자동 리뷰와 별개로 사용자의 수동 관찰/요구사항을 전달할 때 사용합니다.
@@ -14,7 +13,7 @@ aliases: ["mf"]
 ## 실행 프로토콜
 
 1. `$ARGUMENTS`에서 REQ ID와 피드백 내용 파싱
-2. Feedback Composer 에이전트 활성화 (`gran-maestro:feedback-composer`)
+2. Feedback Composer 에이전트 활성화 (`mst:feedback-composer`)
 3. 사용자 피드백을 구조화된 피드백 문서로 변환
 4. `.gran-maestro/requests/{REQ-ID}/tasks/NN/feedback-RN.md` 저장
 5. 실패 유형 분류:

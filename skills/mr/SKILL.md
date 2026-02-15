@@ -1,12 +1,11 @@
 ---
-name: maestro:resume
+name: resume
 description: "미완료 요청을 복구하고 마지막 Phase부터 재개합니다"
 user-invocable: true
 argument-hint: "[<REQ-ID>] [<TASK-ID>]"
-aliases: ["mr"]
 ---
 
-# maestro:resume
+# mst:resume
 
 Claude Code 세션 종료 후 진행 중이던 워크플로우를 복구합니다.
 파일 기반 상태에서 자동으로 복구 가능한 태스크를 탐색합니다.

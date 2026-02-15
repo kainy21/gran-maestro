@@ -2,7 +2,7 @@
  * Gran Maestro 플러그인 에이전트 정의
  *
  * Claude Code 플러그인 시스템에서 에이전트를 등록하는 레지스트리입니다.
- * 각 에이전트는 Task(subagent_type="gran-maestro:<name>") 형태로 호출됩니다.
+ * 각 에이전트는 Task(subagent_type="mst:<name>") 형태로 호출됩니다.
  */
 
 export interface AgentDefinition {

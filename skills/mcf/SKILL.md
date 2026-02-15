@@ -1,12 +1,11 @@
 ---
-name: maestro:config
+name: config
 description: "Gran Maestro 설정을 조회하거나 변경합니다"
 user-invocable: true
 argument-hint: "[<key> [<value>]]"
-aliases: ["mcf"]
 ---
 
-# maestro:config
+# mst:config
 
 Gran Maestro의 설정을 조회하거나 변경합니다.
 `.gran-maestro/config.json` 파일을 관리합니다.

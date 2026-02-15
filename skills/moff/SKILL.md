@@ -1,12 +1,11 @@
 ---
-name: maestro:off
+name: off
 description: "Maestro 모드를 비활성화하고 OMC로 복귀합니다"
 user-invocable: true
 argument-hint: "[--force]"
-aliases: ["moff"]
 ---
 
-# maestro:off
+# mst:off
 
 Gran Maestro 모드를 비활성화하고 OMC 모드로 복귀합니다.
 

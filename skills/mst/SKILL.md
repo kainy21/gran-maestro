@@ -1,12 +1,11 @@
 ---
-name: maestro:status
+name: status
 description: "특정 요청의 상세 상태를 표시합니다"
 user-invocable: true
 argument-hint: "<REQ-ID>"
-aliases: ["mst"]
 ---
 
-# maestro:status
+# mst:status
 
 특정 요청의 상세 상태를 터미널에 표시합니다. Phase 진행 상황, 태스크 상태,
 에이전트 활동, 피드백 라운드 이력 등을 포함합니다.

@@ -1,12 +1,11 @@
 ---
-name: maestro:on
+name: on
 description: "Maestro 모드를 활성화합니다 (OMC 오케스트레이션 비활성화)"
 user-invocable: true
 argument-hint: ""
-aliases: ["mo"]
 ---
 
-# maestro:on
+# mst:on
 
 Gran Maestro 모드를 활성화합니다. OMC 오케스트레이션 스킬이 비활성화되고,
 Maestro 오케스트레이션 스킬이 활성화됩니다.
