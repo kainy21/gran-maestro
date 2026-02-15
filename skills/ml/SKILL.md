@@ -1,11 +1,11 @@
 ---
-name: list
-description: "모든 요청 및 태스크의 현황 목록을 표시합니다"
+name: ml
+description: "모든 요청 및 태스크의 현황 목록을 표시합니다. 사용자가 '현황', '상태 보여줘', '목록'을 말하거나 /ml을 호출할 때 사용. 특정 요청의 상세 상태는 /mst를 사용."
 user-invocable: true
 argument-hint: "[--all | --active | --completed]"
 ---
 
-# mst:list
+# maestro:list
 
 모든 Gran Maestro 요청과 태스크의 현황을 터미널에 표시합니다.
 
@@ -41,6 +41,7 @@ REQ-002  "로그인 페이지 디자인"
 - `--active`: 활성 요청만 (기본값)
 - `--completed`: 완료된 요청만
 
-## 한국어 트리거
+## 문제 해결
 
-- "현황", "상태 보여줘", "목록"
+- `.gran-maestro/requests/` 디렉토리 없음 → Maestro 모드가 활성화되지 않았습니다. `/mo`로 활성화하거나 `/ms`로 첫 요청을 시작하세요
+- 빈 목록 표시 → `--all` 옵션으로 완료/취소된 요청 포함 여부 확인

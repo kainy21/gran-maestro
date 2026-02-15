@@ -1,11 +1,11 @@
 ---
-name: priority
-description: "태스크 우선순위 및 실행 순서를 변경합니다"
+name: mp
+description: "태스크 우선순위 및 실행 순서를 변경합니다. 사용자가 '우선순위 변경', '순서 변경', '먼저 실행'을 말하거나 /mp를 호출할 때 사용. 태스크 상태 확인에는 /mst를, 태스크 취소에는 /mc를 사용."
 user-invocable: true
-argument-hint: "<TASK-ID> --before <TASK-ID>"
+argument-hint: "{TASK-ID} --before {TASK-ID}"
 ---
 
-# mst:priority
+# maestro:priority
 
 태스크의 우선순위나 실행 순서를 변경합니다.
 PM이 자동 결정한 순서를 사용자가 오버라이드할 때 사용합니다.
@@ -35,9 +35,11 @@ REQ-001 태스크 실행 순서:
   2. REQ-001-01  JWT 미들웨어 구현 [codex]
   3. REQ-001-03  유저 모델 테스트 [codex]
 
-⚠️ 종속성 경고: REQ-001-01은 REQ-001-03에 의존합니다.
+주의: REQ-001-01은 REQ-001-03에 의존합니다.
 ```
 
-## 한국어 트리거
+## 문제 해결
 
-- "우선순위 변경", "순서 변경", "먼저 실행"
+- "태스크 ID를 찾을 수 없음" → ID 형식이 `REQ-NNN-NN`인지 확인. `/mst {REQ-ID}`로 태스크 목록 조회
+- "종속성 충돌" → blockedBy 관계를 위반하는 순서 변경은 경고만 표시되며 강제 적용. 종속성을 먼저 확인하고 싶으면 `/mst {REQ-ID}`로 종속성 그래프 확인
+- "이미 실행 중인 태스크" → 실행 중인 태스크의 순서는 변경할 수 없음. 대기 중(pending/queued) 태스크만 순서 변경 가능

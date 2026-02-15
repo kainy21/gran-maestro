@@ -1,11 +1,11 @@
 ---
-name: start
-description: "새 요청을 시작하고 PM 분석 워크플로우에 진입합니다"
+name: ms
+description: "새 요청을 시작하고 PM 분석 워크플로우에 진입합니다. 사용자가 '구현해줘', '만들어줘', '개발해줘', '추가해줘'를 말하거나 /ms를 호출할 때 사용. 일반적인 코드 수정이나 OMC 오케스트레이션 요청에는 사용하지 않음."
 user-invocable: true
-argument-hint: "<요청 내용> [--auto]"
+argument-hint: "{요청 내용} [--auto]"
 ---
 
-# mst:start
+# maestro:start
 
 Gran Maestro 워크플로우의 시작점. 사용자의 요청을 받아 PM 분석 Phase에 진입합니다.
 
@@ -57,7 +57,7 @@ Maestro 모드가 비활성 상태이면 자동으로 활성화합니다:
    ```
    - `--auto` 플래그가 설정된 경우: `"auto_approve": true`로 설정
 4. `.gran-maestro/mode.json`의 `active_requests` 배열에 새 요청 ID 추가
-5. PM Conductor 에이전트 활성화 (`mst:pm-conductor`)
+5. PM Conductor 에이전트 활성화 (`gran-maestro:pm-conductor`)
 6. 복잡도 판단:
    - **Simple**: PM Conductor 단독 분석
    - **Standard/Complex**: Analysis Squad 팀 소환 (Explorer x2 + Analyst + Design Wing)
@@ -75,7 +75,8 @@ Maestro 모드가 비활성 상태이면 자동으로 활성화합니다:
 /ms "사용자 프로필 페이지에 아바타 업로드 기능 추가"
 ```
 
-## 한국어 트리거
+## 문제 해결
 
-다음 패턴이 감지되면 자동으로 `/ms`를 호출합니다:
-- "구현해줘", "만들어줘", "개발해줘", "추가해줘"
+- `.gran-maestro/` 디렉토리 생성 실패 → 현재 디렉토리가 git 저장소인지 확인. 쓰기 권한 확인
+- `mode.json` 잠금 충돌 → 다른 세션에서 Maestro가 실행 중인지 확인. `mode.json.lock` 파일이 남아있으면 수동 삭제
+- 기존 요청 ID 충돌 → `.gran-maestro/requests/` 디렉토리를 확인하고 중복 REQ 폴더가 없는지 검증

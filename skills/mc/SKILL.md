@@ -1,11 +1,11 @@
 ---
-name: cancel
-description: "요청 또는 태스크를 취소하고 worktree를 정리합니다"
+name: mc
+description: "요청 또는 태스크를 취소하고 worktree를 정리합니다. 사용자가 '취소', '중단', '그만'을 말하거나 /mc를 호출할 때 사용. 일반적인 작업 중단이나 OMC 모드 취소에는 사용하지 않음."
 user-invocable: true
-argument-hint: "<REQ-ID> [--force]"
+argument-hint: "{REQ-ID} [--force]"
 ---
 
-# mst:cancel
+# maestro:cancel
 
 진행 중인 요청 또는 태스크를 취소하고 관련 리소스를 정리합니다.
 
@@ -34,6 +34,8 @@ argument-hint: "<REQ-ID> [--force]"
 /mc REQ-002-01      # 특정 태스크만 취소
 ```
 
-## 한국어 트리거
+## 문제 해결
 
-- "취소", "중단", "그만"
+- "해당 요청을 찾을 수 없음" → REQ ID 형식 확인. `/ml`로 활성 요청 목록 조회
+- "활성 프로세스 종료 실패" → worktree 경로에서 수동으로 프로세스 확인. `--force`로 강제 취소 시도
+- "worktree 삭제 실패" → `.gran-maestro/worktrees/` 디렉토리에서 해당 worktree 수동 정리. `git worktree list`로 상태 확인

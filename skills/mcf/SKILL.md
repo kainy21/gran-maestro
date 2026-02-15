@@ -1,11 +1,11 @@
 ---
-name: config
-description: "Gran Maestro 설정을 조회하거나 변경합니다"
+name: mcf
+description: "Gran Maestro 설정을 조회하거나 변경합니다. 사용자가 '설정', '설정 변경', '환경 설정'을 말하거나 /mcf를 호출할 때 사용. 모드 전환에는 /mo 또는 /moff를 사용."
 user-invocable: true
-argument-hint: "[<key> [<value>]]"
+argument-hint: "[{key} [{value}]]"
 ---
 
-# mst:config
+# maestro:config
 
 Gran Maestro의 설정을 조회하거나 변경합니다.
 `.gran-maestro/config.json` 파일을 관리합니다.
@@ -58,6 +58,8 @@ Gran Maestro의 설정을 조회하거나 변경합니다.
 /mcf workflow.default_agent gemini-dev       # 기본 에이전트를 Gemini로 변경
 ```
 
-## 한국어 트리거
+## 문제 해결
 
-- "설정", "설정 변경", "환경 설정"
+- "config.json을 찾을 수 없음" → Maestro 모드가 초기화되지 않았습니다. `/mo`로 활성화하거나 `/ms`로 첫 요청을 시작하면 자동 생성됨
+- "잘못된 키" → 위 설정 항목 표에서 정확한 키 이름 확인. 점(`.`) 구분자로 중첩 접근 (예: `workflow.max_feedback_rounds`)
+- "타입 불일치" → boolean 값은 `true`/`false`, number 값은 숫자만 입력. 문자열은 따옴표 없이 입력

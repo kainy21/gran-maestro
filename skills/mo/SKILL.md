@@ -1,11 +1,11 @@
 ---
-name: on
-description: "Maestro 모드를 활성화합니다 (OMC 오케스트레이션 비활성화)"
+name: mo
+description: "Maestro 모드를 활성화합니다 (OMC 오케스트레이션 비활성화). 사용자가 '마에스트로 켜', '마에스트로 시작', '지휘자 모드'를 말하거나 /mo를 호출할 때 사용. 새 요청 시작은 /ms를 사용 (자동 부트스트래핑 포함)."
 user-invocable: true
 argument-hint: ""
 ---
 
-# mst:on
+# maestro:on
 
 Gran Maestro 모드를 활성화합니다. OMC 오케스트레이션 스킬이 비활성화되고,
 Maestro 오케스트레이션 스킬이 활성화됩니다.
@@ -46,7 +46,7 @@ Maestro 오케스트레이션 스킬이 활성화됩니다.
 ## 출력
 
 ```
-🎼 Gran Maestro 모드 활성화
+Gran Maestro 모드 활성화
 
 역할 전환: Claude Code → PM (지휘자)
 - 코드 작성: 금지 (Codex/Gemini에 위임)
@@ -56,13 +56,15 @@ OMC 오케스트레이션 스킬이 비활성화되었습니다.
 /ms 로 새 요청을 시작하세요.
 ```
 
-## 한국어 트리거
-
-- "마에스트로 켜", "마에스트로 시작", "지휘자 모드"
-
 ## 부트스트래핑 참조
 
 기본 설정 템플릿 위치 (플러그인 내):
 - `templates/defaults/config.json` — 전체 기본 설정
 - `templates/defaults/agents.json` — 실행/리뷰/분석 에이전트 정의
 - `templates/defaults/mode.json` — 모드 상태 초기값
+
+## 문제 해결
+
+- "이미 Maestro 모드가 활성화됨" → `.gran-maestro/mode.json`의 `active: true` 확인. 이미 활성 상태이면 추가 작업 불필요
+- "config.json 생성 실패" → 현재 디렉토리의 쓰기 권한 확인. git 저장소 루트에서 실행 중인지 확인
+- "OMC 스킬이 여전히 활성" → 세션을 재시작하면 모드 전환이 적용됨. `/moff` 후 `/mo`로 재활성화 시도

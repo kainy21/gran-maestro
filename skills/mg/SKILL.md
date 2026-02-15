@@ -1,11 +1,11 @@
 ---
-name: gemini
-description: "Gemini CLI를 직접 호출하여 대용량 컨텍스트 작업을 실행합니다"
+name: mg
+description: "Gemini CLI를 직접 호출하여 대용량 컨텍스트 작업을 실행합니다. 사용자가 '제미니 실행', '제미니로', '대용량 분석'을 말하거나 /mg를 호출할 때 사용. Gran Maestro 워크플로우 내 자동 위임에는 사용하지 않음 (Phase 2에서 자동 호출됨)."
 user-invocable: true
-argument-hint: "<프롬프트> [--files <패턴>] [--sandbox]"
+argument-hint: "{프롬프트} [--files {패턴}] [--sandbox]"
 ---
 
-# mst:gemini
+# maestro:gemini
 
 Gran Maestro 워크플로우 외부에서 Gemini CLI를 직접 호출합니다.
 대용량 문서, 프론트엔드, 넓은 컨텍스트가 필요한 작업에 적합합니다.
@@ -24,7 +24,7 @@ Gran Maestro 워크플로우 외부에서 Gemini CLI를 직접 호출합니다.
 
 ## 옵션
 
-- `--files <pattern>`: 컨텍스트에 포함할 파일 패턴 (예: `src/**/*.ts`)
+- `--files {pattern}`: 컨텍스트에 포함할 파일 패턴 (예: `src/**/*.ts`)
 - `--sandbox`: 샌드박스 환경에서 실행
 - `-y`: 자동 승인 모드
 
@@ -57,6 +57,9 @@ gemini -p "{prompt}" --sandbox
 - `--approval-mode yolo` / `-y` 옵션은 모든 작업을 자동 승인하므로 주의하여 사용
 - Gran Maestro 워크플로우 외부에서 독립 실행되며, 요청 상태에 영향을 주지 않음
 
-## 한국어 트리거
+## 문제 해결
 
-- "제미니 실행", "제미니로", "대용량 분석"
+- "gemini: command not found" → Gemini CLI가 설치되지 않았습니다. `npm install -g @google/gemini-cli`로 설치
+- "파일 패턴 매칭 없음" → `--files` 패턴이 올바른지 확인. glob 패턴 사용 (예: `src/**/*.ts`)
+- "컨텍스트 윈도우 초과" → 파일 수를 줄이거나 특정 디렉토리로 범위 한정. `--files` 패턴을 더 구체적으로 지정
+- "샌드박스 실행 실패" → Docker가 설치/실행 중인지 확인. `--sandbox` 옵션은 Docker 기반 격리 환경을 사용

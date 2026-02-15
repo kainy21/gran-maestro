@@ -1,11 +1,11 @@
 ---
-name: resume
-description: "미완료 요청을 복구하고 마지막 Phase부터 재개합니다"
+name: mr
+description: "미완료 요청을 복구하고 마지막 Phase부터 재개합니다. 사용자가 '복구', '재개', '이어서', '계속해줘'를 말하거나 /mr를 호출할 때 사용. 새 요청 시작에는 /ms를 사용."
 user-invocable: true
-argument-hint: "[<REQ-ID>] [<TASK-ID>]"
+argument-hint: "[{REQ-ID}] [{TASK-ID}]"
 ---
 
-# mst:resume
+# maestro:resume
 
 Claude Code 세션 종료 후 진행 중이던 워크플로우를 복구합니다.
 파일 기반 상태에서 자동으로 복구 가능한 태스크를 탐색합니다.
@@ -83,6 +83,9 @@ REQ-003  "설정 페이지 리팩토링"
 /mr REQ-001-01   # 특정 태스크 복구
 ```
 
-## 한국어 트리거
+## 문제 해결
 
-- "복구", "재개", "이어서", "계속해줘"
+- "복구 가능한 요청이 없음" → 모든 요청이 완료/취소 상태입니다. `/ml --all`로 전체 목록 확인
+- "REQ-ID를 찾을 수 없음" → ID 형식이 `REQ-NNN`인지 확인. `/ml`로 요청 목록 조회
+- "worktree 상태 불일치" → `git worktree list`로 실제 worktree 상태 확인. 수동 정리가 필요할 수 있음
+- "프로세스를 찾을 수 없음" (executing 상태) → CLI 프로세스가 종료된 상태. 자동으로 재실행됨

@@ -1,11 +1,11 @@
 ---
-name: status
-description: "특정 요청의 상세 상태를 표시합니다"
+name: mst
+description: "특정 요청의 상세 상태를 표시합니다. 사용자가 '상세 상태', '자세히 보여줘', '상태 확인'을 말하거나 /mst를 호출할 때 사용. 전체 목록은 /ml을 사용."
 user-invocable: true
-argument-hint: "<REQ-ID>"
+argument-hint: "{REQ-ID}"
 ---
 
-# mst:status
+# maestro:status
 
 특정 요청의 상세 상태를 터미널에 표시합니다. Phase 진행 상황, 태스크 상태,
 에이전트 활동, 피드백 라운드 이력 등을 포함합니다.
@@ -56,6 +56,7 @@ Phase 진행:
 /mst REQ-003
 ```
 
-## 한국어 트리거
+## 문제 해결
 
-- "상세 상태", "자세히 보여줘", "상태 확인"
+- "REQ-ID를 찾을 수 없음" → ID 형식이 `REQ-NNN`인지 확인. `/ml`로 현재 요청 목록 조회
+- `request.json` 읽기 실패 → 파일 손상 가능. `.gran-maestro/requests/{REQ-ID}/` 디렉토리 내용 확인

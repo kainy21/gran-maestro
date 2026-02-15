@@ -1,11 +1,11 @@
 ---
-name: dashboard
-description: "로컬 대시보드 서버를 시작하거나 엽니다"
+name: md
+description: "로컬 대시보드 서버를 시작하거나 엽니다. 사용자가 '대시보드', '대시보드 열어', '모니터링'을 말하거나 /md를 호출할 때 사용. CLI 터미널 상태 확인에는 /ml 또는 /mst를 사용."
 user-invocable: true
-argument-hint: "[--port <포트>] [--stop]"
+argument-hint: "[--port {포트}] [--stop]"
 ---
 
-# mst:dashboard
+# maestro:dashboard
 
 Gran Maestro 로컬 대시보드 서버를 시작하고 브라우저에서 엽니다.
 워크플로우 그래프, 에이전트 활동 스트림, 문서 브라우저를 제공합니다.
@@ -71,9 +71,9 @@ HTTP 200 응답 확인. 실패 시 로그(`/tmp/gran-maestro-dashboard.log`) 출
 
 ### 11. 사용자 안내
 ```
-✓ Gran Maestro Dashboard running at http://localhost:<port>
-✓ Browser opened with authentication token
-✓ PID: <pid> (saved to .gran-maestro/dashboard.pid)
+Gran Maestro Dashboard running at http://localhost:<port>
+Browser opened with authentication token
+PID: <pid> (saved to .gran-maestro/dashboard.pid)
 ```
 
 ## 대시보드 뷰
@@ -88,7 +88,7 @@ HTTP 200 응답 확인. 실패 시 로그(`/tmp/gran-maestro-dashboard.log`) 출
 
 ## 옵션
 
-- `--port <N>`: 포트 변경 (기본: 3847)
+- `--port {N}`: 포트 변경 (기본: 3847)
 - `--stop`: 실행 중인 대시보드 서버 중지
 
 ## 예시
@@ -99,6 +99,9 @@ HTTP 200 응답 확인. 실패 시 로그(`/tmp/gran-maestro-dashboard.log`) 출
 /md --port 8080  # 커스텀 포트
 ```
 
-## 한국어 트리거
+## 문제 해결
 
-- "대시보드", "대시보드 열어", "모니터링"
+- "Deno를 찾을 수 없음" → `deno --version`으로 설치 확인. https://deno.land 에서 설치
+- "포트가 이미 사용 중" → 기존 대시보드가 실행 중일 수 있음. `/md --stop`으로 중지 후 재시작. 또는 `--port`로 다른 포트 사용
+- "서버 시작 실패" → `/tmp/gran-maestro-dashboard.log` 로그 파일 확인. Deno 권한 문제 시 `--allow-net` 등 플래그 확인
+- "브라우저가 열리지 않음" → 토큰 URL을 수동으로 복사하여 브라우저에 입력
