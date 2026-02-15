@@ -57,11 +57,19 @@ Maestro 모드가 비활성 상태이면 자동으로 활성화합니다:
    ```
    - `--auto` 플래그가 설정된 경우: `"auto_approve": true`로 설정
 4. `.gran-maestro/mode.json`의 `active_requests` 배열에 새 요청 ID 추가
-5. PM Conductor 에이전트 활성화 (`gran-maestro:pm-conductor`)
-6. 복잡도 판단:
-   - **Simple**: PM Conductor 단독 분석
-   - **Standard/Complex**: Analysis Squad 팀 소환 (Explorer x2 + Analyst + Design Wing)
-7. Phase 1 진입 → 사용자와 소통 시작
+5. PM Conductor 역할로 Phase 1 분석 수행 (`agents/pm-conductor.md`의 `<phase1_protocol>` 준수):
+   a. 요청 파싱 및 복잡도 분류 (simple | standard | complex)
+   b. Simple → 단독 분석 / Standard·Complex → Analysis Squad 팀 소환
+   c. 코드베이스 탐색 (Explorer 위임), 외부 AI 분석 (Codex·Gemini CLI 병렬)
+   d. 모호한 요구사항은 사용자에게 질문 (AskUserQuestion, 한 번에 하나씩)
+   e. 접근 방식 결정 시: 3 AI 의견 수집 → 종합 → 순위별 추천
+   f. **Implementation Spec 작성** (`templates/spec.md` 템플릿 사용)
+   g. 태스크 디렉토리 생성: `.gran-maestro/requests/REQ-NNN/tasks/01/`
+   h. **spec.md 파일 저장**: `.gran-maestro/requests/REQ-NNN/tasks/01/spec.md`
+   i. `request.json`의 `tasks` 배열에 태스크 메타데이터 추가
+6. ⚠️ **spec.md 작성 완료 확인** — spec.md 파일이 존재하지 않으면 이 스킬을 종료하지 않음
+7. 스펙 요약을 사용자에게 표시하고, `/mst:approve REQ-NNN`으로 승인 안내
+   - `--auto` 모드인 경우: 승인 단계 스킵, 자동으로 Phase 2 진입
 
 ## 옵션
 

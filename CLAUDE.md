@@ -26,6 +26,16 @@ docs/                # 문서
 | `package.json` | `version` |
 | `.claude-plugin/marketplace.json` | `plugins[0].version` |
 
+## 버전업 요청 처리
+
+사용자가 버전업을 요청하면 다음 순서로 처리합니다:
+
+1. **미커밋 변경사항 확인**: `git status`로 커밋되지 않은 변경사항이 있으면 먼저 커밋
+2. **버전 결정**: 변경 범위에 따라 적절한 버전을 선택 (patch: 버그 수정/소규모 변경, minor: 기능 추가/개선, major: 호환성 깨지는 변경)
+3. **3파일 동시 업데이트**: `package.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`의 버전을 동일하게 변경
+4. **버전업 커밋**: `Bump version to X.Y.Z` 메시지로 커밋
+5. **푸시**: `git push origin master`
+
 ## 커밋 & 푸시 체크리스트
 
 커밋/푸시 요청 시 아래를 반드시 확인합니다:

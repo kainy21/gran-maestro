@@ -13,11 +13,13 @@ PM이 작성한 구현 스펙을 승인하거나, 완료된 결과물을 최종 
 
 ### 스펙 승인 (Phase 1 → Phase 2)
 
-1. `$ARGUMENTS`에서 REQ ID 파싱
-2. `.gran-maestro/requests/{REQ-ID}/` 하위 spec.md 파일 확인
+1. `$ARGUMENTS`에서 REQ ID 파싱 (인자 없으면 가장 최근 활성 요청 사용)
+2. `.gran-maestro/requests/{REQ-ID}/tasks/` 하위 spec.md 파일 확인
+   - **spec.md가 없는 경우**: Phase 1 분석이 미완료 상태. 사용자에게 알리고 PM Conductor 분석을 재실행하여 spec.md 작성 완료
 3. 스펙 요약을 사용자에게 표시
 4. 승인 시:
    - `request.json`의 `current_phase`를 2로 변경
+   - `request.json`의 `status`를 `phase2_execution`으로 변경
    - 각 태스크에 대해 git worktree 생성
    - Phase 2 (외주 실행) 진입
 
