@@ -62,5 +62,5 @@ codex exec --full-auto -C {working_dir} -o {output_file} "{prompt}"
 
 - "codex: command not found" → Codex CLI가 설치되지 않았습니다. `npm install -g @openai/codex`로 설치
 - "작업 디렉토리를 찾을 수 없음" → `--dir` 경로가 존재하는지 확인. 상대경로는 현재 디렉토리 기준으로 해석됨
-- "타임아웃" → 대규모 작업 시 `/mst:config timeouts.cli_large_task_ms`로 타임아웃 값 확인. 필요 시 증가
+- "타임아웃" → 대규모 작업 시 `/mst:settings timeouts.cli_large_task_ms`로 타임아웃 값 확인. 필요 시 증가
 - "실행 결과 없음" → Codex CLI의 `--json` 출력을 확인. 프롬프트가 명확한지 검토

@@ -1,6 +1,6 @@
 ---
 name: history
-description: "완료된 요청의 이력을 조회합니다. 사용자가 '이력', '히스토리', '완료된 요청'을 말하거나 /mst:history를 호출할 때 사용. 활성 요청 목록은 /mst:list를, 특정 요청 상세 상태는 /mst:status를 사용."
+description: "완료된 요청의 이력을 조회합니다. 사용자가 '이력', '히스토리', '완료된 요청'을 말하거나 /mst:history를 호출할 때 사용. 활성 요청 목록은 /mst:list를, 특정 요청 상세 상태는 /mst:inspect를 사용."
 user-invocable: true
 argument-hint: "[{REQ-ID}] [--limit {N}]"
 ---

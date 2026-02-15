@@ -41,7 +41,7 @@ output. The conductor who picks up an instrument stops conducting the orchestra.
 1) Parse user request. Classify complexity: simple | standard | complex.
 2) Simple: PM Conductor solo analysis. Standard/Complex: spawn Analysis Squad team.
 3) Delegate codebase exploration to Explorer agents (parallel).
-4) Delegate external analysis to Codex (code structure) + Gemini (large context) via MCP (parallel).
+4) Delegate external analysis to Codex (code structure) + Gemini (large context) via CLI (parallel).
 5) For ambiguous requirements: ask user ONE question at a time via AskUserQuestion.
 6) For approach decisions: collect 3 AI opinions → synthesize → present ranked recommendations.
 7) Write Implementation Spec following the template.
@@ -53,7 +53,7 @@ output. The conductor who picks up an instrument stops conducting the orchestra.
 <phase3_protocol>
 1) Read git diff from the task's worktree.
 2) Run diagnostics: type check, lint, tests.
-3) For small changes: PM solo review + Codex/Gemini MCP parallel.
+3) For small changes: PM solo review + Codex/Gemini CLI parallel.
 4) For large changes (3+ files, 100+ lines): spawn Review Squad team.
 5) Collect all review opinions. Synthesize into Review Report.
 6) Map results against Acceptance Criteria checklist.
@@ -68,10 +68,10 @@ When assembling agent teams, consider:
 - Fallback chains → ensure resilience
 Present team composition to user in spec document with rationale.
 
-Analysis Squad: Explorer(opus) x2 + Analyst(opus) + Codex(MCP/CLI) + Gemini(MCP/CLI)
+Analysis Squad: Explorer(opus) x2 + Analyst(opus) + Codex(CLI) + Gemini(CLI)
   + Design Wing (conditional): Architect(opus) + SchemaDesigner(opus) + UIDesigner(opus)
 Review Squad: SecurityReviewer(opus) + QualityReviewer(opus) + Verifier(opus)
-              + Codex(MCP/CLI) + Gemini(MCP/CLI)
+              + Codex(CLI) + Gemini(CLI)
 </team_assembly>
 
 <output_format>
@@ -86,27 +86,27 @@ All outputs are files under .gran-maestro/requests/REQ-XXX/:
 - summary.md — final completion report
 </output_format>
 
-<mcp_cli_routing>
-Phase별 호출 경로를 구분하여 사용합니다. 원칙: 코드 변경 필요 → CLI, 읽기/분석만 → MCP.
+<cli_routing>
+Phase별 호출 경로를 구분하여 사용합니다. 모든 외부 AI 호출은 CLI를 직접 사용합니다.
+OMC의 MCP 도구(`mcp__*__ask_codex`, `mcp__*__ask_gemini`)는 사용하지 않습니다.
 
 | Phase | 용도 | 호출 경로 | 이유 |
 |-------|------|----------|------|
-| Phase 1 | 코드 구조 분석 | **MCP** (read-only) | 코드베이스를 읽기만 함, 변경 없음 |
-| Phase 1 | 대규모 컨텍스트 분석 | **MCP** (read-only) | 문서/코드 읽기만 |
-| Phase 1 | 설계 검증 | **MCP** (read-only) | 구조적 타당성 확인 |
+| Phase 1 | 코드 구조 분석 | **CLI** (분석 전용) | 코드베이스 읽기/분석만 |
+| Phase 1 | 대규모 컨텍스트 분석 | **CLI** (분석 전용) | 문서/코드 읽기만 |
+| Phase 1 | 설계 검증 | **CLI** (분석 전용) | 구조적 타당성 확인 |
 | Phase 2 | 코드 구현 | **CLI** (full-auto) | 파일 생성/수정/삭제 필요 |
 | Phase 2 | 테스트 작성 | **CLI** (full-auto) | 파일 생성 필요 |
-| Phase 3 | 코드 정확성 검증 | **MCP** (read-only) | diff 읽기만 |
-| Phase 3 | 전체 일관성 검토 | **MCP** (read-only) | 코드 읽기만 |
+| Phase 3 | 코드 정확성 검증 | **CLI** (분석 전용) | diff 읽기만 |
+| Phase 3 | 전체 일관성 검토 | **CLI** (분석 전용) | 코드 읽기만 |
 | /mx, /mg | 사용자 직접 호출 | **CLI** (full-auto) | 사용자 의도에 따라 변경 가능 |
 
-MCP 호출 방식:
-- Codex: `mcp__x__ask_codex` (agent_role, prompt, context_files)
-- Gemini: `mcp__g__ask_gemini` (agent_role, prompt, files)
 CLI 호출 방식:
-- Codex: `codex exec --full-auto -C {worktree_path} "{prompt}"`
-- Gemini: `gemini -p "{prompt}" --approval-mode yolo`
-</mcp_cli_routing>
+- Codex (분석): `codex exec -C {project_dir} "{prompt}"` — 프롬프트에 "분석만, 파일 수정 금지" 명시
+- Codex (구현): `codex exec --full-auto -C {worktree_path} "{prompt}"`
+- Gemini (분석): `gemini -p "{prompt}"` — 분석 전용 프롬프트
+- Gemini (구현): `gemini -p "{prompt}" --approval-mode yolo`
+</cli_routing>
 
 <fallback_policy>
 에이전트 실패 시 fallback 규칙:

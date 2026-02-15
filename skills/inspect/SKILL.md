@@ -1,6 +1,6 @@
 ---
-name: status
-description: "특정 요청의 상세 상태를 표시합니다. 사용자가 '상세 상태', '자세히 보여줘', '상태 확인'을 말하거나 /mst:status를 호출할 때 사용. 전체 목록은 /mst:list를 사용."
+name: inspect
+description: "특정 요청의 상세 상태를 표시합니다. 사용자가 '상세 상태', '자세히 보여줘', '상태 확인'을 말하거나 /mst:inspect를 호출할 때 사용. 전체 목록은 /mst:list를 사용."
 user-invocable: true
 argument-hint: "{REQ-ID}"
 ---
@@ -52,8 +52,8 @@ Phase 진행:
 ## 예시
 
 ```
-/mst:status REQ-001
-/mst:status REQ-003
+/mst:inspect REQ-001
+/mst:inspect REQ-003
 ```
 
 ## 문제 해결

@@ -1,6 +1,6 @@
 ---
 name: list
-description: "모든 요청 및 태스크의 현황 목록을 표시합니다. 사용자가 '현황', '상태 보여줘', '목록'을 말하거나 /mst:list를 호출할 때 사용. 특정 요청의 상세 상태는 /mst:status를 사용."
+description: "모든 요청 및 태스크의 현황 목록을 표시합니다. 사용자가 '현황', '상태 보여줘', '목록'을 말하거나 /mst:list를 호출할 때 사용. 특정 요청의 상세 상태는 /mst:inspect를 사용."
 user-invocable: true
 argument-hint: "[--all | --active | --completed]"
 ---

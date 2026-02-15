@@ -55,7 +55,7 @@
 | 유형 | agents.json 키 | 제공자 | Phase |
 |------|---------------|--------|-------|
 | 실행 에이전트 | `codex-dev`, `gemini-dev` | Codex/Gemini CLI | 2 |
-| 리뷰 에이전트 | `codex-reviewer`, `gemini-reviewer` | Codex/Gemini MCP | 3 |
+| 리뷰 에이전트 | `codex-reviewer`, `gemini-reviewer` | Codex/Gemini CLI | 3 |
 | 분석 에이전트 | `architect`, `schema-designer`, `ui-designer` | Claude Code | 1 |
 
 ## 모드

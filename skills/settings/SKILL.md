@@ -1,6 +1,6 @@
 ---
-name: config
-description: "Gran Maestro 설정을 조회하거나 변경합니다. 사용자가 '설정', '설정 변경', '환경 설정'을 말하거나 /mst:config를 호출할 때 사용. 모드 전환에는 /mst:on 또는 /mst:off를 사용."
+name: settings
+description: "Gran Maestro 설정을 조회하거나 변경합니다. 사용자가 '설정', '설정 변경', '환경 설정'을 말하거나 /mst:settings를 호출할 때 사용. 모드 전환에는 /mst:on 또는 /mst:off를 사용."
 user-invocable: true
 argument-hint: "[{key} [{value}]]"
 ---
@@ -51,11 +51,11 @@ Gran Maestro의 설정을 조회하거나 변경합니다.
 ## 예시
 
 ```
-/mst:config                                        # 전체 설정 표시
-/mst:config workflow.max_feedback_rounds            # 특정 설정 조회
-/mst:config workflow.max_feedback_rounds 3          # 최대 피드백 3회로 변경
-/mst:config workflow.auto_approve_spec true         # 스펙 자동 승인 활성화
-/mst:config workflow.default_agent gemini-dev       # 기본 에이전트를 Gemini로 변경
+/mst:settings                                        # 전체 설정 표시
+/mst:settings workflow.max_feedback_rounds            # 특정 설정 조회
+/mst:settings workflow.max_feedback_rounds 3          # 최대 피드백 3회로 변경
+/mst:settings workflow.auto_approve_spec true         # 스펙 자동 승인 활성화
+/mst:settings workflow.default_agent gemini-dev       # 기본 에이전트를 Gemini로 변경
 ```
 
 ## 문제 해결

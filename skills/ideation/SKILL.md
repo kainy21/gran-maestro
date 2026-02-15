@@ -43,8 +43,19 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 
 `--focus` 옵션이 지정된 경우, 해당 분야에 집중하도록 프롬프트에 명시합니다.
 
-**Codex** (`mcp__plugin_oh-my-claudecode_x__ask_codex`, agent_role: `architect`):
+> **도구 사용 원칙**: Gran Maestro는 자체 CLI를 직접 호출합니다.
+> OMC의 MCP 도구(`mcp__*__ask_codex`, `mcp__*__ask_gemini`)나 OMC 에이전트(`oh-my-claudecode:*`)를 사용하지 않습니다.
+> 3개 호출을 병렬로 실행하려면 Bash `run_in_background: true`와 Task `run_in_background: true`를 사용합니다.
+
+**Codex** (Bash: `codex exec`):
 - 관점: **기술 실현성 분석**
+- 호출 방법:
+  ```bash
+  codex exec -C {project_dir} "{prompt}"
+  ```
+  - `run_in_background: true`로 병렬 실행
+  - 프롬프트에 "분석만 수행하고 파일을 수정하지 마세요"를 명시
+  - 컨텍스트 파일이 필요하면 프롬프트 내에 파일 경로를 포함
 - 프롬프트 지침:
   - 구현 옵션을 열거하고 각 옵션의 복잡도를 평가
   - 아키텍처 트레이드오프 분석 (성능, 유지보수성, 확장성)
@@ -53,8 +64,14 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 - 결과 저장: `opinion-codex.md`
 - `session.json`의 `opinions.codex.status`를 `"done"` 또는 `"failed"`로 업데이트
 
-**Gemini** (`mcp__plugin_oh-my-claudecode_g__ask_gemini`, agent_role: `planner`):
+**Gemini** (Bash: `gemini -p`):
 - 관점: **전략/창의 분석**
+- 호출 방법:
+  ```bash
+  gemini -p "{prompt}"
+  ```
+  - `run_in_background: true`로 병렬 실행
+  - 컨텍스트 파일이 필요하면 프롬프트 내에 파일 경로를 포함
 - 프롬프트 지침:
   - 대안적 접근법 제시 (통상적이지 않은 해법 포함)
   - 생태계 트렌드와 업계 사례 참조
@@ -63,8 +80,11 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 - 결과 저장: `opinion-gemini.md`
 - `session.json`의 `opinions.gemini.status`를 `"done"` 또는 `"failed"`로 업데이트
 
-**Claude** (Task, subagent_type: `oh-my-claudecode:critic`, model: `opus`):
+**Claude** (Task, subagent_type: `general-purpose`, model: `opus`):
 - 관점: **비판적 평가**
+- 호출 방법:
+  - `Task(subagent_type: "general-purpose", model: "opus", run_in_background: true)`
+  - 프롬프트에 비판적 평가 관점을 명시
 - 프롬프트 지침:
   - 숨은 가정과 전제 조건 식별
   - 엣지 케이스와 실패 시나리오 도출
@@ -135,7 +155,7 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 | 1개 AI 실패 | 경고 표시 + 나머지 2개로 종합 진행 |
 | 2개 AI 실패 | 경고 표시 + 1개 의견 + PM 자체 분석으로 보완 |
 | 3개 AI 실패 | 에러 메시지 출력 + 재시도 안내 |
-| MCP 미설치 | 해당 AI 스킵, 사용 가능한 AI로만 진행 |
+| CLI 미설치 | 해당 AI 스킵, 사용 가능한 AI로만 진행 |
 
 ## 옵션
 
@@ -166,7 +186,7 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 ## 문제 해결
 
 - `.gran-maestro/ideation/` 디렉토리 생성 실패 → 현재 디렉토리가 git 저장소인지 확인. 쓰기 권한 확인
-- Codex MCP 호출 실패 → `mcp__plugin_oh-my-claudecode_x__ask_codex` 도구 사용 가능 여부 확인. Codex CLI가 설치되어 있는지 확인
-- Gemini MCP 호출 실패 → `mcp__plugin_oh-my-claudecode_g__ask_gemini` 도구 사용 가능 여부 확인. Gemini CLI가 설치되어 있는지 확인
+- Codex CLI 호출 실패 → `codex --version`으로 설치 확인. `npm install -g @openai/codex`로 설치
+- Gemini CLI 호출 실패 → `gemini --version`으로 설치 확인. `npm install -g @google/gemini-cli`로 설치
 - 기존 세션 ID 충돌 → `.gran-maestro/ideation/` 디렉토리를 확인하고 중복 IDN 폴더가 없는지 검증
 - 종합 결과 품질 저하 → `--focus` 옵션으로 분석 범위를 좁혀서 재시도
