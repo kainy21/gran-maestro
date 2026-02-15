@@ -36,7 +36,7 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
    }
    ```
 
-### Step 2: 병렬 의견 수집
+### Step 2: 병렬 의견 수집 (Direct File Write)
 
 3개 AI에 **동시에** 질문합니다. 각 AI에 고유 관점을 부여하여 비중복성을 확보합니다.
 각 의견은 800자 이내로 제한합니다.
@@ -47,54 +47,79 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 > OMC의 MCP 도구(`mcp__*__ask_codex`, `mcp__*__ask_gemini`)나 OMC 에이전트(`oh-my-claudecode:*`)를 사용하지 않습니다.
 > 3개 호출을 병렬로 실행하려면 Bash `run_in_background: true`와 Task `run_in_background: true`를 사용합니다.
 
-**Codex** (Bash: `codex exec`):
+> **토큰 절약 원칙 (Direct File Write)**:
+> 각 AI의 응답을 부모 컨텍스트로 가져온 뒤 파일에 쓰면 동일한 텍스트가 두 번 토큰으로 소비됩니다.
+> 대신 각 AI가 **직접 파일에 작성**하도록 하여 부모 컨텍스트에 전체 응답이 유입되지 않게 합니다.
+> - Codex/Gemini: 셸 리디렉션(`> opinion-*.md`)으로 stdout을 직접 파일에 저장
+> - Claude: Task 에이전트에게 Write 도구로 직접 파일 작성을 지시
+
+**Codex** (Bash: `codex exec` + 셸 리디렉션):
 - 관점: **기술 실현성 분석**
 - 호출 방법:
   ```bash
-  codex exec -C {project_dir} "{prompt}"
+  codex exec -C {project_dir} "{prompt}" > .gran-maestro/ideation/IDN-NNN/opinion-codex.md 2>/dev/null
   ```
   - `run_in_background: true`로 병렬 실행
-  - 프롬프트에 "분석만 수행하고 파일을 수정하지 마세요"를 명시
+  - **셸 리디렉션으로 stdout을 직접 파일에 저장** (부모 컨텍스트를 거치지 않음)
+  - 프롬프트에 "분석만 수행하고 파일을 수정하지 마세요. 마크다운 형식으로 분석 결과를 출력하세요."를 명시
   - 컨텍스트 파일이 필요하면 프롬프트 내에 파일 경로를 포함
 - 프롬프트 지침:
   - 구현 옵션을 열거하고 각 옵션의 복잡도를 평가
   - 아키텍처 트레이드오프 분석 (성능, 유지보수성, 확장성)
   - 기술 스택 적합성 판단
   - "전략/창의 분석과 비판적 평가는 다른 AI가 담당하므로, 기술 실현성에만 집중할 것"
-- 결과 저장: `opinion-codex.md`
-- `session.json`의 `opinions.codex.status`를 `"done"` 또는 `"failed"`로 업데이트
+- 결과: `opinion-codex.md`에 직접 저장됨 (셸 리디렉션)
+- 완료 감지: 백그라운드 작업 완료 시 파일 존재 여부로 판단
 
-**Gemini** (Bash: `gemini -p`):
+**Gemini** (Bash: `gemini -p` + 셸 리디렉션):
 - 관점: **전략/창의 분석**
 - 호출 방법:
   ```bash
-  gemini -p "{prompt}"
+  gemini -p "{prompt}" > .gran-maestro/ideation/IDN-NNN/opinion-gemini.md 2>/dev/null
   ```
   - `run_in_background: true`로 병렬 실행
+  - **셸 리디렉션으로 stdout을 직접 파일에 저장** (부모 컨텍스트를 거치지 않음)
   - 컨텍스트 파일이 필요하면 프롬프트 내에 파일 경로를 포함
 - 프롬프트 지침:
   - 대안적 접근법 제시 (통상적이지 않은 해법 포함)
   - 생태계 트렌드와 업계 사례 참조
   - 장기적 영향과 확장 가능성 분석
   - "기술 실현성 분석과 비판적 평가는 다른 AI가 담당하므로, 전략/창의 분석에만 집중할 것"
-- 결과 저장: `opinion-gemini.md`
-- `session.json`의 `opinions.gemini.status`를 `"done"` 또는 `"failed"`로 업데이트
+- 결과: `opinion-gemini.md`에 직접 저장됨 (셸 리디렉션)
+- 완료 감지: 백그라운드 작업 완료 시 파일 존재 여부로 판단
 
 **Claude** (Task, subagent_type: `general-purpose`, model: `opus`):
 - 관점: **비판적 평가**
 - 호출 방법:
   - `Task(subagent_type: "general-purpose", model: "opus", run_in_background: true)`
-  - 프롬프트에 비판적 평가 관점을 명시
+  - 프롬프트에 **Write 도구로 직접 파일에 저장하도록 지시**:
+    "분석 결과를 `.gran-maestro/ideation/IDN-NNN/opinion-claude.md`에 Write 도구로 직접 작성하세요.
+     작성 완료 후 '완료'라고만 답하세요."
+  - 이렇게 하면 전체 분석 내용이 부모 컨텍스트로 반환되지 않음
 - 프롬프트 지침:
   - 숨은 가정과 전제 조건 식별
   - 엣지 케이스와 실패 시나리오 도출
   - 리스크 요인과 완화 전략
   - 반론(devil's advocate) 제시
   - "기술 실현성 분석과 전략/창의 분석은 다른 AI가 담당하므로, 비판적 평가에만 집중할 것"
-- 결과 저장: `opinion-claude.md`
-- `session.json`의 `opinions.claude.status`를 `"done"` 또는 `"failed"`로 업데이트
+- 결과: `opinion-claude.md`에 에이전트가 직접 저장
+- 완료 감지: 백그라운드 작업 완료 시 파일 존재 여부로 판단
+
+### Step 2.5: 완료 확인 및 상태 업데이트
+
+3개 백그라운드 작업이 모두 완료되면:
+
+1. 각 opinion 파일 존재 여부를 확인:
+   - `opinion-codex.md` 존재 + 비어있지 않음 → `opinions.codex.status = "done"`
+   - `opinion-codex.md` 없음 또는 비어있음 → `opinions.codex.status = "failed"`
+   - (gemini, claude도 동일)
+2. `session.json`을 한 번에 업데이트 (race condition 방지)
 
 ### Step 3: PM 종합
+
+각 opinion 파일을 Read 도구로 읽어 종합 분석합니다.
+(Direct File Write 덕분에 이 시점에서 처음 opinion 내용이 컨텍스트에 진입합니다.
+기존 방식 대비 Write 출력 토큰이 절약됩니다.)
 
 수집된 의견을 PM이 종합 분석합니다:
 

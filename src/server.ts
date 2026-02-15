@@ -45,7 +45,18 @@ interface SSEEvent {
   type: string;
   requestId?: string;
   taskId?: string;
+  sessionId?: string;
   data: unknown;
+}
+
+interface IdeationSession {
+  id: string;
+  topic: string;
+  focus?: string;
+  status: string;
+  created_at?: string;
+  opinions?: Record<string, { status: string }>;
+  [key: string]: unknown;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -263,6 +274,58 @@ app.get("/api/requests/:id/tasks/:taskId", async (c) => {
   });
 });
 
+// ─── API: Ideation Sessions ─────────────────────────────────────────────────
+
+app.get("/api/ideation", async (c) => {
+  const ideationDir = `${BASE_DIR}/ideation`;
+  if (!(await dirExists(ideationDir))) {
+    return c.json([]);
+  }
+
+  const dirs = await listDirs(ideationDir);
+  const sessions: IdeationSession[] = [];
+
+  for (const dir of dirs) {
+    const sessionJson = await readJsonFile<IdeationSession>(
+      `${ideationDir}/${dir}/session.json`
+    );
+    if (sessionJson) {
+      sessions.push({ ...sessionJson, id: sessionJson.id || dir });
+    }
+  }
+
+  return c.json(sessions);
+});
+
+app.get("/api/ideation/:id", async (c) => {
+  const id = c.req.param("id");
+  const sessionDir = `${BASE_DIR}/ideation/${id}`;
+
+  const session = await readJsonFile<IdeationSession>(
+    `${sessionDir}/session.json`
+  );
+  if (!session) {
+    return c.json({ error: "Session not found" }, 404);
+  }
+
+  const opinionCodex = await readTextFile(`${sessionDir}/opinion-codex.md`);
+  const opinionGemini = await readTextFile(`${sessionDir}/opinion-gemini.md`);
+  const opinionClaude = await readTextFile(`${sessionDir}/opinion-claude.md`);
+  const synthesis = await readTextFile(`${sessionDir}/synthesis.md`);
+  const discussion = await readTextFile(`${sessionDir}/discussion.md`);
+
+  return c.json({
+    session: { ...session, id: session.id || id },
+    opinions: {
+      codex: opinionCodex,
+      gemini: opinionGemini,
+      claude: opinionClaude,
+    },
+    synthesis,
+    discussion,
+  });
+});
+
 // ─── API: Directory Tree (for Document Browser) ─────────────────────────────
 
 app.get("/api/tree", async (c) => {
@@ -451,6 +514,16 @@ function classifyFsEvent(
   if (path.includes("mode.json")) {
     return {
       type: "phase_change",
+      data: { path, kind, timestamp: new Date().toISOString() },
+    };
+  }
+
+  // Pattern: .gran-maestro/ideation/IDN-XXX/...
+  const ideationMatch = path.match(/\.gran-maestro\/ideation\/([^/]+)/);
+  if (ideationMatch) {
+    return {
+      type: "ideation_update",
+      sessionId: ideationMatch[1],
       data: { path, kind, timestamp: new Date().toISOString() },
     };
   }
@@ -1120,6 +1193,137 @@ nav button.active {
   font-size: 13px;
 }
 
+/* ─── Ideation View ────────────────────────────────────────── */
+.ideation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+}
+.ideation-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ideation-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(233, 69, 96, 0.15);
+}
+.ideation-card.active {
+  border-color: var(--accent);
+}
+.ideation-status {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.ideation-status.collecting {
+  background: rgba(240, 192, 64, 0.15);
+  color: var(--yellow);
+}
+.ideation-status.synthesized {
+  background: rgba(26, 74, 128, 0.3);
+  color: var(--blue-light);
+}
+.ideation-status.discussing {
+  background: rgba(78, 204, 163, 0.15);
+  color: var(--green);
+}
+.ideation-status.completed {
+  background: rgba(106, 106, 122, 0.15);
+  color: var(--gray);
+}
+.opinion-progress {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+.opinion-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+}
+.opinion-chip .op-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.opinion-chip .op-dot.pending {
+  background: var(--gray);
+}
+.opinion-chip .op-dot.done {
+  background: var(--green);
+}
+.opinion-chip .op-dot.failed {
+  background: var(--red);
+}
+.opinion-chip .op-dot.collecting {
+  background: var(--yellow);
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+.ideation-detail {
+  margin-top: 16px;
+}
+.opinions-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+@media (max-width: 900px) {
+  .opinions-columns { grid-template-columns: 1fr; }
+}
+.opinion-panel {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.opinion-panel h4 {
+  font-size: 13px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.opinion-panel.codex h4 { color: var(--accent); }
+.opinion-panel.gemini h4 { color: var(--yellow); }
+.opinion-panel.claude h4 { color: var(--green); }
+.synthesis-panel, .discussion-panel {
+  margin-top: 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+.synthesis-panel h4 { color: var(--green); font-size: 14px; margin-bottom: 10px; }
+.discussion-panel h4 { color: var(--blue-light); font-size: 14px; margin-bottom: 10px; }
+.ideation-back {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  font-family: var(--font-sans);
+  transition: color 0.2s, border-color 0.2s;
+}
+.ideation-back:hover { color: var(--text-primary); border-color: var(--accent); }
+
 /* ─── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
@@ -1150,6 +1354,7 @@ nav button.active {
     <button data-view="agents" onclick="switchView('agents')">Agents</button>
     <button data-view="documents" onclick="switchView('documents')">Documents</button>
     <button data-view="log" onclick="switchView('log')">Log</button>
+    <button data-view="ideation" onclick="switchView('ideation')">Ideation</button>
     <button data-view="dependencies" onclick="switchView('dependencies')">Dependencies</button>
     <button data-view="settings" onclick="switchView('settings')">Settings</button>
   </nav>
@@ -1173,6 +1378,8 @@ let logSelectedTask = '';
 let notifications = [];
 let notificationUnread = 0;
 let showNotificationPanel = false;
+let ideationSessions = [];
+let ideationActiveSession = null;
 
 // ─── API Helpers ────────────────────────────────────────────────────────────
 function apiHeaders() {
@@ -1707,8 +1914,119 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+// ─── Ideation View ──────────────────────────────────────────────────────────
+
+function renderIdeation() {
+  // Detail view for a specific session
+  if (ideationActiveSession) {
+    const s = ideationActiveSession.session;
+    const ops = ideationActiveSession.opinions || {};
+    const statusCls = (s.status || 'collecting').toLowerCase();
+
+    let html = '<button class="ideation-back" onclick="closeIdeationDetail()">&larr; Back to sessions</button>';
+    html += '<div class="card"><div class="card-title">' + escapeHtml(s.id) + ': ' + escapeHtml(s.topic) + '</div>';
+    html += '<div class="card-subtitle"><span class="ideation-status ' + statusCls + '">' + escapeHtml(s.status || 'collecting') + '</span>';
+    if (s.focus) html += ' &middot; Focus: ' + escapeHtml(s.focus);
+    if (s.created_at) html += ' &middot; ' + new Date(s.created_at).toLocaleString();
+    html += '</div>';
+
+    // Opinion progress chips
+    html += '<div class="opinion-progress">';
+    ['codex', 'gemini', 'claude'].forEach(function(ai) {
+      const opData = (s.opinions || {})[ai] || {};
+      const st = opData.status || 'pending';
+      const dotCls = st === 'done' ? 'done' : st === 'failed' ? 'failed' : st === 'pending' && statusCls === 'collecting' ? 'collecting' : 'pending';
+      html += '<div class="opinion-chip"><div class="op-dot ' + dotCls + '"></div>' + ai + '</div>';
+    });
+    html += '</div></div>';
+
+    // Three-column opinions
+    const hasAnyOpinion = ops.codex || ops.gemini || ops.claude;
+    if (hasAnyOpinion) {
+      html += '<div class="opinions-columns">';
+      [['codex', 'Codex (Technical)', ops.codex],
+       ['gemini', 'Gemini (Strategic)', ops.gemini],
+       ['claude', 'Claude (Critical)', ops.claude]
+      ].forEach(function(arr) {
+        const cls = arr[0], label = arr[1], content = arr[2];
+        html += '<div class="opinion-panel ' + cls + '"><h4>' + label + '</h4>';
+        if (content) {
+          html += '<div class="doc-content" style="background:transparent;border:none;padding:0">' + renderMarkdown(content) + '</div>';
+        } else {
+          html += '<div style="color:var(--text-muted);font-size:13px">Waiting for response...</div>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Synthesis
+    if (ideationActiveSession.synthesis) {
+      html += '<div class="synthesis-panel"><h4>PM Synthesis</h4>';
+      html += '<div class="doc-content" style="background:transparent;border:none;padding:0">' + renderMarkdown(ideationActiveSession.synthesis) + '</div>';
+      html += '</div>';
+    }
+
+    // Discussion
+    if (ideationActiveSession.discussion) {
+      html += '<div class="discussion-panel"><h4>Discussion</h4>';
+      html += '<div class="doc-content" style="background:transparent;border:none;padding:0">' + renderMarkdown(ideationActiveSession.discussion) + '</div>';
+      html += '</div>';
+    }
+
+    return html;
+  }
+
+  // List view
+  if (ideationSessions.length === 0) {
+    return '<div class="empty-state"><div class="icon">&#128161;</div>' +
+      '<h2>No Ideation Sessions</h2>' +
+      '<p>Run /mst:ideation to start a multi-AI brainstorming session.</p></div>';
+  }
+
+  let html = '<div class="ideation-grid">';
+  ideationSessions.forEach(function(s) {
+    const statusCls = (s.status || 'collecting').toLowerCase();
+
+    html += '<div class="ideation-card" onclick="loadIdeationSession(\\'' + escapeHtml(s.id) + '\\')">';
+    html += '<div class="card-title">' + escapeHtml(s.id) + '</div>';
+    html += '<div style="font-size:13px;color:var(--text-primary);margin-bottom:8px">' + escapeHtml(s.topic || '') + '</div>';
+    html += '<div class="card-subtitle"><span class="ideation-status ' + statusCls + '">' + escapeHtml(s.status || 'collecting') + '</span>';
+    if (s.focus) html += ' &middot; ' + escapeHtml(s.focus);
+    if (s.created_at) html += ' &middot; ' + new Date(s.created_at).toLocaleDateString();
+    html += '</div>';
+
+    // Opinion progress
+    html += '<div class="opinion-progress">';
+    ['codex', 'gemini', 'claude'].forEach(function(ai) {
+      const opData = (s.opinions || {})[ai] || {};
+      const st = opData.status || 'pending';
+      const dotCls = st === 'done' ? 'done' : st === 'failed' ? 'failed' : st === 'pending' && statusCls === 'collecting' ? 'collecting' : 'pending';
+      html += '<div class="opinion-chip"><div class="op-dot ' + dotCls + '"></div>' + ai + '</div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+async function loadIdeationSession(id) {
+  try {
+    ideationActiveSession = await apiFetch('/api/ideation/' + encodeURIComponent(id));
+    renderCurrentView();
+  } catch (e) {
+    showToast('Error loading session: ' + e.message);
+  }
+}
+
+function closeIdeationDetail() {
+  ideationActiveSession = null;
+  renderCurrentView();
+}
+
 // ─── View Switching ─────────────────────────────────────────────────────────
 function switchView(view) {
+  ideationActiveSession = null;
   currentView = view;
   document.querySelectorAll('nav button').forEach(b => {
     b.classList.toggle('active', b.getAttribute('data-view') === view);
@@ -1723,6 +2041,7 @@ function renderCurrentView() {
     case 'agents': main.innerHTML = renderAgents(); break;
     case 'documents': main.innerHTML = renderDocuments(); break;
     case 'log': main.innerHTML = renderLog(); break;
+    case 'ideation': main.innerHTML = renderIdeation(); break;
     case 'dependencies': main.innerHTML = renderDependencies(); break;
     case 'settings': main.innerHTML = renderSettings(); break;
   }
@@ -1743,6 +2062,14 @@ async function loadData() {
   try { config = await apiFetch('/api/config'); } catch { config = {}; }
   try { modeStatus = await apiFetch('/api/mode'); } catch { modeStatus = {}; }
   try { docTree = await apiFetch('/api/tree'); } catch { docTree = []; }
+  try { ideationSessions = await apiFetch('/api/ideation'); } catch { ideationSessions = []; }
+
+  // Auto-refresh active ideation detail
+  if (ideationActiveSession && currentView === 'ideation') {
+    try {
+      ideationActiveSession = await apiFetch('/api/ideation/' + encodeURIComponent(ideationActiveSession.session.id));
+    } catch { /* keep stale data */ }
+  }
 
   renderCurrentView();
 }
@@ -1807,8 +2134,13 @@ function connectSSE() {
         }
       }
 
+      // Ideation updates
+      if (event.type === 'ideation_update') {
+        addNotification('Ideation ' + (event.sessionId || '?') + ' updated');
+      }
+
       // Refresh data on meaningful events
-      if (['task_update', 'request_update', 'phase_change', 'config_change'].includes(event.type)) {
+      if (['task_update', 'request_update', 'phase_change', 'config_change', 'ideation_update'].includes(event.type)) {
         loadData();
       }
     } catch { /* ignore parse errors */ }
