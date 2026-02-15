@@ -1,6 +1,6 @@
 ---
-name: md
-description: "로컬 대시보드 서버를 시작하거나 엽니다. 사용자가 '대시보드', '대시보드 열어', '모니터링'을 말하거나 /md를 호출할 때 사용. CLI 터미널 상태 확인에는 /ml 또는 /mst를 사용."
+name: dashboard
+description: "로컬 대시보드 서버를 시작하거나 엽니다. 사용자가 '대시보드', '대시보드 열어', '모니터링'을 말하거나 /mst:dashboard를 호출할 때 사용. CLI 터미널 상태 확인에는 /mst:list 또는 /mst:status를 사용."
 user-invocable: true
 argument-hint: "[--port {포트}] [--stop]"
 ---
@@ -94,14 +94,14 @@ PID: <pid> (saved to .gran-maestro/dashboard.pid)
 ## 예시
 
 ```
-/md              # 대시보드 시작/열기
-/md --stop       # 대시보드 중지
-/md --port 8080  # 커스텀 포트
+/mst:dashboard              # 대시보드 시작/열기
+/mst:dashboard --stop       # 대시보드 중지
+/mst:dashboard --port 8080  # 커스텀 포트
 ```
 
 ## 문제 해결
 
 - "Deno를 찾을 수 없음" → `deno --version`으로 설치 확인. https://deno.land 에서 설치
-- "포트가 이미 사용 중" → 기존 대시보드가 실행 중일 수 있음. `/md --stop`으로 중지 후 재시작. 또는 `--port`로 다른 포트 사용
+- "포트가 이미 사용 중" → 기존 대시보드가 실행 중일 수 있음. `/mst:dashboard --stop`으로 중지 후 재시작. 또는 `--port`로 다른 포트 사용
 - "서버 시작 실패" → `/tmp/gran-maestro-dashboard.log` 로그 파일 확인. Deno 권한 문제 시 `--allow-net` 등 플래그 확인
 - "브라우저가 열리지 않음" → 토큰 URL을 수동으로 복사하여 브라우저에 입력

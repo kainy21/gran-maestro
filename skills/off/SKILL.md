@@ -1,6 +1,6 @@
 ---
-name: moff
-description: "Maestro 모드를 비활성화하고 OMC로 복귀합니다. 사용자가 '마에스트로 꺼', 'OMC로 돌아가', '지휘자 모드 끝'을 말하거나 /moff를 호출할 때 사용. 요청 취소에는 /mc를 사용."
+name: off
+description: "Maestro 모드를 비활성화하고 OMC로 복귀합니다. 사용자가 '마에스트로 꺼', 'OMC로 돌아가', '지휘자 모드 끝'을 말하거나 /mst:off를 호출할 때 사용. 요청 취소에는 /mst:cancel을 사용."
 user-invocable: true
 argument-hint: "[--force]"
 ---
@@ -31,7 +31,7 @@ Gran Maestro 모드를 비활성화하고 OMC 모드로 복귀합니다.
 ## 자동 비활성화
 
 `auto_deactivate: true`이고 모든 `active_requests`가 완료(Phase 5)되면
-자동으로 OMC 모드로 복귀합니다. 이 경우 `/moff`를 수동으로 호출할 필요가 없습니다.
+자동으로 OMC 모드로 복귀합니다. 이 경우 `/mst:off`를 수동으로 호출할 필요가 없습니다.
 
 ## 옵션
 
@@ -55,11 +55,11 @@ Claude Code가 직접 구현 + 오케스트레이션 역할로 돌아갑니다.
   - REQ-003: Phase 1 (분석 중)
 
 계속하시겠습니까? 활성 요청은 일시정지됩니다.
-/moff --force 로 강제 전환하거나, 요청을 먼저 완료해주세요.
+/mst:off --force 로 강제 전환하거나, 요청을 먼저 완료해주세요.
 ```
 
 ## 문제 해결
 
 - "Maestro 모드가 활성화되지 않음" → 이미 OMC 모드입니다. `.gran-maestro/mode.json`의 `active` 상태 확인
-- "활성 요청이 남아있음" → `--force` 옵션으로 강제 비활성화하거나, 먼저 `/mc`로 요청을 취소 또는 `/ma --final`로 완료
+- "활성 요청이 남아있음" → `--force` 옵션으로 강제 비활성화하거나, 먼저 `/mst:cancel`로 요청을 취소 또는 `/mst:approve --final`로 완료
 - "OMC 스킬이 복원되지 않음" → 세션 재시작으로 해결. mode.json이 `active: false`인지 확인

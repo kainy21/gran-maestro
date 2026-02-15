@@ -1,6 +1,6 @@
 ---
-name: ma
-description: "스펙을 승인하거나 최종 결과물을 수락합니다. 사용자가 '승인', '진행해', 'OK 진행'을 말하거나 /ma를 호출할 때 사용. Gran Maestro 워크플로우 내에서만 의미 있으며, 일반적인 확인 응답에는 사용하지 않음."
+name: approve
+description: "스펙을 승인하거나 최종 결과물을 수락합니다. 사용자가 '승인', '진행해', 'OK 진행'을 말하거나 /mst:approve를 호출할 때 사용. Gran Maestro 워크플로우 내에서만 의미 있으며, 일반적인 확인 응답에는 사용하지 않음."
 user-invocable: true
 argument-hint: "{REQ-ID} [--final]"
 ---
@@ -38,12 +38,12 @@ PM이 작성한 구현 스펙을 승인하거나, 완료된 결과물을 최종 
 ## 예시
 
 ```
-/ma REQ-001        # 스펙 승인 → Phase 2 진입
-/ma REQ-001 --final  # 최종 수락 → Phase 5 완료
+/mst:approve REQ-001        # 스펙 승인 → Phase 2 진입
+/mst:approve REQ-001 --final  # 최종 수락 → Phase 5 완료
 ```
 
 ## 문제 해결
 
-- "승인할 스펙이 없음" → 해당 요청이 Phase 1(PM 분석) 완료 상태인지 확인. `/mst {REQ-ID}`로 상태 조회
-- "이미 승인됨" → 해당 요청이 이미 Phase 2 이후에 있음. `/mst {REQ-ID}`로 현재 Phase 확인
+- "승인할 스펙이 없음" → 해당 요청이 Phase 1(PM 분석) 완료 상태인지 확인. `/mst:status {REQ-ID}`로 상태 조회
+- "이미 승인됨" → 해당 요청이 이미 Phase 2 이후에 있음. `/mst:status {REQ-ID}`로 현재 Phase 확인
 - "리뷰가 PASS가 아님" (--final 사용 시) → 리뷰 리포트에서 미충족 수락조건 확인. 피드백 루프를 먼저 완료

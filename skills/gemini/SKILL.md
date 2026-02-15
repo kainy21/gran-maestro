@@ -1,6 +1,6 @@
 ---
-name: mg
-description: "Gemini CLI를 직접 호출하여 대용량 컨텍스트 작업을 실행합니다. 사용자가 '제미니 실행', '제미니로', '대용량 분석'을 말하거나 /mg를 호출할 때 사용. Gran Maestro 워크플로우 내 자동 위임에는 사용하지 않음 (Phase 2에서 자동 호출됨)."
+name: gemini
+description: "Gemini CLI를 직접 호출하여 대용량 컨텍스트 작업을 실행합니다. 사용자가 '제미니 실행', '제미니로', '대용량 분석'을 말하거나 /mst:gemini를 호출할 때 사용. Gran Maestro 워크플로우 내 자동 위임에는 사용하지 않음 (Phase 2에서 자동 호출됨)."
 user-invocable: true
 argument-hint: "{프롬프트} [--files {패턴}] [--sandbox]"
 ---
@@ -44,10 +44,10 @@ gemini -p "{prompt}" --sandbox
 ## 예시
 
 ```
-/mg "전체 코드베이스의 문서를 생성해줘"
-/mg --files src/**/*.ts "이 파일들의 API 문서를 작성해줘"
-/mg "대규모 리팩토링 영향 분석"
-/mg --sandbox "이 코드의 보안 취약점을 분석해줘"
+/mst:gemini "전체 코드베이스의 문서를 생성해줘"
+/mst:gemini --files src/**/*.ts "이 파일들의 API 문서를 작성해줘"
+/mst:gemini "대규모 리팩토링 영향 분석"
+/mst:gemini --sandbox "이 코드의 보안 취약점을 분석해줘"
 ```
 
 ## 주의사항

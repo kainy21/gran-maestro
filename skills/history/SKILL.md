@@ -1,6 +1,6 @@
 ---
-name: mh
-description: "완료된 요청의 이력을 조회합니다. 사용자가 '이력', '히스토리', '완료된 요청'을 말하거나 /mh를 호출할 때 사용. 활성 요청 목록은 /ml을, 특정 요청 상세 상태는 /mst를 사용."
+name: history
+description: "완료된 요청의 이력을 조회합니다. 사용자가 '이력', '히스토리', '완료된 요청'을 말하거나 /mst:history를 호출할 때 사용. 활성 요청 목록은 /mst:list를, 특정 요청 상세 상태는 /mst:status를 사용."
 user-invocable: true
 argument-hint: "[{REQ-ID}] [--limit {N}]"
 ---
@@ -34,7 +34,7 @@ REQ-003  "설정 페이지 리팩토링"
 ## 출력 형식 (상세)
 
 ```
-/mh REQ-001
+/mst:history REQ-001
 
 Gran Maestro — REQ-001 이력
 ═══════════════════════════════════════
@@ -68,13 +68,13 @@ Phase 5: 수락 완료
 ## 예시
 
 ```
-/mh              # 전체 완료 이력
-/mh REQ-001      # 특정 요청 상세 이력
-/mh --limit 5    # 최근 5개
+/mst:history              # 전체 완료 이력
+/mst:history REQ-001      # 특정 요청 상세 이력
+/mst:history --limit 5    # 최근 5개
 ```
 
 ## 문제 해결
 
-- "완료된 요청이 없음" → 아직 Phase 5까지 완료된 요청이 없음. `/ml --all`로 전체 요청 상태 확인
-- "REQ-ID를 찾을 수 없음" → ID 형식이 `REQ-NNN`인지 확인. `/ml --completed`로 완료된 요청 ID 조회
+- "완료된 요청이 없음" → 아직 Phase 5까지 완료된 요청이 없음. `/mst:list --all`로 전체 요청 상태 확인
+- "REQ-ID를 찾을 수 없음" → ID 형식이 `REQ-NNN`인지 확인. `/mst:list --completed`로 완료된 요청 ID 조회
 - "이력 데이터 불완전" → `request.json`의 Phase 기록이 누락되었을 수 있음. `.gran-maestro/requests/{REQ-ID}/` 디렉토리 내용 확인

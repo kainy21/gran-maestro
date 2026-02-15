@@ -1,6 +1,6 @@
 ---
-name: mo
-description: "Maestro 모드를 활성화합니다 (OMC 오케스트레이션 비활성화). 사용자가 '마에스트로 켜', '마에스트로 시작', '지휘자 모드'를 말하거나 /mo를 호출할 때 사용. 새 요청 시작은 /ms를 사용 (자동 부트스트래핑 포함)."
+name: on
+description: "Maestro 모드를 활성화합니다 (OMC 오케스트레이션 비활성화). 사용자가 '마에스트로 켜', '마에스트로 시작', '지휘자 모드'를 말하거나 /mst:on을 호출할 때 사용. 새 요청 시작은 /mst:start를 사용 (자동 부트스트래핑 포함)."
 user-invocable: true
 argument-hint: ""
 ---
@@ -16,8 +16,8 @@ Maestro 오케스트레이션 스킬이 활성화됩니다.
 - `/autopilot`, `/ralph`, `/ultrawork`, `/team`, `/pipeline`, `/ultrapilot`, `/swarm`, `/ecomode`
 
 ### Maestro 모드에서 사용 가능한 스킬
-- Maestro 오케스트레이션: `/ms`, `/ml`, `/mst`, `/ma`, `/mf`, `/mc`, `/md`, `/mp`, `/mh`, `/mcf`
-- CLI 직접 호출: `/mx`, `/mg` (모드 무관)
+- Maestro 오케스트레이션: `/mst:start`, `/mst:list`, `/mst:status`, `/mst:approve`, `/mst:feedback`, `/mst:cancel`, `/mst:dashboard`, `/mst:priority`, `/mst:history`, `/mst:config`
+- CLI 직접 호출: `/mst:codex`, `/mst:gemini` (모드 무관)
 - 단발 분석/리뷰: `/analyze`, `/deepsearch`, `/code-review`, `/security-review` (모드 무관)
 - 유틸리티: `/note`, `/plan`, `/trace`, `/doctor` (모드 무관)
 
@@ -53,7 +53,7 @@ Gran Maestro 모드 활성화
 - 분석/스펙/리뷰: 활성
 
 OMC 오케스트레이션 스킬이 비활성화되었습니다.
-/ms 로 새 요청을 시작하세요.
+/mst:start 로 새 요청을 시작하세요.
 ```
 
 ## 부트스트래핑 참조
@@ -67,4 +67,4 @@ OMC 오케스트레이션 스킬이 비활성화되었습니다.
 
 - "이미 Maestro 모드가 활성화됨" → `.gran-maestro/mode.json`의 `active: true` 확인. 이미 활성 상태이면 추가 작업 불필요
 - "config.json 생성 실패" → 현재 디렉토리의 쓰기 권한 확인. git 저장소 루트에서 실행 중인지 확인
-- "OMC 스킬이 여전히 활성" → 세션을 재시작하면 모드 전환이 적용됨. `/moff` 후 `/mo`로 재활성화 시도
+- "OMC 스킬이 여전히 활성" → 세션을 재시작하면 모드 전환이 적용됨. `/mst:off` 후 `/mst:on`으로 재활성화 시도

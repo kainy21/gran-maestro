@@ -1,6 +1,6 @@
 ---
-name: mcf
-description: "Gran Maestro 설정을 조회하거나 변경합니다. 사용자가 '설정', '설정 변경', '환경 설정'을 말하거나 /mcf를 호출할 때 사용. 모드 전환에는 /mo 또는 /moff를 사용."
+name: config
+description: "Gran Maestro 설정을 조회하거나 변경합니다. 사용자가 '설정', '설정 변경', '환경 설정'을 말하거나 /mst:config를 호출할 때 사용. 모드 전환에는 /mst:on 또는 /mst:off를 사용."
 user-invocable: true
 argument-hint: "[{key} [{value}]]"
 ---
@@ -51,15 +51,15 @@ Gran Maestro의 설정을 조회하거나 변경합니다.
 ## 예시
 
 ```
-/mcf                                        # 전체 설정 표시
-/mcf workflow.max_feedback_rounds            # 특정 설정 조회
-/mcf workflow.max_feedback_rounds 3          # 최대 피드백 3회로 변경
-/mcf workflow.auto_approve_spec true         # 스펙 자동 승인 활성화
-/mcf workflow.default_agent gemini-dev       # 기본 에이전트를 Gemini로 변경
+/mst:config                                        # 전체 설정 표시
+/mst:config workflow.max_feedback_rounds            # 특정 설정 조회
+/mst:config workflow.max_feedback_rounds 3          # 최대 피드백 3회로 변경
+/mst:config workflow.auto_approve_spec true         # 스펙 자동 승인 활성화
+/mst:config workflow.default_agent gemini-dev       # 기본 에이전트를 Gemini로 변경
 ```
 
 ## 문제 해결
 
-- "config.json을 찾을 수 없음" → Maestro 모드가 초기화되지 않았습니다. `/mo`로 활성화하거나 `/ms`로 첫 요청을 시작하면 자동 생성됨
+- "config.json을 찾을 수 없음" → Maestro 모드가 초기화되지 않았습니다. `/mst:on`으로 활성화하거나 `/mst:start`로 첫 요청을 시작하면 자동 생성됨
 - "잘못된 키" → 위 설정 항목 표에서 정확한 키 이름 확인. 점(`.`) 구분자로 중첩 접근 (예: `workflow.max_feedback_rounds`)
 - "타입 불일치" → boolean 값은 `true`/`false`, number 값은 숫자만 입력. 문자열은 따옴표 없이 입력

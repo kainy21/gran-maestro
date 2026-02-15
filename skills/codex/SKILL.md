@@ -1,6 +1,6 @@
 ---
-name: mx
-description: "Codex CLI를 직접 호출하여 코드 작업을 실행합니다. 사용자가 '코덱스 실행', '코덱스로', '코드 작업'을 말하거나 /mx를 호출할 때 사용. Gran Maestro 워크플로우 내 자동 위임에는 사용하지 않음 (Phase 2에서 자동 호출됨)."
+name: codex
+description: "Codex CLI를 직접 호출하여 코드 작업을 실행합니다. 사용자가 '코덱스 실행', '코덱스로', '코드 작업'을 말하거나 /mst:codex를 호출할 때 사용. Gran Maestro 워크플로우 내 자동 위임에는 사용하지 않음 (Phase 2에서 자동 호출됨)."
 user-invocable: true
 argument-hint: "{프롬프트} [--dir {경로}] [--json]"
 ---
@@ -46,10 +46,10 @@ codex exec --full-auto -C {working_dir} -o {output_file} "{prompt}"
 ## 예시
 
 ```
-/mx "이 프로젝트의 아키텍처를 분석해줘"
-/mx --dir ./src "이 모듈의 의존성을 리팩토링해줘"
-/mx --json "package.json 의존성 분석"
-/mx --output analysis.md "전체 코드 품질 리포트 작성"
+/mst:codex "이 프로젝트의 아키텍처를 분석해줘"
+/mst:codex --dir ./src "이 모듈의 의존성을 리팩토링해줘"
+/mst:codex --json "package.json 의존성 분석"
+/mst:codex --output analysis.md "전체 코드 품질 리포트 작성"
 ```
 
 ## 주의사항
@@ -62,5 +62,5 @@ codex exec --full-auto -C {working_dir} -o {output_file} "{prompt}"
 
 - "codex: command not found" → Codex CLI가 설치되지 않았습니다. `npm install -g @openai/codex`로 설치
 - "작업 디렉토리를 찾을 수 없음" → `--dir` 경로가 존재하는지 확인. 상대경로는 현재 디렉토리 기준으로 해석됨
-- "타임아웃" → 대규모 작업 시 `/mcf timeouts.cli_large_task_ms`로 타임아웃 값 확인. 필요 시 증가
+- "타임아웃" → 대규모 작업 시 `/mst:config timeouts.cli_large_task_ms`로 타임아웃 값 확인. 필요 시 증가
 - "실행 결과 없음" → Codex CLI의 `--json` 출력을 확인. 프롬프트가 명확한지 검토
