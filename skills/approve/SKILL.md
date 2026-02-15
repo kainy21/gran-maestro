@@ -2,7 +2,7 @@
 name: approve
 description: "스펙을 승인하거나 최종 결과물을 수락합니다. 사용자가 '승인', '진행해', 'OK 진행'을 말하거나 /mst:approve를 호출할 때 사용. Gran Maestro 워크플로우 내에서만 의미 있으며, 일반적인 확인 응답에는 사용하지 않음."
 user-invocable: true
-argument-hint: "{REQ-ID} [--final]"
+argument-hint: "[REQ-ID] [--final]"
 ---
 
 # maestro:approve
@@ -11,9 +11,27 @@ PM이 작성한 구현 스펙을 승인하거나, 완료된 결과물을 최종 
 
 ## 실행 프로토콜
 
+### REQ ID 결정 (인자 없이 호출 시)
+
+`$ARGUMENTS`에 REQ ID가 없으면, 승인 대기 중인 요청을 **REQ 번호 오름차순**으로 자동 선택합니다:
+
+1. `.gran-maestro/requests/` 디렉토리의 모든 `request.json`을 스캔
+2. 승인 가능한 상태의 요청을 필터링:
+   - **스펙 승인 대기**: `current_phase == 1` 이고 `status`가 `phase1_analysis`가 아닌 것 (PM 분석 완료 상태), 또는 `status`가 `phase2_spec_review`인 것
+   - **최종 수락 대기** (`--final` 옵션 시): `current_phase == 3` 이고 `status`가 `phase3_review` 또는 리뷰 PASS 상태
+3. REQ 번호(숫자) 오름차순으로 정렬하여 **첫 번째 요청**을 선택
+4. 승인 대기 중인 요청이 없으면 사용자에게 "승인 대기 중인 요청이 없습니다"라고 알림
+
+예시:
+```
+/mst:approve           # REQ-002가 Phase 1 완료 대기 → REQ-002 스펙 승인
+/mst:approve --final   # REQ-001이 Phase 3 리뷰 PASS → REQ-001 최종 수락
+/mst:approve REQ-003   # 명시적으로 REQ-003 승인 (기존 동작 유지)
+```
+
 ### 스펙 승인 (Phase 1 → Phase 2)
 
-1. `$ARGUMENTS`에서 REQ ID 파싱 (인자 없으면 가장 최근 활성 요청 사용)
+1. REQ ID 결정 (위 규칙에 따라 `$ARGUMENTS`에서 파싱하거나 자동 선택)
 2. `.gran-maestro/requests/{REQ-ID}/tasks/` 하위 spec.md 파일 확인
    - **spec.md가 없는 경우**: Phase 1 분석이 미완료 상태. 사용자에게 알리고 PM Conductor 분석을 재실행하여 spec.md 작성 완료
 3. 스펙 요약을 사용자에게 표시
@@ -102,8 +120,10 @@ Skill(skill: "mst:gemini", args: "{outsource_brief} --files {worktree_path}/**/*
 ## 예시
 
 ```
-/mst:approve REQ-001        # 스펙 승인 → Phase 2 진입
-/mst:approve REQ-001 --final  # 최종 수락 → Phase 5 완료
+/mst:approve                  # 승인 대기 중인 첫 번째 요청 자동 선택 → Phase 2 진입
+/mst:approve --final          # 최종 수락 대기 중인 첫 번째 요청 자동 선택 → Phase 5 완료
+/mst:approve REQ-001          # 명시적으로 REQ-001 스펙 승인 → Phase 2 진입
+/mst:approve REQ-001 --final  # 명시적으로 REQ-001 최종 수락 → Phase 5 완료
 ```
 
 ## 문제 해결
