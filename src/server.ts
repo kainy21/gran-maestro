@@ -60,6 +60,24 @@ interface IdeationSession {
   [key: string]: unknown;
 }
 
+interface DiscussionSession {
+  id: string;
+  topic: string;
+  source_ideation?: string;
+  focus?: string;
+  status: string;
+  max_rounds: number;
+  current_round: number;
+  created_at?: string;
+  rounds?: Array<{
+    round: number;
+    divergences_before: number;
+    divergences_after: number;
+    status: string;
+  }>;
+  [key: string]: unknown;
+}
+
 interface Project {
   id: string;
   name: string;
@@ -629,6 +647,83 @@ projectApi.get("/ideation/:id", async (c) => {
   });
 });
 
+// ─── API: Discussion Sessions ────────────────────────────────────────────────
+
+projectApi.get("/discussion", async (c) => {
+  const baseDir = resolveBaseDir(c.req.param("projectId"));
+  if (!baseDir) {
+    return c.json({ error: "Project not found" }, 404);
+  }
+
+  const discussionDir = `${baseDir}/discussion`;
+  if (!(await dirExists(discussionDir))) {
+    return c.json([]);
+  }
+
+  const dirs = await listDirs(discussionDir);
+  const sessions: DiscussionSession[] = [];
+
+  for (const dir of dirs) {
+    const sessionJson = await readJsonFile<DiscussionSession>(
+      `${discussionDir}/${dir}/session.json`
+    );
+    if (sessionJson) {
+      sessions.push({ ...sessionJson, id: sessionJson.id || dir });
+    }
+  }
+
+  return c.json(sessions);
+});
+
+projectApi.get("/discussion/:id", async (c) => {
+  const baseDir = resolveBaseDir(c.req.param("projectId"));
+  if (!baseDir) {
+    return c.json({ error: "Project not found" }, 404);
+  }
+
+  const id = c.req.param("id");
+  const sessionDir = `${baseDir}/discussion/${id}`;
+
+  const session = await readJsonFile<DiscussionSession>(
+    `${sessionDir}/session.json`
+  );
+  if (!session) {
+    return c.json({ error: "Session not found" }, 404);
+  }
+
+  // Read rounds
+  const rounds: Array<{
+    round: number;
+    codex: string | null;
+    gemini: string | null;
+    claude: string | null;
+    synthesis: string | null;
+  }> = [];
+
+  const roundsDir = `${sessionDir}/rounds`;
+  if (await dirExists(roundsDir)) {
+    const roundDirs = (await listDirs(roundsDir)).sort();
+    for (const rd of roundDirs) {
+      const roundPath = `${roundsDir}/${rd}`;
+      rounds.push({
+        round: parseInt(rd, 10),
+        codex: await readTextFile(`${roundPath}/codex.md`),
+        gemini: await readTextFile(`${roundPath}/gemini.md`),
+        claude: await readTextFile(`${roundPath}/claude.md`),
+        synthesis: await readTextFile(`${roundPath}/synthesis.md`),
+      });
+    }
+  }
+
+  const consensus = await readTextFile(`${sessionDir}/consensus.md`);
+
+  return c.json({
+    session: { ...session, id: session.id || id },
+    rounds,
+    consensus,
+  });
+});
+
 // ─── API: Directory Tree (for Document Browser) ─────────────────────────────
 
 projectApi.get("/tree", async (c) => {
@@ -905,6 +1000,17 @@ function classifyFsEvent(
       type: "ideation_update",
       projectId,
       sessionId: ideationMatch[1],
+      data: { path, kind, timestamp: new Date().toISOString() },
+    };
+  }
+
+  // Pattern: .gran-maestro/discussion/DSC-XXX/...
+  const discussionMatch = path.match(/\.gran-maestro\/discussion\/([^/]+)/);
+  if (discussionMatch) {
+    return {
+      type: "discussion_update",
+      projectId,
+      sessionId: discussionMatch[1],
       data: { path, kind, timestamp: new Date().toISOString() },
     };
   }
@@ -1802,6 +1908,10 @@ nav button.active {
   background: rgba(78, 204, 163, 0.15);
   color: var(--green);
 }
+.ideation-status.debating {
+  background: rgba(240,192,64,0.15);
+  color: var(--yellow);
+}
 .ideation-status.completed {
   background: rgba(106, 106, 122, 0.15);
   color: var(--gray);
@@ -1986,7 +2096,9 @@ let notifications = [];
 let notificationUnread = 0;
 let showNotificationPanel = false;
 let ideationSessions = [];
+let discussionSessions = [];
 let ideationActiveSession = null;
+let discussionActiveSession = null;
 let openDirs = new Set();
 let treeInitialized = false;
 let prevTreeJson = '';
@@ -2644,7 +2756,7 @@ function showToast(msg) {
 // ─── Ideation View ──────────────────────────────────────────────────────────
 
 function renderIdeation() {
-  // Detail view for a specific session
+  // Detail view for a specific ideation session
   if (ideationActiveSession) {
     const s = ideationActiveSession.session;
     const ops = ideationActiveSession.opinions || {};
@@ -2704,34 +2816,109 @@ function renderIdeation() {
     return html;
   }
 
-  // List view
-  if (ideationSessions.length === 0) {
+  // Detail view for a specific discussion session
+  if (discussionActiveSession) {
+    const s = discussionActiveSession.session;
+    const rounds = discussionActiveSession.rounds || [];
+    const statusCls = (s.status || 'initializing').toLowerCase();
+
+    let html = '<button class="ideation-back" onclick="closeDiscussionDetail()">&larr; Back to sessions</button>';
+    html += '<div class="card"><div class="card-title">' + escapeHtml(s.id) + ': ' + escapeHtml(s.topic) + '</div>';
+    html += '<div class="card-subtitle"><span class="ideation-status ' + statusCls + '">' + escapeHtml(s.status || 'initializing') + '</span>';
+    html += ' &middot; Round ' + (s.current_round || 0) + '/' + (s.max_rounds || 5);
+    if (s.source_ideation) html += ' &middot; from ' + escapeHtml(s.source_ideation);
+    if (s.focus) html += ' &middot; Focus: ' + escapeHtml(s.focus);
+    if (s.created_at) html += ' &middot; ' + new Date(s.created_at).toLocaleString();
+    html += '</div></div>';
+
+    // Rounds
+    rounds.forEach(function(r) {
+      html += '<div class="card" style="margin-top:12px">';
+      html += '<div class="card-title" style="font-size:14px">Round ' + r.round + '</div>';
+
+      // Three-column opinions for this round
+      const hasAny = r.codex || r.gemini || r.claude;
+      if (hasAny) {
+        html += '<div class="opinions-columns">';
+        [['codex', 'Codex', r.codex],
+         ['gemini', 'Gemini', r.gemini],
+         ['claude', 'Claude', r.claude]
+        ].forEach(function(arr) {
+          const cls = arr[0], label = arr[1], content = arr[2];
+          html += '<div class="opinion-panel ' + cls + '"><h4>' + label + '</h4>';
+          if (content) {
+            html += '<div class="doc-content" style="background:transparent;border:none;padding:0;font-size:12px">' + renderMarkdown(content) + '</div>';
+          } else {
+            html += '<div style="color:var(--text-muted);font-size:12px">No response</div>';
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+
+      // Round synthesis
+      if (r.synthesis) {
+        html += '<div class="synthesis-panel" style="margin-top:8px"><h4>Round ' + r.round + ' Synthesis</h4>';
+        html += '<div class="doc-content" style="background:transparent;border:none;padding:0;font-size:12px">' + renderMarkdown(r.synthesis) + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+
+    // Consensus
+    if (discussionActiveSession.consensus) {
+      html += '<div class="synthesis-panel" style="margin-top:12px;border-color:var(--green)"><h4 style="color:var(--green)">Consensus</h4>';
+      html += '<div class="doc-content" style="background:transparent;border:none;padding:0">' + renderMarkdown(discussionActiveSession.consensus) + '</div>';
+      html += '</div>';
+    }
+
+    return html;
+  }
+
+  // List view — merge ideation + discussion sessions
+  const allSessions = [];
+  ideationSessions.forEach(function(s) { allSessions.push({ ...s, _type: 'ideation' }); });
+  discussionSessions.forEach(function(s) { allSessions.push({ ...s, _type: 'discussion' }); });
+  allSessions.sort(function(a, b) { return (b.created_at || '').localeCompare(a.created_at || ''); });
+
+  if (allSessions.length === 0) {
     return '<div class="empty-state"><div class="icon">&#128161;</div>' +
-      '<h2>No Ideation Sessions</h2>' +
-      '<p>Run /mst:ideation to start a multi-AI brainstorming session.</p></div>';
+      '<h2>No Sessions</h2>' +
+      '<p>Run /mst:ideation or /mst:discussion to start.</p></div>';
   }
 
   let html = '<div class="ideation-grid">';
-  ideationSessions.forEach(function(s) {
+  allSessions.forEach(function(s) {
+    const isDiscussion = s._type === 'discussion';
     const statusCls = (s.status || 'collecting').toLowerCase();
+    const onclick = isDiscussion
+      ? 'loadDiscussionSession(\\'' + escapeHtml(s.id) + '\\')'
+      : 'loadIdeationSession(\\'' + escapeHtml(s.id) + '\\')';
 
-    html += '<div class="ideation-card" onclick="loadIdeationSession(\\'' + escapeHtml(s.id) + '\\')">';
-    html += '<div class="card-title">' + escapeHtml(s.id) + '</div>';
+    html += '<div class="ideation-card" onclick="' + onclick + '">';
+    html += '<div class="card-title">';
+    html += '<span style="font-size:11px;padding:1px 6px;border-radius:3px;margin-right:6px;background:' + (isDiscussion ? 'rgba(240,192,64,0.15);color:var(--yellow)' : 'rgba(100,200,120,0.15);color:var(--green)') + '">' + (isDiscussion ? 'DSC' : 'IDN') + '</span>';
+    html += escapeHtml(s.id) + '</div>';
     html += '<div style="font-size:13px;color:var(--text-primary);margin-bottom:8px">' + escapeHtml(s.topic || '') + '</div>';
     html += '<div class="card-subtitle"><span class="ideation-status ' + statusCls + '">' + escapeHtml(s.status || 'collecting') + '</span>';
+    if (isDiscussion && s.current_round != null) html += ' &middot; Round ' + s.current_round + '/' + (s.max_rounds || 5);
     if (s.focus) html += ' &middot; ' + escapeHtml(s.focus);
     if (s.created_at) html += ' &middot; ' + new Date(s.created_at).toLocaleDateString();
     html += '</div>';
 
-    // Opinion progress
-    html += '<div class="opinion-progress">';
-    ['codex', 'gemini', 'claude'].forEach(function(ai) {
-      const opData = (s.opinions || {})[ai] || {};
-      const st = opData.status || 'pending';
-      const dotCls = st === 'done' ? 'done' : st === 'failed' ? 'failed' : st === 'pending' && statusCls === 'collecting' ? 'collecting' : 'pending';
-      html += '<div class="opinion-chip"><div class="op-dot ' + dotCls + '"></div>' + ai + '</div>';
-    });
-    html += '</div></div>';
+    // Opinion progress (ideation only)
+    if (!isDiscussion && s.opinions) {
+      html += '<div class="opinion-progress">';
+      ['codex', 'gemini', 'claude'].forEach(function(ai) {
+        const opData = (s.opinions || {})[ai] || {};
+        const st = opData.status || 'pending';
+        const dotCls = st === 'done' ? 'done' : st === 'failed' ? 'failed' : st === 'pending' && statusCls === 'collecting' ? 'collecting' : 'pending';
+        html += '<div class="opinion-chip"><div class="op-dot ' + dotCls + '"></div>' + ai + '</div>';
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
   });
   html += '</div>';
   return html;
@@ -2739,7 +2926,18 @@ function renderIdeation() {
 
 async function loadIdeationSession(id) {
   try {
+    discussionActiveSession = null;
     ideationActiveSession = await apiFetch('/ideation/' + encodeURIComponent(id));
+    renderCurrentView();
+  } catch (e) {
+    showToast('Error loading session: ' + e.message);
+  }
+}
+
+async function loadDiscussionSession(id) {
+  try {
+    ideationActiveSession = null;
+    discussionActiveSession = await apiFetch('/discussion/' + encodeURIComponent(id));
     renderCurrentView();
   } catch (e) {
     showToast('Error loading session: ' + e.message);
@@ -2748,6 +2946,11 @@ async function loadIdeationSession(id) {
 
 function closeIdeationDetail() {
   ideationActiveSession = null;
+  renderCurrentView();
+}
+
+function closeDiscussionDetail() {
+  discussionActiveSession = null;
   renderCurrentView();
 }
 
@@ -2785,6 +2988,7 @@ function updateApprovalBanner() {
 // ─── View Switching ─────────────────────────────────────────────────────────
 function switchView(view) {
   ideationActiveSession = null;
+  discussionActiveSession = null;
   currentView = view;
   document.querySelectorAll('nav button').forEach(b => {
     b.classList.toggle('active', b.getAttribute('data-view') === view);
@@ -2859,11 +3063,17 @@ async function loadData() {
   try { modeStatus = await apiFetch('/mode'); } catch { modeStatus = {}; }
   try { docTree = await apiFetch('/tree'); } catch { docTree = []; }
   try { ideationSessions = await apiFetch('/ideation'); } catch { ideationSessions = []; }
+  try { discussionSessions = await apiFetch('/discussion'); } catch { discussionSessions = []; }
 
-  // Auto-refresh active ideation detail
+  // Auto-refresh active ideation/discussion detail
   if (ideationActiveSession && currentView === 'ideation') {
     try {
       ideationActiveSession = await apiFetch('/ideation/' + encodeURIComponent(ideationActiveSession.session.id));
+    } catch { /* keep stale data */ }
+  }
+  if (discussionActiveSession && currentView === 'ideation') {
+    try {
+      discussionActiveSession = await apiFetch('/discussion/' + encodeURIComponent(discussionActiveSession.session.id));
     } catch { /* keep stale data */ }
   }
 
@@ -2964,7 +3174,7 @@ function connectSSE() {
       }
 
       // Refresh data on meaningful events
-      if (['task_update', 'request_update', 'phase_change', 'config_change', 'ideation_update', 'trace_update'].includes(event.type)) {
+      if (['task_update', 'request_update', 'phase_change', 'config_change', 'ideation_update', 'discussion_update', 'trace_update'].includes(event.type)) {
         loadData();
       }
     } catch { /* ignore parse errors */ }
