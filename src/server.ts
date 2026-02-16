@@ -2059,6 +2059,7 @@ nav button.active {
   <div class="approval-banner" id="approval-banner" style="display:none">
     <span class="approval-icon">&#9888;</span>
     <span id="approval-msg">Approval needed</span>
+    <button onclick="dismissApprovalBanner()" style="margin-left:auto;background:none;border:1px solid rgba(240,192,64,0.4);color:var(--yellow);cursor:pointer;padding:2px 8px;border-radius:4px;font-size:12px">&times;</button>
   </div>
   <main id="main-content"></main>
 </div>
@@ -2956,18 +2957,33 @@ function closeDiscussionDetail() {
 
 // ─── Approval Banner Logic ───────────────────────────────────────────────────
 let approvalNotified = new Set();
+let bannerDismissed = new Set();
+
+function dismissApprovalBanner() {
+  const banner = document.getElementById('approval-banner');
+  if (banner) banner.style.display = 'none';
+  // Remember dismissed requests so banner doesn't re-appear until status changes
+  requests.forEach(r => {
+    const st = (r.status || '').toLowerCase();
+    if (st === 'phase1_spec_review' || st === 'phase2_spec_review') {
+      bannerDismissed.add(r.id + ':' + st);
+    }
+  });
+}
 
 function updateApprovalBanner() {
   const banner = document.getElementById('approval-banner');
   const msg = document.getElementById('approval-msg');
   if (!banner || !msg) return;
+  // Only show for explicit spec approval states (Phase 1 complete, awaiting user approval)
   const pending = requests.filter(r => {
     const st = (r.status || '').toLowerCase();
-    return st.includes('approve') || st.includes('review') || st === 'phase2_spec_review';
+    const needsApproval = st === 'phase1_spec_review' || st === 'phase2_spec_review';
+    return needsApproval && !bannerDismissed.has(r.id + ':' + st);
   });
   if (pending.length > 0) {
     const labels = pending.map(r => r.id).join(', ');
-    msg.textContent = labels + ': Approval needed - run /mst:approve to proceed';
+    msg.textContent = labels + ': Spec ready — run /mst:approve to proceed';
     banner.style.display = 'flex';
     // Browser notification (once per request)
     pending.forEach(r => {
