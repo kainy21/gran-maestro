@@ -77,7 +77,7 @@ const BASE_DIR = ".gran-maestro";
 const DEFAULT_PORT = 3847;
 const HOST = "127.0.0.1";
 const SSE_DEBOUNCE_MS = 100;
-const HUB_MODE = Deno.args.includes("--hub");
+const HUB_MODE = true; // Always hub mode — multi-project by default
 const HUB_DIR = `${Deno.env.get("HOME")}/.gran-maestro-hub`;
 
 // ─── Auth Token ─────────────────────────────────────────────────────────────
@@ -2750,13 +2750,8 @@ async function main() {
   console.log(`  Host:      ${HOST}`);
   console.log(`  Port:      ${port}`);
   console.log(`  Auth:      ${config.dashboard_auth === false ? "disabled" : "enabled"}`);
-  if (HUB_MODE) {
-    console.log(`  Hub mode:  enabled`);
-    console.log(`  Hub dir:   ${HUB_DIR}`);
-    console.log(`  Projects:  ${registry.projects.length}`);
-  } else {
-    console.log(`  Watching:  ./${BASE_DIR}/`);
-  }
+  console.log(`  Hub dir:   ${HUB_DIR}`);
+  console.log(`  Projects:  ${registry.projects.length}`);
   console.log("");
 
   // Ensure base directory exists
