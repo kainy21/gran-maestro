@@ -9,7 +9,7 @@
   },
   "keywords": ["claude-code", "plugin", "orchestration", "pm", "ai-agents"],
   "author": "myrtlepn",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
     "typescript": "^5.0.0"
   }

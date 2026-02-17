@@ -126,4 +126,4 @@ gran-maestro/
 
 ## 라이선스
 
-MIT
+Source Available License — 자유롭게 사용할 수 있으나 포크 및 재배포는 금지됩니다. 자세한 내용은 [LICENSE](LICENSE)를 참조하세요.

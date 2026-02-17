@@ -7,7 +7,7 @@
   },
   "repository": "https://github.com/myrtlepn/gran-maestro",
   "homepage": "https://github.com/myrtlepn/gran-maestro",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "keywords": ["orchestration", "pm", "ai-agents", "claude-code"],
   "skills": "./skills/",
   "agents": [
