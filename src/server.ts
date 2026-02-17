@@ -57,6 +57,9 @@ interface IdeationSession {
   status: string;
   created_at?: string;
   opinions?: Record<string, { status: string }>;
+  roles?: Record<string, { perspective: string; type: string; status: string }>;
+  critics?: Record<string, { status: string }>;
+  critic_count?: number;
   [key: string]: unknown;
 }
 
@@ -632,6 +635,8 @@ projectApi.get("/ideation/:id", async (c) => {
   const opinionCodex = await readTextFile(`${sessionDir}/opinion-codex.md`);
   const opinionGemini = await readTextFile(`${sessionDir}/opinion-gemini.md`);
   const opinionClaude = await readTextFile(`${sessionDir}/opinion-claude.md`);
+  const critiqueClaude = await readTextFile(`${sessionDir}/critique-claude.md`);
+  const critiqueCodex = await readTextFile(`${sessionDir}/critique-codex.md`);
   const synthesis = await readTextFile(`${sessionDir}/synthesis.md`);
   const discussion = await readTextFile(`${sessionDir}/discussion.md`);
 
@@ -641,6 +646,10 @@ projectApi.get("/ideation/:id", async (c) => {
       codex: opinionCodex,
       gemini: opinionGemini,
       claude: opinionClaude,
+    },
+    critiques: {
+      claude: critiqueClaude,
+      codex: critiqueCodex,
     },
     synthesis,
     discussion,
@@ -697,6 +706,7 @@ projectApi.get("/discussion/:id", async (c) => {
     codex: string | null;
     gemini: string | null;
     claude: string | null;
+    critiques: { claude: string | null; codex: string | null };
     synthesis: string | null;
   }> = [];
 
@@ -710,6 +720,10 @@ projectApi.get("/discussion/:id", async (c) => {
         codex: await readTextFile(`${roundPath}/codex.md`),
         gemini: await readTextFile(`${roundPath}/gemini.md`),
         claude: await readTextFile(`${roundPath}/claude.md`),
+        critiques: {
+          claude: await readTextFile(`${roundPath}/critique-claude.md`),
+          codex: await readTextFile(`${roundPath}/critique-codex.md`),
+        },
         synthesis: await readTextFile(`${roundPath}/synthesis.md`),
       });
     }
@@ -1972,6 +1986,15 @@ nav button.active {
 .opinion-panel h4 {
   font-size: 13px;
   margin-bottom: 8px;
+}
+.critiques-section { margin-top: 12px; }
+.critiques-section > h4 {
+  color: var(--red, #e06c75);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.opinion-panel.critic { border-left: 2px solid var(--red, #e06c75); }
+.opinion-panel.critic h4 { color: var(--red, #e06c75);
   padding-bottom: 6px;
   border-bottom: 1px solid var(--border);
 }
@@ -2773,7 +2796,7 @@ function renderIdeation() {
     // Opinion progress chips
     html += '<div class="opinion-progress">';
     ['codex', 'gemini', 'claude'].forEach(function(ai) {
-      const opData = (s.opinions || {})[ai] || {};
+      const opData = (s.roles || s.opinions || {})[ai] || {};
       const st = opData.status || 'pending';
       const dotCls = st === 'done' ? 'done' : st === 'failed' ? 'failed' : st === 'pending' && statusCls === 'collecting' ? 'collecting' : 'pending';
       html += '<div class="opinion-chip"><div class="op-dot ' + dotCls + '"></div>' + ai + '</div>';
@@ -2784,12 +2807,13 @@ function renderIdeation() {
     const hasAnyOpinion = ops.codex || ops.gemini || ops.claude;
     if (hasAnyOpinion) {
       html += '<div class="opinions-columns">';
-      [['codex', 'Codex (Technical)', ops.codex],
-       ['gemini', 'Gemini (Strategic)', ops.gemini],
-       ['claude', 'Claude (Critical)', ops.claude]
-      ].forEach(function(arr) {
-        const cls = arr[0], label = arr[1], content = arr[2];
-        html += '<div class="opinion-panel ' + cls + '"><h4>' + label + '</h4>';
+      ['codex', 'gemini', 'claude'].forEach(function(ai) {
+        const role = (s.roles || {})[ai];
+        const label = role && role.perspective
+          ? ai.charAt(0).toUpperCase() + ai.slice(1) + ' (' + escapeHtml(role.perspective) + ')'
+          : (ai === 'codex' ? 'Codex (Technical)' : ai === 'gemini' ? 'Gemini (Strategic)' : 'Claude (Critical)');
+        const content = ops[ai];
+        html += '<div class="opinion-panel ' + ai + '"><h4>' + label + '</h4>';
         if (content) {
           html += '<div class="doc-content" style="background:transparent;border:none;padding:0">' + renderMarkdown(content) + '</div>';
         } else {
@@ -2798,6 +2822,22 @@ function renderIdeation() {
         html += '</div>';
       });
       html += '</div>';
+    }
+
+    // Critiques
+    const crits = ideationActiveSession.critiques || {};
+    if (crits.claude || crits.codex) {
+      html += '<div class="critiques-section"><h4>Critical Review</h4>';
+      html += '<div class="opinions-columns" style="grid-template-columns:repeat(' + (crits.codex ? '2' : '1') + ',1fr)">';
+      if (crits.claude) {
+        html += '<div class="opinion-panel critic"><h4>Claude Critic</h4>';
+        html += '<div class="doc-content" style="background:transparent;border:none;padding:0">' + renderMarkdown(crits.claude) + '</div></div>';
+      }
+      if (crits.codex) {
+        html += '<div class="opinion-panel critic"><h4>Codex Critic</h4>';
+        html += '<div class="doc-content" style="background:transparent;border:none;padding:0">' + renderMarkdown(crits.codex) + '</div></div>';
+      }
+      html += '</div></div>';
     }
 
     // Synthesis
@@ -2841,12 +2881,13 @@ function renderIdeation() {
       const hasAny = r.codex || r.gemini || r.claude;
       if (hasAny) {
         html += '<div class="opinions-columns">';
-        [['codex', 'Codex', r.codex],
-         ['gemini', 'Gemini', r.gemini],
-         ['claude', 'Claude', r.claude]
-        ].forEach(function(arr) {
-          const cls = arr[0], label = arr[1], content = arr[2];
-          html += '<div class="opinion-panel ' + cls + '"><h4>' + label + '</h4>';
+        ['codex', 'gemini', 'claude'].forEach(function(ai) {
+          const role = (s.roles || {})[ai];
+          const label = role && role.perspective
+            ? ai.charAt(0).toUpperCase() + ai.slice(1) + ' (' + escapeHtml(role.perspective) + ')'
+            : ai.charAt(0).toUpperCase() + ai.slice(1);
+          const content = r[ai];
+          html += '<div class="opinion-panel ' + ai + '"><h4>' + label + '</h4>';
           if (content) {
             html += '<div class="doc-content" style="background:transparent;border:none;padding:0;font-size:12px">' + renderMarkdown(content) + '</div>';
           } else {
@@ -2855,6 +2896,22 @@ function renderIdeation() {
           html += '</div>';
         });
         html += '</div>';
+      }
+
+      // Round critiques
+      const rc = r.critiques || {};
+      if (rc.claude || rc.codex) {
+        html += '<div class="critiques-section"><h4>Critical Review</h4>';
+        html += '<div class="opinions-columns" style="grid-template-columns:repeat(' + (rc.codex ? '2' : '1') + ',1fr)">';
+        if (rc.claude) {
+          html += '<div class="opinion-panel critic"><h4>Claude Critic</h4>';
+          html += '<div class="doc-content" style="background:transparent;border:none;padding:0;font-size:12px">' + renderMarkdown(rc.claude) + '</div></div>';
+        }
+        if (rc.codex) {
+          html += '<div class="opinion-panel critic"><h4>Codex Critic</h4>';
+          html += '<div class="doc-content" style="background:transparent;border:none;padding:0;font-size:12px">' + renderMarkdown(rc.codex) + '</div></div>';
+        }
+        html += '</div></div>';
       }
 
       // Round synthesis
@@ -2908,10 +2965,10 @@ function renderIdeation() {
     html += '</div>';
 
     // Opinion progress (ideation only)
-    if (!isDiscussion && s.opinions) {
+    if (!isDiscussion && (s.opinions || s.roles)) {
       html += '<div class="opinion-progress">';
       ['codex', 'gemini', 'claude'].forEach(function(ai) {
-        const opData = (s.opinions || {})[ai] || {};
+        const opData = (s.roles || s.opinions || {})[ai] || {};
         const st = opData.status || 'pending';
         const dotCls = st === 'done' ? 'done' : st === 'failed' ? 'failed' : st === 'pending' && statusCls === 'collecting' ? 'collecting' : 'pending';
         html += '<div class="opinion-chip"><div class="op-dot ' + dotCls + '"></div>' + ai + '</div>';

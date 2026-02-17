@@ -26,20 +26,45 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
      "id": "IDN-NNN",
      "topic": "{사용자 주제}",
      "focus": "{focus 옵션 또는 null}",
-     "status": "collecting",
+     "status": "analyzing",
      "created_at": "ISO-timestamp",
-     "opinions": {
-       "codex": { "status": "pending" },
-       "gemini": { "status": "pending" },
+     "roles": {
+       "codex": { "perspective": "", "type": "opinion", "status": "pending" },
+       "gemini": { "perspective": "", "type": "opinion", "status": "pending" },
+       "claude": { "perspective": "", "type": "opinion", "status": "pending" }
+     },
+     "critics": {
        "claude": { "status": "pending" }
-     }
+     },
+     "critic_count": 1
    }
    ```
 
+### Step 1.5: PM 역할 배정 (Role Assignment)
+
+PM이 주제와 focus를 분석하여 3개 관점을 동적으로 결정합니다.
+
+1. **주제 분석**: 주제의 도메인, 복잡도, 기술적 깊이를 파악
+2. **관점 결정**: 주제에 가장 적합한 3개 관점을 결정
+   - 예시: "아키텍처 설계", "사용자 경험 전략", "성능 최적화"
+   - 주제 특성에 따라 완전히 다른 관점 조합이 가능 (예: 비용 분석, 보안 모델링, 팀 역량 등)
+3. **프로바이더 매칭**: 각 프로바이더의 강점을 고려하여 관점을 배정:
+   - **Codex**: 코드/구현/아키텍처/시스템 설계 관련 관점에 적합
+   - **Gemini**: 넓은 컨텍스트가 필요한 전략/디자인/트렌드/생태계 분석 관점에 적합
+   - **Claude**: 깊은 추론이 필요한 분석/설계/평가/리스크 관점에 적합
+4. **Critic 수 결정**:
+   - **1 critic (Claude)**: 일반적인 주제, 명확한 범위
+   - **2 critics (Claude + Codex)**: 복잡하거나 리스크가 높은 주제, 기술+비즈니스 교차 영역
+5. `session.json` 업데이트:
+   - 각 `roles[provider].perspective`에 배정된 관점명 기록
+   - `critics` 필드 업데이트 (2 critic인 경우 codex 추가)
+   - `critic_count` 업데이트
+   - `status`를 `"collecting"`으로 변경
+
 ### Step 2: 병렬 의견 수집 (Direct File Write)
 
-3개 AI에 **동시에** 질문합니다. 각 AI에 고유 관점을 부여하여 비중복성을 확보합니다.
-각 의견은 800자 이내로 제한합니다.
+3개 AI에 **동시에** 질문합니다. Step 1.5에서 동적으로 배정된 관점에 따라 각 AI에 질문합니다. 각 AI는 `session.json`의 `roles[provider].perspective`에 기록된 관점에서만 분석합니다.
+각 의견은 2000자 이내로 제한합니다.
 
 `--focus` 옵션이 지정된 경우, 해당 분야에 집중하도록 프롬프트에 명시합니다.
 
@@ -55,7 +80,7 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 > - Claude: Task 에이전트에게 Write 도구로 직접 파일 작성을 지시
 
 **Codex** (`/mst:codex` 스킬 + `--output`):
-- 관점: **기술 실현성 분석**
+- 관점: **`roles.codex.perspective`** (session.json에서 동적 로드)
 - 호출 방법:
   ```
   /mst:codex "{prompt}" --output .gran-maestro/ideation/IDN-NNN/opinion-codex.md
@@ -65,15 +90,14 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
   - 프롬프트에 "분석만 수행하고 파일을 수정하지 마세요. 마크다운 형식으로 분석 결과를 출력하세요."를 명시
   - 컨텍스트 파일이 필요하면 프롬프트 내에 파일 경로를 포함
 - 프롬프트 지침:
-  - 구현 옵션을 열거하고 각 옵션의 복잡도를 평가
-  - 아키텍처 트레이드오프 분석 (성능, 유지보수성, 확장성)
-  - 기술 스택 적합성 판단
-  - "전략/창의 분석과 비판적 평가는 다른 AI가 담당하므로, 기술 실현성에만 집중할 것"
+  - "당신의 관점은 **{roles.codex.perspective}**입니다. 이 관점에서만 집중하여 분석하세요."
+  - 해당 관점에 맞는 구체적 분석 수행
+  - "다른 관점({roles.gemini.perspective}, {roles.claude.perspective})은 다른 AI가 담당하므로, {roles.codex.perspective}에만 집중할 것"
 - 결과: `opinion-codex.md`에 직접 저장됨
 - 완료 감지: 백그라운드 작업 완료 시 파일 존재 여부로 판단
 
 **Gemini** (`/mst:gemini` 스킬 + 셸 리디렉션):
-- 관점: **전략/창의 분석**
+- 관점: **`roles.gemini.perspective`** (session.json에서 동적 로드)
 - 호출 방법:
   ```
   /mst:gemini "{prompt}" --sandbox > .gran-maestro/ideation/IDN-NNN/opinion-gemini.md
@@ -82,15 +106,14 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
   - **결과를 직접 파일에 저장** (부모 컨텍스트를 거치지 않음)
   - 컨텍스트 파일이 필요하면 프롬프트 내에 파일 경로를 포함
 - 프롬프트 지침:
-  - 대안적 접근법 제시 (통상적이지 않은 해법 포함)
-  - 생태계 트렌드와 업계 사례 참조
-  - 장기적 영향과 확장 가능성 분석
-  - "기술 실현성 분석과 비판적 평가는 다른 AI가 담당하므로, 전략/창의 분석에만 집중할 것"
+  - "당신의 관점은 **{roles.gemini.perspective}**입니다. 이 관점에서만 집중하여 분석하세요."
+  - 해당 관점에 맞는 구체적 분석 수행
+  - "다른 관점({roles.codex.perspective}, {roles.claude.perspective})은 다른 AI가 담당하므로, {roles.gemini.perspective}에만 집중할 것"
 - 결과: `opinion-gemini.md`에 직접 저장됨
 - 완료 감지: 백그라운드 작업 완료 시 파일 존재 여부로 판단
 
 **Claude** (Task, subagent_type: `general-purpose`, model: `opus`):
-- 관점: **비판적 평가**
+- 관점: **`roles.claude.perspective`** (session.json에서 동적 로드)
 - 호출 방법:
   - `Task(subagent_type: "general-purpose", model: "opus", run_in_background: true)`
   - 프롬프트에 **Write 도구로 직접 파일에 저장하도록 지시**:
@@ -98,11 +121,9 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
      작성 완료 후 '완료'라고만 답하세요."
   - 이렇게 하면 전체 분석 내용이 부모 컨텍스트로 반환되지 않음
 - 프롬프트 지침:
-  - 숨은 가정과 전제 조건 식별
-  - 엣지 케이스와 실패 시나리오 도출
-  - 리스크 요인과 완화 전략
-  - 반론(devil's advocate) 제시
-  - "기술 실현성 분석과 전략/창의 분석은 다른 AI가 담당하므로, 비판적 평가에만 집중할 것"
+  - "당신의 관점은 **{roles.claude.perspective}**입니다. 이 관점에서만 집중하여 분석하세요."
+  - 해당 관점에 맞는 구체적 분석 수행
+  - "다른 관점({roles.codex.perspective}, {roles.gemini.perspective})은 다른 AI가 담당하므로, {roles.claude.perspective}에만 집중할 것"
 - 결과: `opinion-claude.md`에 에이전트가 직접 저장
 - 완료 감지: 백그라운드 작업 완료 시 파일 존재 여부로 판단
 
@@ -111,10 +132,46 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 3개 백그라운드 작업이 모두 완료되면:
 
 1. 각 opinion 파일 존재 여부를 확인:
-   - `opinion-codex.md` 존재 + 비어있지 않음 → `opinions.codex.status = "done"`
-   - `opinion-codex.md` 없음 또는 비어있음 → `opinions.codex.status = "failed"`
+   - `opinion-codex.md` 존재 + 비어있지 않음 → `roles.codex.status = "done"`
+   - `opinion-codex.md` 없음 또는 비어있음 → `roles.codex.status = "failed"`
    - (gemini, claude도 동일)
 2. `session.json`을 한 번에 업데이트 (race condition 방지)
+
+### Step 2.7: Critic 평가 (Critical Review)
+
+3개 의견 파일이 모두 완료된 후, 별도의 비판적 평가 단계를 실행합니다.
+Critic은 모든 의견을 종합적으로 검토하여 의견들 사이의 허점과 리스크를 식별합니다.
+
+**Critic 평가 항목**:
+- 숨은 가정과 전제 조건 식별
+- 의견들 사이의 논리적 허점 지적
+- 엣지 케이스와 실패 시나리오 도출
+- 반론(devil's advocate) 제시
+- 3개 의견이 공통으로 놓친 관점 식별
+
+각 critique는 2000자 이내로 제한합니다.
+
+**Claude Critic** (필수):
+- 호출: `Task(subagent_type: "general-purpose", model: "opus", run_in_background: true)`
+- 프롬프트에 3개 의견 파일 경로를 포함:
+  - `.gran-maestro/ideation/IDN-NNN/opinion-codex.md`
+  - `.gran-maestro/ideation/IDN-NNN/opinion-gemini.md`
+  - `.gran-maestro/ideation/IDN-NNN/opinion-claude.md`
+- Read 도구로 3개 파일을 읽고 비판적 평가 수행
+- Write 도구로 `.gran-maestro/ideation/IDN-NNN/critique-claude.md`에 직접 저장
+- 프롬프트: "3개 AI 의견을 읽고 비판적 평가를 수행하세요. 숨은 가정, 논리적 허점, 엣지 케이스, 반론을 제시하세요. 결과를 critique-claude.md에 Write 도구로 직접 작성하세요. 작성 완료 후 '완료'라고만 답하세요."
+
+**Codex Critic** (`critic_count == 2`인 경우):
+- 호출:
+  ```
+  /mst:codex "{prompt}" --output .gran-maestro/ideation/IDN-NNN/critique-codex.md
+  ```
+  - `run_in_background: true`로 병렬 실행
+  - 3개 의견 파일을 컨텍스트로 전달 (프롬프트 내 파일 경로 포함)
+- 프롬프트: "다음 3개 AI 의견을 읽고 비판적 평가를 수행하세요. (파일 경로 나열). 숨은 가정, 논리적 허점, 엣지 케이스, 반론을 제시하세요."
+
+완료 후 `session.json`의 `critics[provider].status`를 `"done"` 또는 `"failed"`로 업데이트합니다.
+`status`를 `"synthesizing"`으로 변경합니다.
 
 ### Step 3: PM 종합
 
@@ -144,14 +201,24 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 
 ## 각 AI 의견 요약
 
-### Codex (기술 실현성)
-{Codex 의견의 핵심 논지를 3~5줄로 요약. 주요 기술적 근거, 제안한 구현 옵션, 복잡도 평가 결과를 포함}
+### Codex ({roles.codex.perspective})
+{해당 관점에서의 핵심 논지를 3~5줄로 요약}
 
-### Gemini (전략/창의)
-{Gemini 의견의 핵심 논지를 3~5줄로 요약. 제시한 대안적 접근법, 업계 트렌드 참조, 장기적 관점을 포함}
+### Gemini ({roles.gemini.perspective})
+{해당 관점에서의 핵심 논지를 3~5줄로 요약}
 
-### Claude (비판적 평가)
-{Claude 의견의 핵심 논지를 3~5줄로 요약. 식별한 숨은 가정, 엣지 케이스, 리스크 요인을 포함}
+### Claude ({roles.claude.perspective})
+{해당 관점에서의 핵심 논지를 3~5줄로 요약}
+
+---
+
+## 비판적 평가 요약
+
+### Claude Critic
+{Claude critic의 핵심 지적 사항 3~5줄 요약. 숨은 가정, 논리적 허점, 엣지 케이스, 반론 등}
+
+### Codex Critic (해당 시)
+{Codex critic의 핵심 지적 사항 3~5줄 요약 (critic_count == 2인 경우에만 포함)}
 
 ---
 
@@ -169,8 +236,10 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 
 ## 발산점 (의견 차이)
 
-| # | 논점 | Codex 입장 | Gemini 입장 | Claude 입장 | 발산 원인 |
-|---|------|-----------|------------|------------|----------|
+_(열 이름은 roles에서 동적으로 결정됩니다)_
+
+| # | 논점 | {Provider A} 입장 | {Provider B} 입장 | {Provider C} 입장 | 발산 원인 |
+|---|------|-----------------|-----------------|-----------------|----------|
 | 1 | {논점} | {입장 + 근거 요약} | {입장 + 근거 요약} | {입장 + 근거 요약} | {왜 의견이 갈리는지: 전제 차이, 가치관 차이, 정보 차이 등} |
 | 2 | ... | ... | ... | ... | ... |
 
@@ -269,10 +338,12 @@ Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 
 ```
 .gran-maestro/ideation/IDN-NNN/
-├── session.json          # 메타데이터 (id, topic, focus, status, opinions 상태)
-├── opinion-codex.md      # Codex 의견 (기술 실현성)
-├── opinion-gemini.md     # Gemini 의견 (전략/창의)
-├── opinion-claude.md     # Claude 의견 (비판적 평가)
+├── session.json          # 메타데이터 (id, topic, focus, status, roles 상태)
+├── opinion-codex.md      # Codex 의견 (roles.codex.perspective)
+├── opinion-gemini.md     # Gemini 의견 (roles.gemini.perspective)
+├── opinion-claude.md     # Claude 의견 (roles.claude.perspective)
+├── critique-claude.md    # 비판적 평가 (필수)
+├── critique-codex.md     # 비판적 평가 (선택, critic_count == 2)
 ├── synthesis.md          # PM 종합 결과
 └── discussion.md         # 토론 기록 (append-only)
 ```
