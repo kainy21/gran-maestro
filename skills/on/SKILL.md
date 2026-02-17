@@ -24,12 +24,16 @@ Maestro 오케스트레이션 스킬이 활성화됩니다.
 ## 실행 프로토콜
 
 1. `.gran-maestro/` 디렉토리 존재 확인, 없으면 생성
-2. 플러그인 루트 경로 확인 (이 스킬의 Base directory에서 2단계 상위)
-3. `.gran-maestro/config.json` 존재 확인
+2. `.gitignore`에 `.gran-maestro/` 등록:
+   - 프로젝트 루트의 `.gitignore` 파일 읽기 (없으면 생성)
+   - `.gran-maestro/` 패턴이 이미 존재하는지 확인 (정확히 `.gran-maestro/` 또는 `/.gran-maestro/`)
+   - 없으면 파일 끝에 `.gran-maestro/` 한 줄 추가
+3. 플러그인 루트 경로 확인 (이 스킬의 Base directory에서 2단계 상위)
+4. `.gran-maestro/config.json` 존재 확인
    - 없으면: 플러그인 루트의 `templates/defaults/config.json` 내용을 읽어서 `.gran-maestro/config.json`에 저장
-4. `.gran-maestro/agents.json` 존재 확인
+5. `.gran-maestro/agents.json` 존재 확인
    - 없으면: 플러그인 루트의 `templates/defaults/agents.json` 내용을 읽어서 `.gran-maestro/agents.json`에 저장
-5. `.gran-maestro/mode.json` 작성 (always overwrite):
+6. `.gran-maestro/mode.json` 작성 (always overwrite):
    ```json
    {
      "active": true,
@@ -38,9 +42,9 @@ Maestro 오케스트레이션 스킬이 활성화됩니다.
      "previous_mode": "omc"
    }
    ```
-6. `.gran-maestro/requests/` 디렉토리 존재 확인, 없으면 생성
-7. `.gran-maestro/worktrees/` 디렉토리 존재 확인, 없으면 생성
-8. 스크립트 설치:
+7. `.gran-maestro/requests/` 디렉토리 존재 확인, 없으면 생성
+8. `.gran-maestro/worktrees/` 디렉토리 존재 확인, 없으면 생성
+9. 스크립트 설치:
    - 플러그인 루트의 `scripts/maestro-guard.sh`를 `~/.claude/scripts/maestro-guard.sh`에 복사 (이미 존재하면 덮어쓰기)
    - 플러그인 루트의 `scripts/maestro-status.sh`를 `~/.claude/scripts/maestro-status.sh`에 복사 (이미 존재하면 덮어쓰기)
    - `~/.claude/settings.json`의 `hooks.PreToolUse` 배열에 아래 3개 항목이 없으면 추가:
@@ -51,7 +55,7 @@ Maestro 오케스트레이션 스킬이 활성화됩니다.
      ```
    - hook은 Maestro 모드 활성 시 OMC MCP 직접 호출(ask_codex, ask_gemini)과 Task 기반 OMC 구현 에이전트 소환(예: executor/deep-executor/verifier/build-fixer) 차단 시 exit 2로 블록하며, Skill 도구 사용을 안내함
    - Maestro 모드 비활성 시에는 exit 0으로 통과 (hook 설치 후 제거 불필요)
-9. 사용자에게 모드 전환 알림 출력
+10. 사용자에게 모드 전환 알림 출력
 
 ## 출력
 
