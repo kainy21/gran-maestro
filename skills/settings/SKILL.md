@@ -23,6 +23,12 @@ Gran Maestro의 설정을 조회하거나 변경합니다.
 | `workflow.max_feedback_rounds` | 최대 피드백 반복 횟수 | `5` | number |
 | `workflow.auto_approve_spec` | 스펙 자동 승인 여부 | `false` | boolean |
 | `workflow.auto_accept_result` | Phase 3 리뷰 PASS 후 자동 수락 여부 | `true` | boolean |
+| `discussion.response_char_limit` | Discussion 라운드 응답 글자 제한 | `2000` | number |
+| `discussion.critique_char_limit` | Discussion Critic 평가 글자 제한 | `2000` | number |
+| `discussion.default_max_rounds` | Discussion 기본 최대 라운드 수 | `5` | number |
+| `discussion.max_rounds_upper_limit` | Discussion 최대 라운드 상한 | `10` | number |
+| `ideation.opinion_char_limit` | Ideation 의견 글자 제한 | `2000` | number |
+| `ideation.critique_char_limit` | Ideation Critic 평가 글자 제한 | `2000` | number |
 | `workflow.default_agent` | 기본 실행 에이전트 | `codex-dev` | string |
 | `server.port` | 대시보드 포트 | `3847` | number |
 | `server.host` | 대시보드 호스트 | `127.0.0.1` | string |
