@@ -39,6 +39,8 @@ export interface CLIOptions {
   outputFormat?: 'text' | 'json';
   /** When true the CLI should not persist any state between runs. */
   ephemeral?: boolean;
+  /** Model identifier to pass via --model flag (e.g. "gemini-3-pro-preview", "gpt-5.3-codex"). */
+  model?: string;
 }
 
 /** Provider-agnostic interface for invoking an external AI CLI. */
@@ -130,6 +132,9 @@ export class CodexAdapter implements CLIAdapter {
     // -C flag / cwd may differ -- using cwd via process spawn.
     const escapedPrompt = prompt.replace(/"/g, '\\"');
     let cmd = `codex --full-auto "${escapedPrompt}"`;
+    if (opts.model) {
+      cmd += ` --model ${opts.model}`;
+    }
     if (opts.outputFormat === 'json') {
       cmd += ' --json';
     }
@@ -165,7 +170,10 @@ export class GeminiAdapter implements CLIAdapter {
 
   async execute(prompt: string, opts: CLIOptions): Promise<CLIResult> {
     const escapedPrompt = prompt.replace(/"/g, '\\"');
-    let cmd = `gemini -p "${escapedPrompt}" -y`;
+    let cmd = `gemini -p "${escapedPrompt}" --approval-mode yolo`;
+    if (opts.model) {
+      cmd += ` --model ${opts.model}`;
+    }
     if (opts.outputFormat === 'json') {
       cmd += ' --json';
     }

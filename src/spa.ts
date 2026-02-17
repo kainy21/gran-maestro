@@ -987,7 +987,6 @@ nav button.active {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gray); }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
 </head>
 <body>
 <div id="app">
@@ -1081,6 +1080,22 @@ let discussionActiveSession = null;
 let openDirs = new Set();
 let treeInitialized = false;
 let prevTreeJson = '';
+const viewCache = {};
+let loadDataTimer = null;
+let pollInterval = null;
+
+function scheduleLoadData() {
+  if (loadDataTimer) clearTimeout(loadDataTimer);
+  loadDataTimer = setTimeout(loadData, 500);
+}
+
+function startPolling() {
+  if (!pollInterval) pollInterval = setInterval(() => scheduleLoadData(), 10000);
+}
+
+function stopPolling() {
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+}
 
 // ─── Keyboard Shortcuts ─────────────────────────────────────────────────────
 window.addEventListener('keydown', (e) => {
@@ -1118,17 +1133,126 @@ async function apiFetch(path, options = {}) {
   return res.json();
 }
 
-// ─── Markdown Renderer (marked.js with fallback) ────────────────────────────
+// ─── Markdown Renderer (Inline GFM-lite) ────────────────────────────────────
 function renderMarkdown(md) {
   if (!md) return '';
-  // Use marked library if loaded from CDN
-  if (typeof marked !== 'undefined' && marked.parse) {
-    try {
-      return marked.parse(md, { gfm: true, breaks: true });
-    } catch(e) { /* fall through to fallback */ }
-  }
-  // Fallback: escape and show as preformatted text
-  return '<pre style="white-space:pre-wrap">' + escapeHtml(md) + '</pre>';
+  
+  var html = md;
+  var bt = String.fromCharCode(96);
+  var bts = bt + bt + bt;
+
+  // 1. Escaping HTML (XSS Protection)
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // 2. Code blocks
+  var codeBlocks = [];
+  var codeBlockRegex = new RegExp(bts + '([a-zA-Z0-9_]*)\\\\n([\\\\s\\\\S]*?)' + bts, 'g');
+  html = html.replace(codeBlockRegex, function(match, lang, code) {
+    var id = 'CODEBLOCK_' + codeBlocks.length;
+    codeBlocks.push('<pre><code class="language-' + (lang || 'text') + '">' + code.trim() + '</code></pre>');
+    return id;
+  });
+
+  // 3. Inline Code
+  var inlineCodes = [];
+  var inlineCodeRegex = new RegExp(bt + '([^' + bt + ']+)' + bt, 'g');
+  html = html.replace(inlineCodeRegex, function(match, code) {
+    var id = 'INLINE_' + inlineCodes.length;
+    inlineCodes.push('<code>' + code + '</code>');
+    return id;
+  });
+
+  // 4. Block Elements
+  var lines = html.split('\\\\n');
+  var inList = null; 
+  var inTable = false;
+  var inQuote = false;
+  
+  var processedLines = lines.map(function(line, index) {
+    var currentLine = line;
+
+    // Horizontal Rule
+    if (/^([\\\\s]*[-*_]){3,}[\\\\s]*$/.test(currentLine)) return '<hr>';
+
+    // Headers
+    var headerMatch = currentLine.match(/^(#{1,6})[\\\\s]+(.*)$/);
+    if (headerMatch) {
+      var level = headerMatch[1].length;
+      return '<h' + level + '>' + headerMatch[2] + '</h' + level + '>';
+    }
+
+    // Blockquote
+    if (currentLine.indexOf('&gt; ') === 0) {
+      var content = currentLine.substring(5);
+      if (!inQuote) { inQuote = true; return '<blockquote>' + content; }
+      return content;
+    } else if (inQuote) {
+      inQuote = false;
+      return '</blockquote>' + currentLine;
+    }
+
+    // Checkboxes
+    currentLine = currentLine.replace(/^[-*][\\\\s]+\\\\[ \\\\][\\\\s]+(.*)$/, '<li><input type="checkbox" disabled> $1</li>');
+    currentLine = currentLine.replace(/^[-*][\\\\s]+\\\\[x\\\\][\\\\s]+(.*)$/, '<li><input type="checkbox" checked disabled> $1</li>');
+
+    // Lists
+    var ulMatch = currentLine.match(/^([\\\\s]*)[-*][\\\\s]+(.*)$/);
+    var olMatch = currentLine.match(/^([\\\\s]*)[0-9]+\\\\.[\\\\s]+(.*)$/);
+    
+    if (ulMatch || olMatch) {
+      var type = ulMatch ? 'ul' : 'ol';
+      var content = ulMatch ? ulMatch[2] : olMatch[2];
+      var prefix = '';
+      if (inList !== type) {
+        if (inList) prefix += '</' + inList + '>';
+        inList = type;
+        prefix += '<' + type + '>';
+      }
+      return prefix + '<li>' + content + '</li>';
+    } else if (inList) {
+      var suffix = '</' + inList + '>';
+      inList = null;
+      currentLine = suffix + currentLine;
+    }
+
+    // Tables
+    if (currentLine.trim().indexOf('|') === 0 && currentLine.trim().lastIndexOf('|') === currentLine.trim().length - 1) {
+      var cells = currentLine.trim().split('|').filter(function(c) { return c.length > 0; });
+      if (index + 1 < lines.length && /^([\\\\s]*\\\\|?[\\\\s]*:?-+:?[\\\\s]*\\\\|?)+[\\\\s]*$/.test(lines[index+1])) {
+        inTable = true;
+        return '<table><thead><tr>' + cells.map(function(c) { return '<th>' + c.trim() + '</th>'; }).join('') + '</tr></thead><tbody>';
+      } else if (inTable) {
+        if (/^([\\\\s]*\\\\|?[\\\\s]*:?-+:?[\\\\s]*\\\\|?)+[\\\\s]*$/.test(currentLine)) return ''; 
+        return '<tr>' + cells.map(function(c) { return '<td>' + c.trim() + '</td>'; }).join('') + '</tr>';
+      }
+    } else if (inTable) {
+      inTable = false;
+      return '</tbody></table>' + currentLine;
+    }
+
+    // Paragraphs
+    if (currentLine.trim() === '') return '<br>';
+    return currentLine;
+  });
+
+  if (inList) processedLines.push('</' + inList + '>');
+  if (inTable) processedLines.push('</tbody></table>');
+  if (inQuote) processedLines.push('</blockquote>');
+
+  html = processedLines.join('\\\\n');
+
+  // 5. Inline Elements
+  html = html.replace(/\\\\*\\\\*([^\\\\*]+)\\\\*\\\\*/g, '<strong>$1</strong>');
+  html = html.replace(/\\\\*([^\\\\*]+)\\\\*/g, '<em>$1</em>');
+  html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  html = html.replace(/!\\\\[([^\\\\]*)\\\\]\\\\(([^\\\\)]*)\\\\)/g, '<img src="$2" alt="$1">');
+  html = html.replace(/\\\\[([^\\\\]*)\\\\]\\\\(([^\\\\)]*)\\\\)/g, '<a href="$2" target="_blank">$1</a>');
+
+  // 6. Restore protected content
+  inlineCodes.forEach(function(code, i) { html = html.replace('INLINE_' + i, code); });
+  codeBlocks.forEach(function(block, i) { html = html.replace('CODEBLOCK_' + i, block); });
+
+  return html;
 }
 
 // ─── JSON Syntax Highlighting ───────────────────────────────────────────────
@@ -2047,14 +2171,22 @@ function switchView(view) {
 
 function renderCurrentView() {
   const main = document.getElementById('main-content');
+  if (!main) return;
+  
+  let html;
   switch (currentView) {
-    case 'workflow': main.innerHTML = renderWorkflow(); break;
-    case 'agents': main.innerHTML = renderAgents(); break;
-    case 'documents': main.innerHTML = renderDocuments(); break;
-    case 'log': main.innerHTML = renderLog(); break;
-    case 'ideation': main.innerHTML = renderIdeation(); break;
-    case 'dependencies': main.innerHTML = renderDependencies(); break;
-    case 'settings': main.innerHTML = renderSettings(); break;
+    case 'workflow': html = renderWorkflow(); break;
+    case 'agents': html = renderAgents(); break;
+    case 'documents': html = renderDocuments(); break;
+    case 'log': html = renderLog(); break;
+    case 'ideation': html = renderIdeation(); break;
+    case 'dependencies': html = renderDependencies(); break;
+    case 'settings': html = renderSettings(); break;
+  }
+  
+  if (viewCache[currentView] !== html) {
+    viewCache[currentView] = html;
+    main.innerHTML = html;
   }
   updateApprovalBanner();
 }
@@ -2129,14 +2261,6 @@ async function loadData() {
     }
   });
 
-  // Smart render: skip documents view re-render if tree structure unchanged
-  const newTreeJson = JSON.stringify(docTree);
-  if (currentView === 'documents' && newTreeJson === prevTreeJson) {
-    prevTreeJson = newTreeJson;
-    updateApprovalBanner();
-    return; // tree unchanged, preserve DOM state
-  }
-  prevTreeJson = newTreeJson;
   renderCurrentView();
 }
 
@@ -2149,6 +2273,8 @@ function connectSSE() {
     sseConnected = true;
     document.getElementById('connection-status').textContent = 'Connected';
     document.getElementById('connection-dot').classList.remove('disconnected');
+    stopPolling();
+    loadData();
   };
 
   es.onmessage = (e) => {
@@ -2217,7 +2343,7 @@ function connectSSE() {
 
       // Refresh data on meaningful events
       if (['task_update', 'request_update', 'phase_change', 'config_change', 'ideation_update', 'discussion_update', 'trace_update'].includes(event.type)) {
-        loadData();
+        scheduleLoadData();
       }
     } catch { /* ignore parse errors */ }
   };
@@ -2227,6 +2353,7 @@ function connectSSE() {
     document.getElementById('connection-status').textContent = 'Disconnected';
     document.getElementById('connection-dot').classList.add('disconnected');
     es.close();
+    startPolling();
     // Reconnect after 3s
     setTimeout(connectSSE, 3000);
   };
@@ -2239,8 +2366,7 @@ if (searchBar) searchBar.style.display = (currentView === 'workflow') ? 'flex' :
 
 loadData();
 connectSSE();
-// Periodic refresh every 10s as fallback
-setInterval(loadData, 10000);
+startPolling();
 </script>
 </body>
 </html>`;
