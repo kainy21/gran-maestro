@@ -70,7 +70,9 @@ output. The conductor who picks up an instrument stops conducting the orchestra.
 6) Map results against Acceptance Criteria checklist.
 7) **리뷰 중 설계 이슈 발견 시 (LLM 판단)**: 구현 결과에서 근본적인 설계 결함이나 대안적 접근이 더 나을 수 있는 상황이 감지되면, `/mst:ideation`을 호출하여 다각도 분석 후 Phase 4 피드백에 반영합니다.
 8) Issue verdict: PASS → Phase 5, FAIL/PARTIAL → Phase 4.
-8.5) Optional: On Phase 4 entry, delegate feedback document draft generation to `/mst:codex` for mechanical summarization of review findings.
+8.5) On Phase 4 entry, delegate feedback document generation to `/mst:codex` using `agents/feedback-composer.md` template.
+   - 템플릿 변수 치환: {TASK_ID}, {ROUND_NUM}, {SPEC_CONTENT}, {REVIEW_REPORTS}, {PREVIOUS_FEEDBACK}
+   - `Write → prompts/phase4-feedback.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --output {feedback_path} --trace {REQ}/{TASK}/phase4-feedback")`
 9) Save review report to .gran-maestro/requests/REQ-XXX/tasks/NN/review-RN.md.
 </phase3_protocol>
 
@@ -83,7 +85,9 @@ Present team composition to user in spec document with rationale.
 
 Analysis Squad: /mst:gemini (codebase exploration + context analysis) + Analyst(opus) + /mst:codex (code structure + req decomposition)
   + Explorer(opus) x1 (optional, precision symbol tracing only)
-  + Design Wing (conditional): Architect(opus) + SchemaDesigner(opus) + UIDesigner(opus)
+  + Design Wing (conditional): Architect(opus) + /mst:codex(schema-designer template) + /mst:codex(ui-designer template)
+    - Schema Designer: `agents/schema-designer.md` 템플릿 → `/mst:codex --prompt-file` (대규모 시 `/mst:gemini` 보조)
+    - UI Designer: `agents/ui-designer.md` 템플릿 → `/mst:codex --prompt-file` (크로스뷰 통합 시 `/mst:gemini` 보조)
 Review Squad: SecurityReviewer(opus) + QualityReviewer(opus) + Verifier(opus)
               + /mst:codex (quality-precheck + code-review)
               + /mst:gemini (security-scan + consistency-review)
@@ -96,8 +100,8 @@ All outputs are files under .gran-maestro/requests/REQ-XXX/:
 - tasks/NN/review-RN.md — review report
 - tasks/NN/feedback-RN.md — feedback document
 - design/architecture.md — system architecture (if Architect spawned)
-- design/data-model.md — data model (if Schema Designer spawned)
-- design/ui-spec.md — UI specification (if UI Designer spawned)
+- design/data-model.md — data model (if schema-designer template invoked via /mst:codex)
+- design/ui-spec.md — UI specification (if ui-designer template invoked via /mst:codex)
 - summary.md — final completion report
 </output_format>
 
@@ -152,6 +156,9 @@ mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 절대 사용 금지
 | Phase 1 | 설계 검증 | `Write → prompts/phase1-design-validation.md` → `--prompt-file {prompt_path} --trace {REQ}/{TASK}/phase1-design-validation` | 구조적 타당성 확인 |
 | Phase 1 | 코드베이스 탐색 (Explorer 대체) | `Write → prompts/phase1-exploration.md` → `Skill(skill: "mst:gemini", args: "--prompt-file {prompt_path} --files {pattern} --trace {REQ}/{TASK}/phase1-exploration")` | Explorer 대체, 1M 컨텍스트 |
 | Phase 1 | 요구사항 분해 초안 | `Write → prompts/phase1-req-decomposition.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {project_dir} --trace {REQ}/{TASK}/phase1-req-decomposition")` 또는 `/mst:gemini` | PM 승인 후 spec 작성 |
+| Phase 1 | 스키마 설계 | `Write → prompts/phase1-schema-design.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --output {design_path}/data-model.md --trace {REQ}/{TASK}/phase1-schema-design")` | schema-designer 템플릿 사용 |
+| Phase 1 | UI 설계 | `Write → prompts/phase1-ui-design.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --output {design_path}/ui-spec.md --trace {REQ}/{TASK}/phase1-ui-design")` | ui-designer 템플릿 사용 |
+| Phase 1 | UI 크로스뷰 통합 | `Write → prompts/phase1-ui-crossview.md` → `Skill(skill: "mst:gemini", args: "--prompt-file {prompt_path} --files {component_pattern} --trace {REQ}/{TASK}/phase1-ui-crossview")` | 다수 화면 일관성 검토 |
 | Phase 2 | 코드 구현 | `Write → prompts/phase2-impl.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-impl")` | full-auto (기본값) |
 | Phase 2 | 테스트 작성 | `Write → prompts/phase2-test.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-test")` | Codex가 구현 코드 기반 테스트 초안 및 엣지케이스 자동 생성. 기존 패턴 분석하여 일관된 스타일 유지 |
 | Phase 2 | 테스트 자동 생성 | `Write → prompts/phase2-test-gen.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-test-gen")` | 구현 코드 기반 엣지케이스 자동 생성 |
@@ -159,6 +166,7 @@ mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 절대 사용 금지
 | Phase 3 | 전체 일관성 검토 | `Write → prompts/phase3-consistency-review.md` → `Skill(skill: "mst:gemini", args: "--prompt-file {prompt_path} --files {pattern} --trace {REQ}/{TASK}/phase3-consistency-review")` | 코드 읽기만 |
 | Phase 3 | 품질 프리체크 | `Write → prompts/phase3-quality-precheck.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {project_dir} --trace {REQ}/{TASK}/phase3-quality-precheck")` | 기계적 리뷰 (린트, 컨벤션, 네이밍) |
 | Phase 3 | 보안 스캐닝 | `Write → prompts/phase3-security-scan.md` → `Skill(skill: "mst:gemini", args: "--prompt-file {prompt_path} --files {pattern} --trace {REQ}/{TASK}/phase3-security-scan")` | 패턴 기반 취약점 스캐닝 |
+| Phase 4 | 피드백 문서 생성 | `Write → prompts/phase4-feedback.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --output {feedback_path} --trace {REQ}/{TASK}/phase4-feedback")` | feedback-composer 템플릿 사용 |
 | /mst:codex, /mst:gemini | 사용자 직접 호출 | `--trace` 없이 인라인 프롬프트 그대로 사용 | 모드 무관, 결과 직접 표시 |
 
 ### Label 컨벤션
@@ -177,6 +185,11 @@ mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 절대 사용 금지
 | Phase 3 | `phase3-consistency-review` | Gemini 일관성 검토 |
 | Phase 3 | `phase3-quality-precheck` | Codex 기계적 리뷰 |
 | Phase 3 | `phase3-security-scan` | Gemini 보안 패턴 스캐닝 |
+| Phase 1 | `phase1-schema-design` | Codex 스키마 설계 (schema-designer 템플릿) |
+| Phase 1 | `phase1-schema-design-gemini` | Gemini 대규모 스키마 보조 분석 |
+| Phase 1 | `phase1-ui-design` | Codex UI 설계 (ui-designer 템플릿) |
+| Phase 1 | `phase1-ui-crossview` | Gemini 크로스뷰 UI 통합 검토 |
+| Phase 4 | `phase4-feedback` | Codex 피드백 문서 생성 (feedback-composer 템플릿) |
 | Phase 4 | `phase4-fix-RN` | 피드백 반영 수정 (N=리비전 번호) |
 </skill_routing>
 
@@ -225,5 +238,6 @@ mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 절대 사용 금지
 - Read, Glob, Grep (codebase exploration via delegates)
 - Write (spec/review/feedback documents only — NEVER source code)
 - Bash (diagnostic only: git diff, git status, type check, lint, test runs)
-- Task (spawn Analysis Squad / Review Squad / Design Wing agents)
+- Task (spawn Analysis Squad / Review Squad agents)
+- Skill (Design Wing templates via /mst:codex, /mst:gemini; Feedback Composer via /mst:codex)
 - AskUserQuestion (clarify requirements with user)
