@@ -51,21 +51,29 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
   "roles": {
     "codex": { "perspective": "", "type": "opinion", "status": "pending", "provider": "codex" },
     "codex-2": { "perspective": "", "type": "opinion", "status": "pending", "provider": "codex" },
-    "gemini": { "perspective": "", "type": "opinion", "status": "pending", "provider": "gemini" }
+    "codex-3": { "perspective": "", "type": "opinion", "status": "pending", "provider": "codex" },
+    "gemini": { "perspective": "", "type": "opinion", "status": "pending", "provider": "gemini" },
+    "gemini-2": { "perspective": "", "type": "opinion", "status": "pending", "provider": "gemini" },
+    "claude": { "perspective": "", "type": "opinion", "status": "pending", "provider": "claude" }
   },
   "critics": {
     "claude": { "status": "pending", "provider": "claude" }
   },
   "critic_count": 1,
-  "participant_config": { "codex": 2, "gemini": 1, "claude": 0 },
+  "participant_config": { "codex": 3, "gemini": 2, "claude": 1 },
   "rounds": []
 }
 ```
 
-`roles` 생성 규칙은 ideation과 동일:
-- `participants.opinion_providers`를 읽어 동적으로 생성 (`codex`, `codex-2`, ...)
-- 합계 검증: 2~7명, 위반 시 에러 후 중단
-- `provider` 필드로 실제 호출 대상 식별
+`roles`는 config의 `participants.opinion_providers`를 읽어 다음 규칙으로 생성합니다.
+### roles 동적 생성 규칙 (공통)
+1. 각 provider(codex, gemini, claude)의 count를 읽음
+2. count == 1이면 키 이름은 provider 그대로
+3. count > 1이면 첫 번째는 `{provider}`, 이후는 `{provider}-2`, `{provider}-3` ...
+4. 각 role 객체에 `provider` 필드를 기록하여 실제 호출 대상을 식별
+5. 합계 검증: 2~7명, 위반 시 에러 후 중단
+
+`participants` 키가 없으면 기본값 `{ codex:1, gemini:1, claude:1 }` 사용.
 
 ### Step 1.5: PM 역할 배정
 
@@ -108,11 +116,33 @@ PM이 주제/포커스를 분석해 `roles` 수만큼 관점을 배정하고 `cr
 
    > **모델 결정**: config.json `models.claude.discussion` 참조 (opus / sonnet)
 
-   - `provider: "codex"`: `/mst:codex --prompt-file .../{roleKey}-prompt.md --output rounds/00/{roleKey}.md`
-   - `provider: "gemini"`: `/mst:gemini --prompt-file .../{roleKey}-prompt.md --sandbox > rounds/00/{roleKey}.md`
-   - `provider: "claude"`: `Task(..., model: "{config.models.claude.discussion}", prompt: ".../{roleKey}-prompt.md 파일을 Read 후 rounds/00/{roleKey}.md Write")`
+   - `provider: "codex"`:
+     ```
+     Task(
+       subagent_type: "general-purpose",
+       run_in_background: true,
+       prompt: "Skill(skill: 'mst:codex', args: '--prompt-file {absolute_path}/rounds/00/prompts/{roleKey}-prompt.md --output {absolute_path}/rounds/00/{roleKey}.md') 실행 후 완료 보고"
+     )
+     ```
+   - `provider: "gemini"`:
+     ```
+     Task(
+       subagent_type: "general-purpose",
+       run_in_background: true,
+       prompt: "Skill(skill: 'mst:gemini', args: '--prompt-file {absolute_path}/rounds/00/prompts/{roleKey}-prompt.md --sandbox > {absolute_path}/rounds/00/{roleKey}.md') 실행 후 완료 보고"
+     )
+     ```
+   - `provider: "claude"`:
+     ```
+     Task(
+       subagent_type: "general-purpose",
+       model: "{config.models.claude.discussion}",
+       run_in_background: true,
+       prompt: "{absolute_path}/rounds/00/prompts/{roleKey}-prompt.md 파일을 Read하고 지시에 따라 분석. 결과를 {absolute_path}/rounds/00/{roleKey}.md에 Write. 완료 후 '완료'"
+     )
+     ```
 
-각 호출은 `run_in_background: true`.
+각 호출은 `Task(run_in_background: true)`로 병렬 실행됩니다.
 
 ### Step 3: PM 초기 종합
 
@@ -132,16 +162,66 @@ PM이 주제/포커스를 분석해 `roles` 수만큼 관점을 배정하고 `cr
 
 #### 4b. 역할 기반 병렬 호출
 
-역할별 동시 호출:
-- `Codex`: `/mst:codex --prompt-file rounds/NN/prompts/{roleKey}-prompt.md --output rounds/NN/{roleKey}.md`
-- `Gemini`: `/mst:gemini --prompt-file rounds/NN/prompts/{roleKey}-prompt.md > rounds/NN/{roleKey}.md`
-- `Claude`: `Task(model: "{config.models.claude.discussion}", prompt: "prompts/{roleKey}-prompt.md")`
+역할별 병렬 호출:
+- `provider: "codex"`:
+  ```
+  Task(
+    subagent_type: "general-purpose",
+    run_in_background: true,
+    prompt: "Skill(skill: 'mst:codex', args: '--prompt-file {absolute_path}/rounds/NN/prompts/{roleKey}-prompt.md --output {absolute_path}/rounds/NN/{roleKey}.md') 실행 후 완료 보고"
+  )
+  ```
+- `provider: "gemini"`:
+  ```
+  Task(
+    subagent_type: "general-purpose",
+    run_in_background: true,
+    prompt: "Skill(skill: 'mst:gemini', args: '--prompt-file {absolute_path}/rounds/NN/prompts/{roleKey}-prompt.md > {absolute_path}/rounds/NN/{roleKey}.md') 실행 후 완료 보고"
+  )
+  ```
+- `provider: "claude"`:
+  ```
+  Task(
+    subagent_type: "general-purpose",
+    model: "{config.models.claude.discussion}",
+    run_in_background: true,
+    prompt: "{absolute_path}/rounds/NN/prompts/{roleKey}-prompt.md 파일을 Read하고 지시에 따라 분석. 결과를 {absolute_path}/rounds/NN/{roleKey}.md에 Write. 완료 후 '완료'"
+  )
+  ```
 
 #### 4b.5. Critic 평가
 
 - `critics` 키 순회하여 `rounds/NN/prompts/critique-{criticKey}-prompt.md` 생성
 - `provider` 규칙에 따라 역할별 배정 수행
 - `rounds/NN/critique-{criticKey}.md` 저장
+  
+호출 방식:
+
+- `provider: "codex"`:
+  ```
+  Task(
+    subagent_type: "general-purpose",
+    run_in_background: true,
+    prompt: "Skill(skill: 'mst:codex', args: '--prompt-file {absolute_path}/rounds/NN/prompts/critique-{criticKey}-prompt.md --output {absolute_path}/rounds/NN/critique-{criticKey}.md') 실행 후 완료 보고"
+  )
+  ```
+- `provider: "gemini"`:
+  ```
+  Task(
+    subagent_type: "general-purpose",
+    run_in_background: true,
+    prompt: "Skill(skill: 'mst:gemini', args: '--prompt-file {absolute_path}/rounds/NN/prompts/critique-{criticKey}-prompt.md > {absolute_path}/rounds/NN/critique-{criticKey}.md') 실행 후 완료 보고"
+  )
+  ```
+- `provider: "claude"`:
+  ```
+  Task(
+    subagent_type: "general-purpose",
+    model: "{config.models.claude.discussion}",
+    run_in_background: true,
+    prompt: "{absolute_path}/rounds/NN/prompts/critique-{criticKey}-prompt.md 파일을 Read하고 비판적 시각으로 분석. 결과를 {absolute_path}/rounds/NN/critique-{criticKey}.md에 Write. 완료 후 '완료'"
+  )
+  ```
 
 #### 4c. 라운드 종합
 
