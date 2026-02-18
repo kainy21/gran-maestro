@@ -92,7 +92,8 @@
       "pm_conductor": "opus",
       "architect": "opus",
       "ideation": "opus",
-      "discussion": "opus"
+      "discussion": "opus",
+      "debug": "opus"
     },
     "developer": {
       "primary": { "provider": "codex", "model": "gpt-5.3-codex" },

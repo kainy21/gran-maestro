@@ -27,6 +27,7 @@ Gran Maestro 세션을 일괄 정리하는 스킬입니다. 한 번의 호출로
 |------|--------|------|
 | `ideation_keep_count` | 10 | ideation 세션 유지 갯수 |
 | `discussion_keep_count` | 10 | discussion 세션 유지 갯수 |
+| `debug_keep_count` | 10 | debug 세션 유지 갯수 |
 | `old_request_threshold_hours` | 24 | 오래된 requests 판단 기준 (시간) |
 
 설정이 없으면 위 기본값을 사용합니다.
@@ -51,6 +52,12 @@ Gran Maestro 세션을 일괄 정리하는 스킬입니다. 한 번의 호출로
    - `created_at` 기준 내림차순 정렬
    - `discussion_keep_count` 초과분 중 `status`가 `completed`인 세션 수 카운트
 
+   **Debug**:
+   - `.gran-maestro/debug/` 하위 DBG-* 디렉토리 스캔
+   - 각 세션의 `session.json` 읽어 `created_at`, `status` 확인
+   - `created_at` 기준 내림차순 정렬
+   - `debug_keep_count` 초과분 중 `status`가 `completed`인 세션 수 카운트
+
    **Requests (자동 정리 대상)**:
    - `.gran-maestro/requests/` 하위 REQ-* 디렉토리 스캔
    - 각 요청의 `request.json` 읽어 `status`, `created_at`, `title` 확인
@@ -69,6 +76,7 @@ Gran Maestro — Cleanup 미리보기
 [자동 정리]
   ideation    : 3개 세션 아카이브 대상 (유지: 10, 현재: 13, 완료: 3)
   discussion  : 0개 (유지: 10, 현재: 5)
+  debug       : 0개 (유지: 10, 현재: 2)
   requests    : 2개 completed/cancelled 아카이브 대상
 
 [인터랙티브 정리]
@@ -102,6 +110,8 @@ Gran Maestro — Cleanup 미리보기
    - `[Cleanup] ideation {N}개 아카이브됨`
 
 **Discussion**: 동일한 로직, `discussion_keep_count` 사용.
+
+**Debug**: 동일한 로직, `debug_keep_count` 사용. `.gran-maestro/debug/` 하위 DBG-* 대상.
 
 #### Step 2: Completed Requests 정리 (자동)
 
@@ -166,6 +176,7 @@ Gran Maestro — Cleanup 완료
 
 ideation    : 3개 아카이브됨 → ideation-IDN001-IDN003-20260218.tar.gz
 discussion  : 0개 (정리 대상 없음)
+debug       : 0개 (정리 대상 없음)
 requests    : 2개 completed 아카이브됨 → requests-REQ001-REQ002-20260218.tar.gz
               1개 사용자 선택 아카이브됨 → requests-REQ013-20260218.tar.gz
 
