@@ -97,7 +97,7 @@ spec.md에 에이전트가 지정되어 있으면 그대로 사용합니다. 지
 
 ##### 4b. Outsource Brief 파일 작성
 
-각 태스크별로 프롬프트 파일을 생성합니다.
+독립 태스크들의 브리프 파일을 **하나의 메시지에서 동시에 Write** 호출합니다.
 
 ```
 Write -> .gran-maestro/requests/{REQ-ID}/tasks/{NN}/prompts/phase2-impl.md
