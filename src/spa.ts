@@ -165,13 +165,29 @@ nav button.active {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 16px 16px 16px 20px;
   margin-bottom: 12px;
   box-shadow: var(--shadow);
+  transition: opacity 0.2s, box-shadow 0.2s;
+}
+.request-card {
+  border-left: 4px solid var(--border);
+}
+.request-card.status-active {
+  border-left-color: var(--accent);
+}
+.request-card.status-completed {
+  border-left-color: var(--green);
+}
+.request-card.status-failed {
+  border-left-color: var(--red);
+}
+.request-card.status-pending {
+  border-left-color: var(--yellow);
 }
 .card-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 8px;
 }
@@ -183,24 +199,25 @@ nav button.active {
 
 /* ─── Progress Bar ─────────────────────────────────────────── */
 .progress-container {
-  height: 6px;
+  height: 8px;
   background: var(--bg-primary);
-  border-radius: 3px;
+  border-radius: 4px;
   margin: 12px 0;
   overflow: hidden;
   border: 1px solid var(--border);
 }
 .progress-fill {
   height: 100%;
-  background: var(--green);
-  transition: width 0.5s ease-out;
+  background: linear-gradient(90deg, var(--accent), var(--green));
+  transition: width 0.6s ease-out;
+  border-radius: 4px;
 }
 
 /* ─── Workflow: Phase Nodes ─────────────────────────────────── */
 .phase-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin-bottom: 12px;
   flex-wrap: wrap;
 }
@@ -208,11 +225,12 @@ nav button.active {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 40px;
+  width: 80px;
+  height: 36px;
   border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
   border: 2px solid var(--border);
   color: var(--text-secondary);
   background: var(--bg-primary);
@@ -221,26 +239,27 @@ nav button.active {
 .phase-node.done {
   border-color: var(--green);
   color: var(--green);
-  background: rgba(78, 204, 163, 0.1);
+  background: rgba(78, 204, 163, 0.12);
 }
 .phase-node.active {
   border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(59, 130, 246, 0.1);
+  color: white;
+  background: var(--accent);
   animation: pulse-phase 2s ease-in-out infinite;
 }
 .phase-node.waiting {
   border-color: var(--gray);
   color: var(--gray);
+  opacity: 0.6;
 }
 .phase-arrow {
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: 14px;
   margin: 0 2px;
 }
 @keyframes pulse-phase {
   0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+  50% { box-shadow: 0 0 8px 4px rgba(59, 130, 246, 0.15); }
 }
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
@@ -637,20 +656,31 @@ nav button.active {
 
 .toast {
   position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--green-dark);
-  color: white;
-  padding: 8px 20px;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 10px 16px;
   border-radius: var(--radius);
   font-size: 13px;
-  z-index: 100;
+  z-index: 300;
   opacity: 0;
-  transition: opacity 0.3s;
+  transform: translateX(20px);
+  transition: opacity 0.25s, transform 0.25s;
   pointer-events: none;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 360px;
 }
-.toast.show { opacity: 1; }
+.toast.show { opacity: 1; transform: translateX(0); pointer-events: auto; }
+.toast.toast-success { border-left: 4px solid var(--green); }
+.toast.toast-error { border-left: 4px solid var(--red); }
+.toast.toast-warning { border-left: 4px solid var(--yellow); }
+.toast.toast-info { border-left: 4px solid var(--accent); }
+.toast .toast-icon { font-size: 16px; flex-shrink: 0; }
 
 /* ─── Empty State ───────────────────────────────────────────── */
 .empty-state {
@@ -661,6 +691,54 @@ nav button.active {
 .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
 .empty-state h2 { font-size: 18px; color: var(--text-secondary); margin-bottom: 8px; }
 .empty-state p { font-size: 13px; max-width: 400px; margin: 0 auto; }
+
+/* ─── View Header & Refresh ────────────────────────────────── */
+.view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.view-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.refresh-btn:hover {
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.refresh-btn .refresh-icon {
+  display: inline-block;
+  font-size: 14px;
+  line-height: 1;
+}
+.refresh-btn.loading .refresh-icon {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
 /* ─── Log View ─────────────────────────────────────────────── */
 .log-toolbar {
@@ -776,19 +854,24 @@ nav button.active {
   padding: 0 4px;
 }
 .notif-panel {
-  position: absolute;
-  top: 50px;
+  position: fixed;
+  top: 56px;
   right: 12px;
-  width: 360px;
-  max-height: 440px;
+  width: 380px;
+  max-height: calc(100vh - 80px);
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   z-index: 200;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: notifSlideIn 0.15s ease-out;
+}
+@keyframes notifSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .notif-header {
   display: flex;
@@ -814,12 +897,23 @@ nav button.active {
 }
 .notif-item {
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(42,42,78,0.5);
+  border-bottom: 1px solid var(--border);
   font-size: 13px;
   cursor: default;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  transition: background 0.15s;
 }
 .notif-item:last-child { border-bottom: none; }
-.notif-item.unread { background: rgba(233,69,96,0.05); }
+.notif-item:hover { background: rgba(59,130,246,0.04); }
+.notif-item.unread { background: rgba(59,130,246,0.06); }
+.notif-item .notif-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.notif-item .notif-body { flex: 1; min-width: 0; }
 .notif-item .notif-time {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -828,8 +922,9 @@ nav button.active {
 }
 .notif-item .notif-msg {
   color: var(--text-secondary);
+  word-break: break-word;
 }
-.notif-item.unread .notif-msg { color: var(--text-primary); }
+.notif-item.unread .notif-msg { color: var(--text-primary); font-weight: 500; }
 .notif-empty {
   text-align: center;
   padding: 30px 14px;
@@ -981,6 +1076,39 @@ nav button.active {
 }
 .ideation-back:hover { color: var(--text-primary); border-color: var(--accent); }
 
+/* ─── Request Sections ─────────────────────────────────────── */
+.request-section--active h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.request-section--completed {
+  margin-top: 16px;
+}
+.request-section--completed summary {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px 0;
+  user-select: none;
+}
+.request-section--completed summary:hover { color: var(--text-primary); }
+
+/* ─── Card update animation ───────────────────────────────── */
+.card-updated {
+  animation: cardPulse 0.4s ease-out;
+}
+@keyframes cardPulse {
+  0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.3); }
+  50% { box-shadow: 0 0 0 4px rgba(59,130,246,0.1); }
+  100% { box-shadow: var(--shadow); }
+}
+
 /* ─── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
@@ -1002,7 +1130,7 @@ nav button.active {
       <div class="status">
         <span id="connection-status">Connecting...</span>
         <div class="dot" id="connection-dot"></div>
-        <span class="notif-bell" onclick="toggleNotifPanel()" id="notif-bell">&#128276;<span class="notif-badge" id="notif-badge" style="display:none">0</span></span>
+        <span class="notif-bell" onclick="toggleNotifPanel(event)" id="notif-bell">&#128276;<span class="notif-badge" id="notif-badge" style="display:none">0</span></span>
       </div>
     </div>
   </header>
@@ -1031,6 +1159,7 @@ nav button.active {
       <span><b>1-7</b> Views</span>
       <span><b>T</b> Theme</span>
       <span><b>S</b> Search</span>
+      <span><b>R</b> Refresh</span>
     </div>
   </div>
   <div class="approval-banner" id="approval-banner" style="display:none">
@@ -1145,8 +1274,45 @@ window.addEventListener('keydown', (e) => {
   } else if (key === 's') {
     e.preventDefault();
     document.getElementById('workflow-search')?.focus();
+  } else if (key === 'r') {
+    refreshView(currentView);
   }
 });
+
+async function refreshView(viewName) {
+  const btn = document.getElementById('refresh-btn-' + viewName);
+  if (btn) { btn.classList.add('loading'); btn.disabled = true; }
+  try {
+    switch (viewName) {
+      case 'workflow':
+      case 'agents':
+      case 'dependencies':
+        await loadRequests();
+        break;
+      case 'documents':
+        docTree = await apiFetch('/tree');
+        break;
+      case 'log':
+        if (logSelectedTask) { await selectLogTask(logSelectedTask); }
+        break;
+      case 'ideation':
+        const results = await Promise.all([
+          apiFetch('/ideation').catch(() => []),
+          apiFetch('/discussion').catch(() => [])
+        ]);
+        ideationSessions = results[0];
+        discussionSessions = results[1];
+        break;
+    }
+    renderCurrentView();
+    showToast(viewName.charAt(0).toUpperCase() + viewName.slice(1) + ' refreshed');
+  } catch (e) {
+    showToast('Refresh failed: ' + e.message, 'error');
+  } finally {
+    const btn2 = document.getElementById('refresh-btn-' + viewName);
+    if (btn2) { btn2.classList.remove('loading'); btn2.disabled = false; }
+  }
+}
 
 function filterWorkflow() {
   const query = (document.getElementById('workflow-search')?.value || '').toLowerCase();
@@ -1394,7 +1560,11 @@ function renderWorkflow() {
         '</div>';
     }).join('');
 
-    return '<div class="card request-card" style="' + (isCompleted ? 'opacity:0.85;border-color:var(--green)' : '') + '">' +
+    const isFailed = ['failed','error'].includes(reqStatus.toLowerCase());
+    const isPending = ['pending','queued','phase1_analysis','phase1_spec_review'].includes(reqStatus.toLowerCase());
+    const statusClass = isCompleted ? 'status-completed' : isFailed ? 'status-failed' : isPending ? 'status-pending' : 'status-active';
+
+    return '<div class="card request-card ' + statusClass + '" data-req-id="' + escapeHtml(req.id) + '">' +
       '<div class="card-title">' + escapeHtml(req.id) + ': ' + escapeHtml(req.title || 'Untitled') + completedBadge + blockedBadge + '</div>' +
       '<div class="card-subtitle">Status: ' + escapeHtml(reqStatus) +
       ' | Phase: ' + activePhase + (req.completed_at ? ' | Completed: ' + new Date(req.completed_at).toLocaleString() : '') + '</div>' +
@@ -1793,11 +1963,25 @@ function renderDependencies() {
 
 // ─── Notification Helpers ────────────────────────────────────────────────────
 
-function addNotification(msg) {
-  notifications.unshift({ message: msg, time: new Date().toISOString(), read: false });
+function notifTypeIcon(type) {
+  switch (type) {
+    case 'success': return '\\u2705';
+    case 'error': return '\\u274C';
+    case 'warning': return '\\u26A0\\uFE0F';
+    case 'phase': return '\\u27A1\\uFE0F';
+    case 'trace': return '\\uD83D\\uDCDD';
+    default: return '\\u2139\\uFE0F';
+  }
+}
+
+function addNotification(msg, type) {
+  type = type || 'info';
+  notifications.unshift({ message: msg, time: new Date().toISOString(), read: false, type: type });
   if (notifications.length > 50) notifications = notifications.slice(0, 50);
   notificationUnread = notifications.filter(n => !n.read).length;
   updateNotifBadge();
+  if (showNotificationPanel) renderNotifList();
+  showToast(msg, type);
 }
 
 function updateNotifBadge() {
@@ -1811,7 +1995,8 @@ function updateNotifBadge() {
   }
 }
 
-function toggleNotifPanel() {
+function toggleNotifPanel(e) {
+  if (e) e.stopPropagation();
   showNotificationPanel = !showNotificationPanel;
   const panel = document.getElementById('notif-panel');
   if (!panel) return;
@@ -1828,9 +2013,13 @@ function renderNotifList() {
   }
   list.innerHTML = notifications.map((n, i) => {
     const t = new Date(n.time).toLocaleTimeString();
+    const icon = notifTypeIcon(n.type);
     return '<div class="notif-item ' + (n.read ? '' : 'unread') + '" onclick="markNotifRead(' + i + ')">' +
-      '<div class="notif-time">' + t + '</div>' +
-      '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
+      '<span class="notif-icon">' + icon + '</span>' +
+      '<div class="notif-body">' +
+        '<div class="notif-time">' + t + '</div>' +
+        '<div class="notif-msg">' + escapeHtml(n.message) + '</div>' +
+      '</div>' +
       '</div>';
   }).join('');
 }
@@ -1850,6 +2039,17 @@ function markAllRead() {
   updateNotifBadge();
   renderNotifList();
 }
+
+// Close notification panel on outside click
+document.addEventListener('click', function(e) {
+  if (!showNotificationPanel) return;
+  const panel = document.getElementById('notif-panel');
+  const bell = document.getElementById('notif-bell');
+  if (panel && !panel.contains(e.target) && bell && !bell.contains(e.target)) {
+    showNotificationPanel = false;
+    panel.style.display = 'none';
+  }
+});
 
 // ─── Settings ────────────────────────────────────────────────────────────────
 
@@ -1881,9 +2081,9 @@ async function saveConfig() {
       body: JSON.stringify(newConfig)
     });
     config = newConfig;
-    showToast('Configuration saved');
+    showToast('Configuration saved', 'success');
   } catch (e) {
-    showToast('Error: ' + e.message);
+    showToast('Error: ' + e.message, 'error');
   }
 }
 
@@ -1892,17 +2092,35 @@ async function refreshConfig() {
     config = await apiFetch('/config');
     const editor = document.getElementById('config-editor');
     if (editor) editor.value = JSON.stringify(config, null, 2);
-    showToast('Configuration reloaded');
+    showToast('Configuration reloaded', 'success');
   } catch (e) {
-    showToast('Error: ' + e.message);
+    showToast('Error: ' + e.message, 'error');
   }
 }
 
-function showToast(msg) {
+let toastQueue = [];
+let toastShowing = false;
+
+function showToast(msg, type) {
+  type = type || 'info';
+  toastQueue.push({ msg: msg, type: type });
+  if (!toastShowing) processToastQueue();
+}
+
+function processToastQueue() {
+  if (toastQueue.length === 0) { toastShowing = false; return; }
+  toastShowing = true;
+  const item = toastQueue.shift();
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  if (!t) { toastShowing = false; return; }
+  t.className = 'toast toast-' + item.type;
+  const icon = notifTypeIcon(item.type);
+  t.innerHTML = '<span class="toast-icon">' + icon + '</span><span>' + escapeHtml(item.msg) + '</span>';
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(processToastQueue, 300);
+  }, 2500);
 }
 
 // ─── Ideation View ──────────────────────────────────────────────────────────
@@ -2116,7 +2334,7 @@ async function loadIdeationSession(id) {
     ideationActiveSession = await apiFetch('/ideation/' + encodeURIComponent(id));
     renderCurrentView();
   } catch (e) {
-    showToast('Error loading session: ' + e.message);
+    showToast('Error loading session: ' + e.message, 'error');
   }
 }
 
@@ -2126,7 +2344,7 @@ async function loadDiscussionSession(id) {
     discussionActiveSession = await apiFetch('/discussion/' + encodeURIComponent(id));
     renderCurrentView();
   } catch (e) {
-    showToast('Error loading session: ' + e.message);
+    showToast('Error loading session: ' + e.message, 'error');
   }
 }
 
@@ -2204,6 +2422,90 @@ function switchView(view) {
   renderCurrentView();
 }
 
+function patchCards(main, newHtml) {
+  const temp = document.createElement('div');
+  temp.innerHTML = newHtml;
+
+  const oldCards = main.querySelectorAll('[data-req-id]');
+  const newCards = temp.querySelectorAll('[data-req-id]');
+
+  // Build lookup maps
+  const oldMap = new Map();
+  oldCards.forEach(c => oldMap.set(c.getAttribute('data-req-id'), c));
+  const newMap = new Map();
+  newCards.forEach(c => newMap.set(c.getAttribute('data-req-id'), c));
+
+  // If no cards in DOM yet, fall back to full replace
+  if (oldCards.length === 0) {
+    main.innerHTML = newHtml;
+    return;
+  }
+
+  // If card count changed (added/removed), fall back to full replace
+  if (oldMap.size !== newMap.size) {
+    main.innerHTML = newHtml;
+    return;
+  }
+
+  // Update existing cards in-place — only patch changed sections, preserving task detail expansion
+  for (const [id, newCard] of newMap) {
+    const oldCard = oldMap.get(id);
+    if (!oldCard) continue;
+
+    // Compare static parts
+    const getStatic = (card) => {
+      return (card.querySelector('.card-title')?.innerHTML || '') + '|' +
+        (card.querySelector('.card-subtitle')?.innerHTML || '') + '|' +
+        (card.querySelector('.progress-fill')?.style.width || '') + '|' +
+        (card.querySelector('.phase-row')?.innerHTML || '') + '|' +
+        card.className;
+    };
+
+    if (getStatic(oldCard) !== getStatic(newCard)) {
+      // Update only the parts that change, preserving task-list expansion state
+      oldCard.className = newCard.className;
+
+      const oldTitle = oldCard.querySelector('.card-title');
+      const newTitle = newCard.querySelector('.card-title');
+      if (oldTitle && newTitle && oldTitle.innerHTML !== newTitle.innerHTML) {
+        oldTitle.innerHTML = newTitle.innerHTML;
+      }
+
+      const oldSub = oldCard.querySelector('.card-subtitle');
+      const newSub = newCard.querySelector('.card-subtitle');
+      if (oldSub && newSub && oldSub.innerHTML !== newSub.innerHTML) {
+        oldSub.innerHTML = newSub.innerHTML;
+      }
+
+      const oldFill = oldCard.querySelector('.progress-fill');
+      const newFill = newCard.querySelector('.progress-fill');
+      if (oldFill && newFill) {
+        oldFill.style.width = newFill.style.width;
+      }
+
+      const oldPhases = oldCard.querySelector('.phase-row');
+      const newPhases = newCard.querySelector('.phase-row');
+      if (oldPhases && newPhases && oldPhases.innerHTML !== newPhases.innerHTML) {
+        oldPhases.innerHTML = newPhases.innerHTML;
+      }
+
+      // Task list: only update non-expanded items
+      const oldTasks = oldCard.querySelectorAll('.task-item');
+      const newTaskList = newCard.querySelector('.task-list');
+      const hasExpanded = oldCard.querySelector('.task-item.expanded');
+      if (!hasExpanded && newTaskList) {
+        const oldTaskList = oldCard.querySelector('.task-list');
+        if (oldTaskList) {
+          oldTaskList.innerHTML = newTaskList.innerHTML;
+        }
+      }
+
+      oldCard.classList.add('card-updated');
+      setTimeout(() => oldCard.classList.remove('card-updated'), 500);
+    }
+  }
+}
+
 function renderCurrentView() {
   const main = document.getElementById('main-content');
   if (!main) return;
@@ -2224,8 +2526,13 @@ function renderCurrentView() {
 
   if (viewCache[currentView] !== html) {
     viewCache[currentView] = html;
-    main.innerHTML = html;
-    // Restore scroll position after DOM replacement
+    // Use card-level patching for workflow to avoid flickering
+    if (currentView === 'workflow' && main.querySelector('[data-req-id]')) {
+      patchCards(main, html);
+    } else {
+      main.innerHTML = html;
+    }
+    // Restore scroll position after DOM update
     main.scrollTop = scrollTop;
   }
   updateApprovalBanner();
@@ -2296,7 +2603,7 @@ async function loadData() {
     const st = (req.status || '').toLowerCase();
     if (st.includes('approve') || st.includes('review') || st === 'phase2_spec_review') {
       if (!approvalNotified.has(req.id)) {
-        addNotification(req.id + ': Approval needed');
+        addNotification(req.id + ': Approval needed', 'warning');
       }
     }
   });
@@ -2343,21 +2650,21 @@ function connectSSE() {
       // ─── Notification collection ───
       if (event.type === 'phase_change') {
         const reqId = event.requestId || '?';
-        addNotification(reqId + ': Phase changed');
+        addNotification(reqId + ': Phase changed', 'phase');
       }
       if (event.type === 'task_update') {
         const st = (event.data && event.data.kind) || '';
         const taskLabel = (event.requestId || '?') + '-' + (event.taskId || '?');
         if (st === 'done' || st === 'completed') {
-          addNotification(taskLabel + ': Completed');
+          addNotification(taskLabel + ': Completed', 'success');
         } else if (st === 'failed' || st === 'error') {
-          addNotification(taskLabel + ': Failed');
+          addNotification(taskLabel + ': Failed', 'error');
         } else if (st === 'cancelled') {
-          addNotification(taskLabel + ': Cancelled');
+          addNotification(taskLabel + ': Cancelled', 'warning');
         }
       }
       if (event.type === 'config_change') {
-        addNotification('Settings changed');
+        addNotification('Settings changed', 'info');
       }
 
       // ─── Log view: refresh if viewing exec-log and relevant event ───
@@ -2371,14 +2678,14 @@ function connectSSE() {
 
       // Ideation updates
       if (event.type === 'ideation_update') {
-        addNotification('Ideation ' + (event.sessionId || '?') + ' updated');
+        addNotification('Ideation ' + (event.sessionId || '?') + ' updated', 'info');
       }
 
       // Trace updates
       if (event.type === 'trace_update') {
         const traceLabel = (event.requestId || '?') + '-' + (event.taskId || '?');
         const traceFile = (event.data && event.data.traceFile) || '';
-        addNotification(traceLabel + ': AI trace saved (' + traceFile + ')');
+        addNotification(traceLabel + ': AI trace saved (' + traceFile + ')', 'trace');
       }
 
       // Refresh data on meaningful events — set dirty flags per event type
