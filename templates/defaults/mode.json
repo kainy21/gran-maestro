@@ -2,6 +2,5 @@
   "active": false,
   "activated_at": null,
   "deactivated_at": null,
-  "auto_deactivate": true,
-  "previous_mode": "omc"
+  "auto_deactivate": true
 }

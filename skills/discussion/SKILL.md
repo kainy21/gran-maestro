@@ -9,7 +9,7 @@ argument-hint: "{주제 또는 IDN-NNN} [--max-rounds {N}] [--focus {분야}]"
 
 설정된 AI 팀원들이 **합의에 도달할 때까지** 반복 토론합니다.  
 PM(Claude)이 사회자 역할로 발산점을 식별하고, 각 AI에게 반론을 전달하며 수렴을 유도합니다.
-이 스킬은 모드에 관계없이 사용 가능합니다 (OMC 모드, Maestro 모드 모두).
+이 스킬은 Maestro 모드 활성 여부에 관계없이 사용 가능합니다.
 
 ## ideation과의 차이
 

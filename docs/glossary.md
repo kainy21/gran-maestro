@@ -62,5 +62,4 @@
 
 | 모드 | 설명 |
 |------|------|
-| **OMC 모드** | 기본 모드. Claude Code가 직접 구현 + 오케스트레이션 |
 | **Maestro 모드** | Gran Maestro 활성. Claude Code는 PM 역할만 수행 |

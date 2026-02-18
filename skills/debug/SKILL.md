@@ -8,7 +8,7 @@ argument-hint: "{버그/이슈 설명} [--focus {파일패턴}]"
 # maestro:debug
 
 설정된 AI 팀원들이 **병렬로 버그를 조사**하고 PM(Claude)이 자체 조사를 동시 수행한 뒤, 모든 결과를 합쳐 종합 디버그 리포트를 생성합니다.
-이 스킬은 모드에 관계없이 사용 가능합니다 (OMC 모드, Maestro 모드 모두).
+이 스킬은 Maestro 모드 활성 여부에 관계없이 사용 가능합니다.
 
 ## ideation/discussion과의 차이
 

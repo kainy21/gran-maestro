@@ -1,13 +1,13 @@
 ---
 name: off
-description: "Maestro 모드를 비활성화하고 OMC로 복귀합니다. 사용자가 '마에스트로 꺼', 'OMC로 돌아가', '지휘자 모드 끝'을 말하거나 /mst:off를 호출할 때 사용. 요청 취소에는 /mst:cancel을 사용."
+description: "Maestro 모드를 비활성화합니다. 사용자가 '마에스트로 꺼', '지휘자 모드 끝'을 말하거나 /mst:off를 호출할 때 사용. 요청 취소에는 /mst:cancel을 사용."
 user-invocable: true
 argument-hint: "[--force]"
 ---
 
 # maestro:off
 
-Gran Maestro 모드를 비활성화하고 OMC 모드로 복귀합니다.
+Gran Maestro 모드를 비활성화합니다.
 
 ## 실행 프로토콜
 
@@ -24,17 +24,15 @@ Gran Maestro 모드를 비활성화하고 OMC 모드로 복귀합니다.
      "activated_at": "{기존 값 유지}",
      "deactivated_at": "{현재 ISO timestamp}",
      "auto_deactivate": true,
-     "previous_mode": "omc"
    }
    ```
-6. OMC 오케스트레이션 스킬 복원
 
-**참고**: Guard hook(`maestro-guard.sh`)은 `mode.json`의 `active` 필드를 실시간 체크하므로, `active: false`로 전환 즉시 OMC MCP/Task 차단이 해제됩니다. Hook 제거는 불필요합니다.
+**참고**: Guard hook(`maestro-guard.sh`)은 `mode.json`의 `active` 필드를 실시간 체크하므로, `active: false`로 전환 즉시 MCP/Task 차단이 해제됩니다. Hook 제거는 불필요합니다.
 
 ## 자동 비활성화
 
 `auto_deactivate: true`이고 `.gran-maestro/requests/*/request.json`을 스캔하여 모든 요청이 terminal 상태(`done`, `completed`, `cancelled`, `failed`)이면
-자동으로 OMC 모드로 복귀합니다. 이 경우 `/mst:off`를 수동으로 호출할 필요가 없습니다.
+자동으로 Maestro 모드가 비활성화됩니다. 이 경우 `/mst:off`를 수동으로 호출할 필요가 없습니다.
 
 ## 옵션
 
@@ -43,11 +41,10 @@ Gran Maestro 모드를 비활성화하고 OMC 모드로 복귀합니다.
 ## 출력
 
 ```
-OMC 모드 복귀
+Gran Maestro 모드 비활성화
 
 Gran Maestro 모드가 비활성화되었습니다.
-OMC 오케스트레이션 스킬이 복원되었습니다.
-Claude Code가 직접 구현 + 오케스트레이션 역할로 돌아갑니다.
+Maestro 오케스트레이션 스킬이 비활성화되었습니다.
 ```
 
 ## 경고 (활성 요청 존재 시)
@@ -81,6 +78,6 @@ Claude Code가 직접 구현 + 오케스트레이션 역할로 돌아갑니다.
 
 ## 문제 해결
 
-- "Maestro 모드가 활성화되지 않음" → 이미 OMC 모드입니다. `.gran-maestro/mode.json`의 `active` 상태 확인
+- "Maestro 모드가 활성화되지 않음" → 이미 비활성 상태입니다. `.gran-maestro/mode.json`의 `active` 상태 확인
 - "활성 요청이 남아있음" → `--force` 옵션으로 강제 비활성화하거나, 먼저 `/mst:cancel`로 요청을 취소 또는 `/mst:approve`로 완료
-- "OMC 스킬이 복원되지 않음" → 세션 재시작으로 해결. mode.json이 `active: false`인지 확인
+- "모드 전환이 반영되지 않음" → 세션 재시작으로 해결. mode.json이 `active: false`인지 확인

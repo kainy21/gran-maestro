@@ -8,7 +8,7 @@ argument-hint: "{프롬프트} [--prompt-file {경로}] [--dir {경로}] [--json
 # maestro:codex
 
 Codex CLI 호출의 단일 진입점입니다. Gran Maestro 워크플로우 내·외부 모든 Codex 호출이 이 스킬을 경유합니다.
-이 스킬은 모드에 관계없이 사용 가능합니다 (OMC 모드, Maestro 모드 모두).
+이 스킬은 Maestro 모드 활성 여부에 관계없이 사용 가능합니다.
 
 ## 실행 프로토콜
 

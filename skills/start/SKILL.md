@@ -1,6 +1,6 @@
 ---
 name: start
-description: "새 요청을 시작하고 PM 분석 워크플로우에 진입합니다. 사용자가 '구현해줘', '만들어줘', '개발해줘', '추가해줘'를 말하거나 /mst:start를 호출할 때 사용. 일반적인 코드 수정이나 OMC 오케스트레이션 요청에는 사용하지 않음."
+description: "새 요청을 시작하고 PM 분석 워크플로우에 진입합니다. 사용자가 '구현해줘', '만들어줘', '개발해줘', '추가해줘'를 말하거나 /mst:start를 호출할 때 사용."
 user-invocable: true
 argument-hint: "{요청 내용} [--auto]"
 ---
@@ -30,8 +30,7 @@ Maestro 모드가 비활성 상태이면 자동으로 활성화합니다:
        "active": true,
        "activated_at": "{현재 ISO timestamp}",
        "auto_deactivate": true,
-       "previous_mode": "omc"
-     }
+       }
      ```
 7. `.gran-maestro/requests/` 디렉토리 확인, 없으면 생성
 8. `.gran-maestro/worktrees/` 디렉토리 확인, 없으면 생성
@@ -84,7 +83,7 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
 4. PM Conductor 역할로 Phase 1 분석 수행 (`agents/pm-conductor.md`의 `<phase1_protocol>` 준수):
    a. 요청 파싱 및 복잡도 분류 (simple | standard | complex)
    b. Simple → 단독 분석 / Standard·Complex → Analysis Squad 팀 소환
-   c. 코드베이스 탐색 (`/mst:codex`로 정밀 심볼 추적, `/mst:gemini`로 광역 탐색 위임), 외부 AI 분석 (반드시 `Skill(skill: "mst:codex", ...)`, `Skill(skill: "mst:gemini", ...)` 도구로 호출 — OMC MCP 직접 호출 금지)
+   c. 코드베이스 탐색 (`/mst:codex`로 정밀 심볼 추적, `/mst:gemini`로 광역 탐색 위임), 외부 AI 분석 (반드시 `Skill(skill: "mst:codex", ...)`, `Skill(skill: "mst:gemini", ...)` 도구로 호출 — MCP 직접 호출 금지)
    d. 모호한 요구사항은 사용자에게 질문 (AskUserQuestion, 한 번에 하나씩)
    e. **디버그 의도 감지 (LLM 판단)**: 사용자 요청이 버그 탐지, 문제 원인 분석, 디버깅 목적으로 판단되면:
       - `config.collaborative_debug.auto_trigger_from_start`가 `true`인 경우: `/mst:debug`를 자동 호출하여 병렬 조사를 수행하고, 이 워크플로우를 종료합니다

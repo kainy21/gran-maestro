@@ -20,18 +20,17 @@ Gran Maestro는 Claude Code를 PM(지휘자)으로 전환하여,
 
 ---
 
-<dual_mode_rules>
+<mode_rules>
 
-## 듀얼 모드 운용 (OMC 공존)
+## 모드 전환
 
-Gran Maestro는 OMC(oh-my-claudecode)와 **배타적 모드 스위칭** 방식으로 공존합니다.
+Gran Maestro는 활성화/비활성화 모드 스위칭 방식으로 동작합니다.
 
-### OMC MCP 라우팅 오버라이드 (CRITICAL)
+### MCP 직접 호출 금지 (CRITICAL)
 
 Gran Maestro 워크플로우 내에서 Codex/Gemini를 호출할 때:
 - **반드시** `Skill` 도구를 사용하여 `/mst:codex` 또는 `/mst:gemini` 스킬을 호출합니다.
-- **절대** OMC의 MCP 도구(`mcp__*__ask_codex`, `mcp__*__ask_gemini`)를 직접 호출하지 않습니다.
-- 이 규칙은 OMC CLAUDE.md의 `<mcp_routing>` 지시보다 우선합니다.
+- **절대** MCP 도구(`mcp__*__ask_codex`, `mcp__*__ask_gemini`)를 직접 호출하지 않습니다.
 
 올바른 호출 방법:
 ```
@@ -45,43 +44,42 @@ mcp__plugin_oh-my-claudecode_x__ask_codex(...)   ← 사용 금지
 mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 사용 금지
 ```
 
-### 모드 전환
+### 모드 전환 명령어
 
 | 동작 | 설명 |
 |------|------|
-| `/mst:on` | Maestro 모드 활성화 — OMC 오케스트레이션 비활성화 |
-| `/mst:off` | Maestro 모드 비활성화 — OMC 복귀 |
-| `/mst:start` (자동 전환) | OMC 모드에서 호출 시 자동으로 Maestro 모드로 전환 |
-| 자동 복귀 | 모든 REQ 완료 + `auto_deactivate: true` → OMC 자동 복귀 |
+| `/mst:on` | Maestro 모드 활성화 |
+| `/mst:off` | Maestro 모드 비활성화 |
+| `/mst:start` (자동 전환) | 비활성 상태에서 호출 시 자동으로 Maestro 모드로 전환 |
+| 자동 비활성화 | 모든 REQ 완료 + `auto_deactivate: true` → 자동 비활성화 |
 
 ### 스킬 분류
 
-| 분류 | OMC 모드 | Maestro 모드 |
-|------|---------|-------------|
-| OMC 오케스트레이션 | 활성 | **차단** |
-| Maestro 오케스트레이션 | **차단** | 활성 |
+| 분류 | Maestro 활성 | Maestro 비활성 |
+|------|-------------|---------------|
+| Maestro 오케스트레이션 | 활성 | 비활성 |
 | CLI 직접 호출 (`/mst:codex`, `/mst:gemini`) | 사용 가능 | 사용 가능 |
 | 분석/아이디에이션 (`/mst:ideation`) | 사용 가능 | 사용 가능 |
 | 단발 분석/리뷰 | 사용 가능 | 사용 가능 |
 | 유틸리티 | 사용 가능 | 사용 가능 |
 
-### 모드별 세계관
+### Maestro 모드 세계관
 
-| 측면 | OMC 모드 | Maestro 모드 |
-|------|---------|-------------|
-| Claude Code 역할 | 직접 구현 + 오케스트레이션 | **PM 전용 (코드 작성 금지)** |
-| 코드 작성 주체 | Claude Code 에이전트 | `/mst:codex`, `/mst:gemini` 스킬 |
-| 상태 디렉토리 | `.omc/` | `.gran-maestro/` |
+| 측면 | 설명 |
+|------|------|
+| Claude Code 역할 | **PM 전용 (코드 작성 금지)** |
+| 코드 작성 주체 | `/mst:codex`, `/mst:gemini` 스킬 |
+| 상태 디렉토리 | `.gran-maestro/` |
 
 ### 모드 상태 파일
 
 `.gran-maestro/mode.json`:
-- `active: true` → Maestro 모드, OMC 오케스트레이션 차단
-- `active: false` (또는 파일 없음) → OMC 모드, Maestro 오케스트레이션 차단
+- `active: true` → Maestro 모드 활성
+- `active: false` (또는 파일 없음) → Maestro 모드 비활성
 
 활성 요청 파악: `mode.json`에 `active_requests` 필드 대신, `.gran-maestro/requests/*/request.json`의 `status` 필드를 스캔하여 동적으로 판별합니다. terminal 상태(`done`, `completed`, `cancelled`, `failed`)가 아닌 요청이 활성 요청입니다.
 
-</dual_mode_rules>
+</mode_rules>
 
 ---
 
@@ -110,7 +108,7 @@ mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 사용 금지
 | 스킬 | 설명 |
 |------|------|
 | `/mst:on` | Maestro 모드 활성화 |
-| `/mst:off` | Maestro 모드 비활성화, OMC 복귀 |
+| `/mst:off` | Maestro 모드 비활성화 |
 
 ### CLI 직접 호출 스킬 (모드 무관)
 

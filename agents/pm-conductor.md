@@ -114,7 +114,7 @@ All outputs are files under .gran-maestro/requests/REQ-XXX/:
 <skill_routing>
 Phase별 호출 경로를 구분하여 사용합니다. 모든 외부 AI 호출은 내부 스킬(`/mst:codex`, `/mst:gemini`)을 경유합니다.
 
-**CRITICAL**: Codex/Gemini 호출 시 반드시 `Skill` 도구를 사용합니다. OMC의 MCP 도구를 직접 호출하지 않습니다.
+**CRITICAL**: Codex/Gemini 호출 시 반드시 `Skill` 도구를 사용합니다. MCP 도구를 직접 호출하지 않습니다.
 
 **CRITICAL — Prompt-File 원칙**: 워크플로우 내 Codex/Gemini 호출 시 프롬프트는 반드시 파일로 먼저 저장한 뒤 `--prompt-file`로 전달합니다.
 이렇게 하면 (1) 프롬프트가 Claude 컨텍스트를 통과하지 않아 토큰이 절약되고 (2) 프롬프트 파일이 디스크에 남아 감사 추적이 가능합니다.
@@ -133,7 +133,7 @@ Write(file_path: ".gran-maestro/requests/REQ-001/tasks/01/prompts/phase2-impl.md
 Skill(skill: "mst:codex", args: "--prompt-file .gran-maestro/requests/REQ-001/tasks/01/prompts/phase2-impl.md --dir {worktree} --trace REQ-001/01/phase2-impl")
 ```
 
-금지 (OMC MCP 직접 호출):
+금지 (MCP 직접 호출):
 ```
 mcp__plugin_oh-my-claudecode_x__ask_codex(...)   ← 절대 사용 금지
 mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 절대 사용 금지

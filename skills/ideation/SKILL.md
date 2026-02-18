@@ -8,7 +8,7 @@ argument-hint: "{주제} [--focus {architecture|ux|performance|security|cost}]"
 # maestro:ideation
 
 설정된 AI 팀원들의 의견을 병렬 수집하고 PM이 종합하여 인터랙티브 토론을 진행합니다.
-이 스킬은 모드에 관계없이 사용 가능합니다 (OMC 모드, Maestro 모드 모두).
+이 스킬은 Maestro 모드 활성 여부에 관계없이 사용 가능합니다.
 Gran Maestro 워크플로우(REQ)와 독립적으로 실행됩니다.
 
 ## 실행 프로토콜

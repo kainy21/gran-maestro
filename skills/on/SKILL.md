@@ -1,18 +1,17 @@
 ---
 name: on
-description: "Maestro 모드를 활성화합니다 (OMC 오케스트레이션 비활성화). 사용자가 '마에스트로 켜', '마에스트로 시작', '지휘자 모드'를 말하거나 /mst:on을 호출할 때 사용. 새 요청 시작은 /mst:start를 사용 (자동 부트스트래핑 포함)."
+description: "Maestro 모드를 활성화합니다. 사용자가 '마에스트로 켜', '마에스트로 시작', '지휘자 모드'를 말하거나 /mst:on을 호출할 때 사용. 새 요청 시작은 /mst:start를 사용 (자동 부트스트래핑 포함)."
 user-invocable: true
 argument-hint: ""
 ---
 
 # maestro:on
 
-Gran Maestro 모드를 활성화합니다. OMC 오케스트레이션 스킬이 비활성화되고,
-Maestro 오케스트레이션 스킬이 활성화됩니다.
+Gran Maestro 모드를 활성화합니다. Maestro 오케스트레이션 스킬이 활성화됩니다.
 
 ## 모드 전환 규칙
 
-### 활성화 시 차단되는 OMC 스킬
+### 활성화 시 차단되는 스킬
 - `/autopilot`, `/ralph`, `/ultrawork`, `/team`, `/pipeline`, `/ultrapilot`, `/swarm`, `/ecomode`
 
 ### Maestro 모드에서 사용 가능한 스킬
@@ -39,7 +38,6 @@ Maestro 오케스트레이션 스킬이 활성화됩니다.
      "active": true,
      "activated_at": "{현재 ISO timestamp}",
      "auto_deactivate": true,
-     "previous_mode": "omc"
    }
    ```
 7. `.gran-maestro/requests/` 디렉토리 존재 확인, 없으면 생성
@@ -53,7 +51,7 @@ Maestro 오케스트레이션 스킬이 활성화됩니다.
      { "matcher": "mcp__plugin_oh-my-claudecode_g__ask_gemini", "hooks": [{ "type": "command", "command": "~/.claude/scripts/maestro-guard.sh" }] },
      { "matcher": "Task", "hooks": [{ "type": "command", "command": "~/.claude/scripts/maestro-guard.sh" }] }
      ```
-   - hook은 Maestro 모드 활성 시 OMC MCP 직접 호출(ask_codex, ask_gemini)과 Task 기반 OMC 구현 에이전트 소환(예: executor/deep-executor/verifier/build-fixer) 차단 시 exit 2로 블록하며, Skill 도구 사용을 안내함
+   - hook은 Maestro 모드 활성 시 MCP 직접 호출(ask_codex, ask_gemini)과 Task 기반 구현 에이전트 소환(예: executor/deep-executor/verifier/build-fixer) 차단 시 exit 2로 블록하며, Skill 도구 사용을 안내함
    - Maestro 모드 비활성 시에는 exit 0으로 통과 (hook 설치 후 제거 불필요)
 10. 사용자에게 모드 전환 알림 출력
 
@@ -66,7 +64,7 @@ Gran Maestro 모드 활성화
 - 코드 작성: 금지 (Codex/Gemini에 위임)
 - 분석/스펙/리뷰: 활성
 
-OMC 오케스트레이션 스킬이 비활성화되었습니다.
+Maestro 오케스트레이션 스킬이 활성화되었습니다.
 /mst:start 로 새 요청을 시작하세요.
 ```
 
@@ -99,4 +97,4 @@ OMC 오케스트레이션 스킬이 비활성화되었습니다.
 
 - "이미 Maestro 모드가 활성화됨" → `.gran-maestro/mode.json`의 `active: true` 확인. 이미 활성 상태이면 추가 작업 불필요
 - "config.json 생성 실패" → 현재 디렉토리의 쓰기 권한 확인. git 저장소 루트에서 실행 중인지 확인
-- "OMC 스킬이 여전히 활성" → 세션을 재시작하면 모드 전환이 적용됨. `/mst:off` 후 `/mst:on`으로 재활성화 시도
+- "모드 전환이 반영되지 않음" → 세션을 재시작하면 모드 전환이 적용됨. `/mst:off` 후 `/mst:on`으로 재활성화 시도

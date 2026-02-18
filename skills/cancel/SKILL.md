@@ -1,6 +1,6 @@
 ---
 name: cancel
-description: "요청 또는 태스크를 취소하고 worktree를 정리합니다. 사용자가 '취소', '중단', '그만'을 말하거나 /mst:cancel을 호출할 때 사용. 일반적인 작업 중단이나 OMC 모드 취소에는 사용하지 않음."
+description: "요청 또는 태스크를 취소하고 worktree를 정리합니다. 사용자가 '취소', '중단', '그만'을 말하거나 /mst:cancel을 호출할 때 사용."
 user-invocable: true
 argument-hint: "{REQ-ID} [--force]"
 ---
@@ -19,7 +19,7 @@ argument-hint: "{REQ-ID} [--force]"
    - Git worktree 삭제
    - 임시 브랜치 정리
    - `request.json` 상태를 `cancelled`로 변경
-5. `.gran-maestro/requests/*/request.json`을 스캔하여 모든 요청이 terminal 상태(`done`, `completed`, `cancelled`, `failed`)이고 `auto_deactivate: true`이면 → OMC 모드 복귀
+5. `.gran-maestro/requests/*/request.json`을 스캔하여 모든 요청이 terminal 상태(`done`, `completed`, `cancelled`, `failed`)이고 `auto_deactivate: true`이면 → Maestro 모드 자동 비활성화
 
 ## 옵션
 

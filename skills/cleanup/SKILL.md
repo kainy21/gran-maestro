@@ -8,7 +8,7 @@ argument-hint: "[--run] [--dry-run]"
 # maestro:cleanup
 
 Gran Maestro 세션을 일괄 정리하는 스킬입니다. 한 번의 호출로 ideation, discussion, requests를 모두 정리합니다.
-이 스킬은 모드에 관계없이 사용 가능합니다 (OMC 모드, Maestro 모드 모두).
+이 스킬은 Maestro 모드 활성 여부에 관계없이 사용 가능합니다.
 
 ## archive 스킬과의 차이
 
