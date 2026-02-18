@@ -159,13 +159,22 @@ requests (1 archive):
 - 예: `analyzing`, `collecting`, `synthesizing`, `discussing`, `debating`, `phase1_analysis`, `phase2_execution` 등
 - 이 규칙은 자동/수동 아카이브 모두에 적용
 
+## counter.json 보호 규칙
+
+**절대 삭제하지 않는 파일**: 각 타입 디렉토리의 `counter.json`
+- `counter.json`은 세션 ID 채번의 단조 증가 카운터로, 아카이브/정리 시 절대 삭제하지 않음
+- 위치: `.gran-maestro/{ideation,discussion,debug,requests}/counter.json`
+- 이 파일은 세션 디렉토리가 아니므로 tar.gz 아카이브 대상이 아님
+- `--run` 실행 시 세션 디렉토리(IDN-*, DSC-*, DBG-*, REQ-*)만 대상으로 하며, `counter.json`은 건드리지 않음
+
 ## 디렉토리 구조
 
 ```
 .gran-maestro/
-├── ideation/          # 최근 20개 활성
-├── discussion/        # 최근 20개 활성
-├── requests/          # 최근 20개 활성
+├── ideation/          # 최근 20개 활성 + counter.json
+├── discussion/        # 최근 20개 활성 + counter.json
+├── requests/          # 최근 20개 활성 + counter.json
+├── debug/             # counter.json
 └── archive/
     ├── ideation-IDN001-IDN005-20260217.tar.gz
     ├── discussion-DSC001-DSC003-20260217.tar.gz

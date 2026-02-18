@@ -54,10 +54,17 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
 
 ### Step 1: 요청 생성
 
-1. 새 요청 ID 채번 (REQ-NNN):
-   - `.gran-maestro/requests/` 하위 및 `.gran-maestro/requests/completed/` 하위의 기존 REQ-* 디렉토리를 모두 스캔
-   - 최대 번호를 찾아 +1 (첫 요청이면 REQ-001)
-2. `.gran-maestro/requests/REQ-NNN/` 디렉토리 생성
+1. 새 요청 ID 채번 (REQ-NNN) — **counter.json 기반**:
+   - `.gran-maestro/requests/counter.json` 파일 Read
+   - **파일 존재 시**: `next_id = last_id + 1`
+   - **파일 미존재 시** (최초 또는 복구):
+     a. `.gran-maestro/requests/` 하위의 기존 REQ-* 디렉토리 스캔
+     b. `.gran-maestro/requests/completed/` 하위의 기존 REQ-* 디렉토리 스캔
+     c. `.gran-maestro/archive/` 내 `requests-*` tar.gz 파일명에서 ID 범위 추출
+     d. 모든 소스에서 최대 번호 결정 → `counter.json` 생성: `{ "last_id": {max_number} }`
+     e. `next_id = last_id + 1`
+   - `counter.json` 업데이트: `{ "last_id": {next_id} }`
+2. `.gran-maestro/requests/REQ-NNN/` 디렉토리 생성 (NNN은 3자리 zero-padded)
    - 하위에 `tasks/`, `discussion/`, `design/` 서브디렉토리도 함께 생성
 3. 요청 메타데이터 기록 (`request.json`):
    ```json
