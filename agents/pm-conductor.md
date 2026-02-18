@@ -88,9 +88,9 @@ Present team composition to user in spec document with rationale.
 
 Analysis Squad: /mst:gemini (codebase exploration + context analysis) + Analyst(opus) + /mst:codex (code structure + req decomposition)
   + Explorer(opus) x1 (optional, precision symbol tracing only)
-  + Design Wing (conditional): Architect(opus) + /mst:codex(schema-designer template) + /mst:codex(ui-designer template)
+  + Design Wing (conditional): Architect(opus) + /mst:codex(schema-designer template) + /mst:gemini(ui-designer template)
     - Schema Designer: `agents/schema-designer.md` 템플릿 → `/mst:codex --prompt-file` (대규모 시 `/mst:gemini` 보조)
-    - UI Designer: `agents/ui-designer.md` 템플릿 → `/mst:codex --prompt-file` (크로스뷰 통합 시 `/mst:gemini` 보조)
+    - UI Designer: `agents/ui-designer.md` 템플릿 → `/mst:gemini --prompt-file` (1M 컨텍스트로 전체 UI 일관성 확보, 정밀 코드 구현 시 `/mst:codex` 보조)
 Review Squad: SecurityReviewer(opus) + QualityReviewer(opus) + Verifier(opus)
               + /mst:codex (quality-precheck + code-review + security-scan + consistency-review:default)
               + /mst:gemini (consistency-review:large-change-summary)
@@ -104,7 +104,7 @@ All outputs are files under .gran-maestro/requests/REQ-XXX/:
 - tasks/NN/feedback-RN.md — feedback document
 - design/architecture.md — system architecture (if Architect spawned)
 - design/data-model.md — data model (if schema-designer template invoked via /mst:codex)
-- design/ui-spec.md — UI specification (if ui-designer template invoked via /mst:codex)
+- design/ui-spec.md — UI specification (if ui-designer template invoked via /mst:gemini)
 - summary.md — final completion report
 </output_format>
 
@@ -160,9 +160,10 @@ mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 절대 사용 금지
 | Phase 1 | 코드베이스 탐색 (Explorer 대체) | `Write → prompts/phase1-exploration.md` → `Skill(skill: "mst:gemini", args: "--prompt-file {prompt_path} --files {pattern} --trace {REQ}/{TASK}/phase1-exploration")` | Explorer 대체, 1M 컨텍스트 |
 | Phase 1 | 요구사항 분해 초안 | `Write → prompts/phase1-req-decomposition.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {project_dir} --trace {REQ}/{TASK}/phase1-req-decomposition")` 또는 `/mst:gemini` | PM 승인 후 spec 작성 |
 | Phase 1 | 스키마 설계 | `Write → prompts/phase1-schema-design.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --output {design_path}/data-model.md --trace {REQ}/{TASK}/phase1-schema-design")` | schema-designer 템플릿 사용 |
-| Phase 1 | UI 설계 | `Write → prompts/phase1-ui-design.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --output {design_path}/ui-spec.md --trace {REQ}/{TASK}/phase1-ui-design")` | ui-designer 템플릿 사용 |
+| Phase 1 | UI 설계 | `Write → prompts/phase1-ui-design.md` → `Skill(skill: "mst:gemini", args: "--prompt-file {prompt_path} --files {component_pattern} --output {design_path}/ui-spec.md --trace {REQ}/{TASK}/phase1-ui-design")` | ui-designer 템플릿 사용, Gemini 1M 컨텍스트로 전체 UI 일관성 확보 |
 | Phase 1 | UI 크로스뷰 통합 | `Write → prompts/phase1-ui-crossview.md` → `Skill(skill: "mst:gemini", args: "--prompt-file {prompt_path} --files {component_pattern} --trace {REQ}/{TASK}/phase1-ui-crossview")` | 다수 화면 일관성 검토 |
-| Phase 2 | 코드 구현 | `Write → prompts/phase2-impl.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-impl")` | full-auto (기본값) |
+| Phase 2 | 코드 구현 (백엔드/로직) | `Write → prompts/phase2-impl.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-impl")` | full-auto (기본값) |
+| Phase 2 | 코드 구현 (프론트엔드/UI) | `Write → prompts/phase2-impl-ui.md` → `Skill(skill: "mst:gemini", args: "--prompt-file {prompt_path} --files {component_pattern} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-impl-ui")` | 프론트엔드 UI 태스크 시 Gemini 우선 라우팅 |
 | Phase 2 | 테스트 작성 | `Write → prompts/phase2-test.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-test")` | Codex가 구현 코드 기반 테스트 초안 및 엣지케이스 자동 생성. 기존 패턴 분석하여 일관된 스타일 유지 |
 | Phase 2 | 테스트 자동 생성 | `Write → prompts/phase2-test-gen.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-test-gen")` | 구현 코드 기반 엣지케이스 자동 생성 |
 | Phase 3 | 코드 정확성 검증 | `Write → prompts/phase3-code-review.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {project_dir} --trace {REQ}/{TASK}/phase3-code-review")` | 분석 전용 프롬프트 |
@@ -190,8 +191,9 @@ mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 절대 사용 금지
 | Phase 3 | `phase3-security-scan` | Codex 코드 실행 흐름 기반 보안 스캐닝 |
 | Phase 1 | `phase1-schema-design` | Codex 스키마 설계 (schema-designer 템플릿) |
 | Phase 1 | `phase1-schema-design-gemini` | Gemini 대규모 스키마 보조 분석 |
-| Phase 1 | `phase1-ui-design` | Codex UI 설계 (ui-designer 템플릿) |
+| Phase 1 | `phase1-ui-design` | Gemini UI 설계 (ui-designer 템플릿, 1M 컨텍스트) |
 | Phase 1 | `phase1-ui-crossview` | Gemini 크로스뷰 UI 통합 검토 |
+| Phase 2 | `phase2-impl-ui` | Gemini 프론트엔드/UI 구현 |
 | Phase 4 | `phase4-feedback` | Codex 피드백 문서 생성 (feedback-composer 템플릿) |
 | Phase 4 | `phase4-fix-RN` | 피드백 반영 수정 (N=리비전 번호) |
 </skill_routing>

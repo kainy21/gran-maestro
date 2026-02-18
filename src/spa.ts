@@ -1081,11 +1081,47 @@ let openDirs = new Set();
 let treeInitialized = false;
 const viewCache = {};
 let loadDataTimer = null;
+let dirtyLoadTimer = null;
 let pollInterval = null;
+let dirtyFlags = { requests: false, config: false, mode: false, tree: false, ideation: false, discussion: false };
+
+async function loadRequests() {
+  try {
+    requests = await apiFetch('/requests');
+    for (const req of requests) {
+      try { req._tasks = await apiFetch('/requests/' + encodeURIComponent(req.id) + '/tasks'); }
+      catch { req._tasks = []; }
+    }
+  } catch { requests = []; }
+}
+
+async function loadDirtyData() {
+  const promises = [];
+  if (dirtyFlags.requests) promises.push(loadRequests());
+  if (dirtyFlags.config) promises.push(apiFetch('/config').then(d => { config = d; }).catch(() => {}));
+  if (dirtyFlags.mode) promises.push(apiFetch('/mode').then(d => { modeStatus = d; }).catch(() => {}));
+  if (dirtyFlags.tree) promises.push(apiFetch('/tree').then(d => { docTree = d; }).catch(() => {}));
+  if (dirtyFlags.ideation) promises.push(apiFetch('/ideation').then(d => { ideationSessions = d; }).catch(() => {}));
+  if (dirtyFlags.discussion) promises.push(apiFetch('/discussion').then(d => { discussionSessions = d; }).catch(() => {}));
+
+  // If nothing is dirty, do a full load
+  if (promises.length === 0) { await loadData(); return; }
+
+  await Promise.all(promises);
+  // Reset dirty flags
+  dirtyFlags = { requests: false, config: false, mode: false, tree: false, ideation: false, discussion: false };
+
+  renderCurrentView();
+}
+
+function scheduleDirtyLoad() {
+  if (dirtyLoadTimer) clearTimeout(dirtyLoadTimer);
+  dirtyLoadTimer = setTimeout(loadDirtyData, 1500);
+}
 
 function scheduleLoadData() {
   if (loadDataTimer) clearTimeout(loadDataTimer);
-  loadDataTimer = setTimeout(loadData, 500);
+  loadDataTimer = setTimeout(loadData, 1500);
 }
 
 function startPolling() {
@@ -2171,7 +2207,10 @@ function switchView(view) {
 function renderCurrentView() {
   const main = document.getElementById('main-content');
   if (!main) return;
-  
+
+  // Save scroll position before DOM replacement
+  const scrollTop = main.scrollTop;
+
   let html;
   switch (currentView) {
     case 'workflow': html = renderWorkflow(); break;
@@ -2182,10 +2221,12 @@ function renderCurrentView() {
     case 'dependencies': html = renderDependencies(); break;
     case 'settings': html = renderSettings(); break;
   }
-  
+
   if (viewCache[currentView] !== html) {
     viewCache[currentView] = html;
     main.innerHTML = html;
+    // Restore scroll position after DOM replacement
+    main.scrollTop = scrollTop;
   }
   updateApprovalBanner();
 }
@@ -2340,9 +2381,28 @@ function connectSSE() {
         addNotification(traceLabel + ': AI trace saved (' + traceFile + ')');
       }
 
-      // Refresh data on meaningful events
+      // Refresh data on meaningful events — set dirty flags per event type
+      if (event.type === 'task_update' || event.type === 'request_update') {
+        dirtyFlags.requests = true;
+      }
+      if (event.type === 'phase_change') {
+        dirtyFlags.mode = true;
+        dirtyFlags.requests = true;
+      }
+      if (event.type === 'config_change') {
+        dirtyFlags.config = true;
+      }
+      if (event.type === 'ideation_update') {
+        dirtyFlags.ideation = true;
+      }
+      if (event.type === 'discussion_update') {
+        dirtyFlags.discussion = true;
+      }
+      if (event.type === 'trace_update') {
+        dirtyFlags.requests = true;
+      }
       if (['task_update', 'request_update', 'phase_change', 'config_change', 'ideation_update', 'discussion_update', 'trace_update'].includes(event.type)) {
-        scheduleLoadData();
+        scheduleDirtyLoad();
       }
     } catch { /* ignore parse errors */ }
   };
@@ -2363,9 +2423,9 @@ document.getElementById('theme-toggle').innerHTML = theme === 'light' ? '&#9728;
 const searchBar = document.getElementById('search-container');
 if (searchBar) searchBar.style.display = (currentView === 'workflow') ? 'flex' : 'none';
 
-loadData();
 connectSSE();
-startPolling();
+// loadData is called by SSE onopen; fall back if SSE fails to connect
+setTimeout(() => { if (!sseConnected) { loadData(); startPolling(); } }, 3000);
 </script>
 </body>
 </html>`;

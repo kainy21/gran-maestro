@@ -8,7 +8,7 @@ import type { GranMaestroConfig, Project, Registry } from "./types.ts";
 export const BASE_DIR = ".gran-maestro";
 export const DEFAULT_PORT = 3847;
 export const HOST = "127.0.0.1";
-export const SSE_DEBOUNCE_MS = 100;
+export const SSE_DEBOUNCE_MS = 300;
 export const HUB_MODE = true; // Always hub mode — multi-project by default
 export const HUB_DIR = `${Deno.env.get("HOME")}/.gran-maestro-hub`;
 
