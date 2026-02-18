@@ -1584,7 +1584,11 @@ function renderWorkflow() {
     ? completedRequests.map(renderRequestCard).join('')
     : '';
 
-  return '<div class="request-section request-section--active">' +
+  return '<div class="view-header">' +
+      '<div class="view-header-title">Workflow</div>' +
+      '<button class="refresh-btn" id="refresh-btn-workflow" onclick="refreshView(\'workflow\')"><span class="refresh-icon">&#x21bb;</span> Refresh</button>' +
+    '</div>' +
+    '<div class="request-section request-section--active">' +
       '<h2>Active Requests</h2>' +
       activeSection +
     '</div>' +
@@ -1665,6 +1669,7 @@ function renderAgents() {
     '<input type="text" id="agent-filter-req" placeholder="Filter by Request ID..." oninput="filterAgents()">' +
     '<input type="text" id="agent-filter-agent" placeholder="Filter by Agent..." oninput="filterAgents()">' +
     '<div style="flex:1"></div>' +
+    '<button class="refresh-btn" id="refresh-btn-agents" onclick="refreshView(\'agents\')" style="margin-right:8px"><span class="refresh-icon">&#x21bb;</span></button>' +
     '<div class="live-indicator"><div class="dot"></div> LIVE</div>' +
     '</div>';
 
@@ -1709,7 +1714,11 @@ function renderDocuments() {
   const treeHtml = renderTree(docTree, 0, '');
   treeInitialized = true;
   const contentHtml = docContent || '<div class="empty-state" style="padding:40px"><p>Select a file from the tree to view its contents.</p></div>';
-  return '<div class="doc-layout">' +
+  return '<div class="view-header">' +
+    '<div class="view-header-title">Documents</div>' +
+    '<button class="refresh-btn" id="refresh-btn-documents" onclick="refreshView(\'documents\')"><span class="refresh-icon">&#x21bb;</span> Refresh</button>' +
+    '</div>' +
+    '<div class="doc-layout">' +
     '<div class="doc-tree">' + treeHtml + '</div>' +
     '<div class="doc-content" id="doc-content">' + contentHtml + '</div>' +
     '</div>';
@@ -1798,6 +1807,7 @@ function renderLog() {
 
   const toolbar = '<div class="log-toolbar">' +
     '<select onchange="selectLogTask(this.value)" style="min-width:320px">' + options + '</select>' +
+    '<button class="refresh-btn" id="refresh-btn-log" onclick="refreshView(\'log\')" style="margin-left:auto"><span class="refresh-icon">&#x21bb;</span></button>' +
     '</div>';
 
   if (!logSelectedTask) {
@@ -1849,6 +1859,10 @@ function scrollLogToBottom() {
 // ─── Dependencies View ───────────────────────────────────────────────────────
 
 function renderDependencies() {
+  const depHeader = '<div class="view-header">' +
+    '<div class="view-header-title">Dependencies</div>' +
+    '<button class="refresh-btn" id="refresh-btn-dependencies" onclick="refreshView(\'dependencies\')"><span class="refresh-icon">&#x21bb;</span> Refresh</button>' +
+    '</div>';
   // Collect requests that have blockedBy or blocks relationships
   const hasRelation = requests.filter(r =>
     (r.blockedBy && r.blockedBy.length > 0) || (r.blocks && r.blocks.length > 0)
@@ -1868,7 +1882,8 @@ function renderDependencies() {
   });
 
   if (edges.length === 0) {
-    return '<div class="empty-state"><div class="icon">&#128279;</div>' +
+    return depHeader +
+      '<div class="empty-state"><div class="icon">&#128279;</div>' +
       '<h2>No Dependencies</h2>' +
       '<p>No dependency relationships found between requests</p></div>';
   }
@@ -1957,7 +1972,8 @@ function renderDependencies() {
       '</div>';
   });
 
-  return '<div class="dep-graph" style="min-width:' + totalW + 'px;min-height:' + totalH + 'px">' +
+  return depHeader +
+    '<div class="dep-graph" style="min-width:' + totalW + 'px;min-height:' + totalH + 'px">' +
     svg + nodesHtml + '</div>';
 }
 
@@ -2280,18 +2296,23 @@ function renderIdeation() {
   }
 
   // List view — merge ideation + discussion sessions
+  const ideaHeader = '<div class="view-header">' +
+    '<div class="view-header-title">Ideation &amp; Discussion</div>' +
+    '<button class="refresh-btn" id="refresh-btn-ideation" onclick="refreshView(\'ideation\')"><span class="refresh-icon">&#x21bb;</span> Refresh</button>' +
+    '</div>';
   const allSessions = [];
   ideationSessions.forEach(function(s) { allSessions.push({ ...s, _type: 'ideation' }); });
   discussionSessions.forEach(function(s) { allSessions.push({ ...s, _type: 'discussion' }); });
   allSessions.sort(function(a, b) { return (b.created_at || '').localeCompare(a.created_at || ''); });
 
   if (allSessions.length === 0) {
-    return '<div class="empty-state"><div class="icon">&#128161;</div>' +
+    return ideaHeader +
+      '<div class="empty-state"><div class="icon">&#128161;</div>' +
       '<h2>No Sessions</h2>' +
       '<p>Run /mst:ideation or /mst:discussion to start.</p></div>';
   }
 
-  let html = '<div class="ideation-grid">';
+  let html = ideaHeader + '<div class="ideation-grid">';
   allSessions.forEach(function(s) {
     const isDiscussion = s._type === 'discussion';
     const statusCls = (s.status || 'collecting').toLowerCase();
