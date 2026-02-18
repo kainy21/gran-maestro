@@ -13,6 +13,9 @@
   "agents": [
     "./agents/pm-conductor.md",
     "./agents/architect.md",
-    "./agents/outsource-brief.md"
+    "./agents/outsource-brief.md",
+    "./agents/feedback-composer.md",
+    "./agents/schema-designer.md",
+    "./agents/ui-designer.md"
   ]
 }
