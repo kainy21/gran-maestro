@@ -19,6 +19,7 @@
   "concurrency": {
     "max_parallel_tasks": 5,
     "max_parallel_reviews": 3,
+    "batch_max_parallel_reqs": 1,
     "queue_strategy": "fifo"
   },
   "timeouts": {
