@@ -98,7 +98,8 @@
     },
     "developer": {
       "primary": { "provider": "codex", "model": "gpt-5.3-codex" },
-      "fallback": { "provider": "gemini", "model": "gemini-3-pro-preview" }
+      "fallback": { "provider": "gemini", "model": "gemini-3-pro-preview" },
+      "claude_dev": { "provider": "claude", "model": "sonnet" }
     },
     "reviewer": {
       "primary": { "provider": "codex", "model": "gpt-5.3-codex" },

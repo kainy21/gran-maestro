@@ -185,6 +185,7 @@ mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 절대 사용 금지
 | Phase 1 | UI 크로스뷰 통합 | `Write → prompts/phase1-ui-crossview.md` → `Skill(skill: "mst:gemini", args: "--prompt-file {prompt_path} --files {component_pattern} --trace {REQ}/{TASK}/phase1-ui-crossview")` | 다수 화면 일관성 검토 |
 | Phase 2 | 코드 구현 (백엔드/로직) | `Write → prompts/phase2-impl.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-impl")` | full-auto (기본값) |
 | Phase 2 | 코드 구현 (프론트엔드/UI) | `Write → prompts/phase2-impl-ui.md` → `Skill(skill: "mst:gemini", args: "--prompt-file {prompt_path} --files {component_pattern} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-impl-ui")` | 프론트엔드 UI 태스크 시 Gemini 우선 라우팅 |
+| Phase 2 | 코드 구현 (claude-dev) | `Write → prompts/phase2-impl.md` → `Skill(skill: "mst:claude", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-impl")` | /mst:claude 서브에이전트 위임 |
 | Phase 2 | 테스트 작성 | `Write → prompts/phase2-test.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-test")` | Codex가 구현 코드 기반 테스트 초안 및 엣지케이스 자동 생성. 기존 패턴 분석하여 일관된 스타일 유지 |
 | Phase 2 | 테스트 자동 생성 | `Write → prompts/phase2-test-gen.md` → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ}/{TASK}/phase2-test-gen")` | 구현 코드 기반 엣지케이스 자동 생성 |
 | Phase 3 | 코드 정확성 검증 | `Write → prompts/phase3-code-review.md` (review-request 템플릿, Codex PERSPECTIVE) → `Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --trace {REQ}/{TASK}/phase3-code-review")` | self-exploration: Codex가 worktree 직접 탐색 |
@@ -206,7 +207,8 @@ mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 절대 사용 금지
 | Phase 1 | `phase1-exploration` | Gemini 광역 코드베이스 탐색 |
 | Phase 1 | `phase1-symbol-tracing` | Codex 정밀 심볼 추적 |
 | Phase 1 | `phase1-req-decomposition` | 요구사항 분해 초안 |
-| Phase 2 | `phase2-impl` | 코드 구현 |
+| Phase 2 | `phase2-impl` | 코드 구현 (Codex/Gemini/Claude 공통) |
+| Phase 2 | `phase2-impl-claude` | Claude 서브에이전트 구현 |
 | Phase 2 | `phase2-test` | 테스트 작성 |
 | Phase 2 | `phase2-test-gen` | 테스트 자동 생성 |
 | Phase 3 | `phase3-code-review` | Codex self-exploration 코드 검증 |

@@ -94,6 +94,21 @@ Write → .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase2-impl.m
 /mst:gemini --prompt-file .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase2-impl.md --trace {REQ-ID}/{TASK-NUM}/phase2-impl
 ```
 
+### Claude 실행 (Task 서브에이전트)
+
+Codex/Gemini CLI가 없는 환경이거나 `Assigned Agent: claude` / `claude-dev`인 경우 사용합니다.
+CLI 대신 Claude의 `Task(subagent_type: "general-purpose", ...)` 메커니즘으로 서브에이전트를 스폰합니다.
+
+```
+# Step 1: 템플릿 치환 후 파일에 저장
+Write → .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase2-impl.md
+
+# Step 2: 파일 경로로 호출
+/mst:claude --prompt-file .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase2-impl.md --dir {WORKTREE_PATH} --trace {REQ-ID}/{TASK-NUM}/phase2-impl
+```
+
+병렬 실행이 필요한 경우 `Task(..., run_in_background: true)`로 실행하고 `TaskOutput`으로 폴링합니다.
+
 ### 결과 파일 저장이 필요한 경우
 ```
 /mst:codex --prompt-file {prompt_path} --dir {WORKTREE_PATH} --output {exec-log-path}
