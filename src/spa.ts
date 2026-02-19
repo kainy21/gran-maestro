@@ -159,21 +159,6 @@ nav button.active {
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
-.tab-count {
-  font-size: 10px;
-  font-weight: 600;
-  background: var(--accent);
-  color: white;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  margin-left: 4px;
-  vertical-align: middle;
-}
 .search-container kbd {
   display: inline-block;
   font-family: var(--font-mono);
@@ -3237,31 +3222,6 @@ function patchCards(main, newHtml) {
   }
 }
 
-function updateTabCounts() {
-  const activeRequests = requests.filter(r => {
-    const st = (r.status || '').toLowerCase();
-    return st.startsWith('phase1') || st.startsWith('phase2') || st.startsWith('phase3') || st.startsWith('phase4');
-  }).length;
-  const ideationCount = (ideationSessions || []).length;
-  const planCount = (plans || []).length;
-
-  const tabs = { workflow: activeRequests, ideation: ideationCount, plans: planCount };
-  Object.entries(tabs).forEach(([view, count]) => {
-    const btn = document.querySelector('nav button[data-view="' + view + '"]');
-    if (!btn) return;
-    let badge = btn.querySelector('.tab-count');
-    if (count > 0) {
-      if (!badge) {
-        badge = document.createElement('span');
-        badge.className = 'tab-count';
-        btn.appendChild(badge);
-      }
-      badge.textContent = String(count);
-    } else if (badge) {
-      badge.remove();
-    }
-  });
-}
 
 function renderCurrentView() {
   const main = document.getElementById('main-content');
@@ -3294,7 +3254,6 @@ function renderCurrentView() {
     main.scrollTop = scrollTop;
   }
   updateApprovalBanner();
-  updateTabCounts();
 }
 
 // ─── Project Selector ───────────────────────────────────────────────────────
