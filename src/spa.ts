@@ -413,11 +413,11 @@ nav button.active kbd {
 }
 
 /* ─── Workflow: Task List ───────────────────────────────────── */
-.task-list { margin-top: 8px; }
+.task-list { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 10px; }
 .task-item {
   display: flex;
   flex-direction: column;
-  padding: 6px 0;
+  padding: 8px 0;
   border-bottom: 1px solid rgba(42, 42, 78, 0.1);
   cursor: pointer;
 }
@@ -446,7 +446,7 @@ nav button.active kbd {
   border-radius: 4px;
 }
 .task-detail {
-  margin-top: 8px;
+  margin-top: 12px;
   margin-left: 22px;
   padding: 10px;
   background: var(--bg-primary);
