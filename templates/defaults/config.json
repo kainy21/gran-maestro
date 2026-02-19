@@ -105,6 +105,12 @@
       "fallback": { "provider": "gemini", "model": "gemini-3-pro-preview" }
     }
   },
+  "code_review": {
+    "enabled": true,
+    "agents": 1,
+    "agent_roster": ["codex", "gemini"],
+    "parallel": true
+  },
   "cleanup": {
     "ideation_keep_count": 10,
     "discussion_keep_count": 10,

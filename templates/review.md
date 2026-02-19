@@ -27,6 +27,11 @@
 - **Codex (Acceptance Verification)**: ...
 - **Gemini (Consistency Review)**: ... (대규모 변경 시)
 
+## 추가 독립 리뷰어 의견 (config.code_review 기반)
+
+- **Codex (코드 레벨)**: ... (enabled 시)
+- **Gemini (시스템 레벨)**: ... (agents ≥ 2 시)
+
 ## 종합 판단
 
 {PM의 최종 판단 및 근거}
