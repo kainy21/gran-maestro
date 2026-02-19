@@ -12,6 +12,9 @@ argument-hint: "{REQ-ID}"
 
 ## 실행 프로토콜
 
+**스크립트 우선 실행**: `python3 {PLUGIN_ROOT}/scripts/mst.py request inspect {REQ-ID}` 실행. 성공 시 출력 그대로 사용. 실패 시 fallback.
+
+**Fallback:**
 1. `$ARGUMENTS`에서 REQ ID 파싱
 2. `.gran-maestro/requests/{REQ-ID}/request.json` 읽기
 3. 각 태스크의 `status.json` 읽기

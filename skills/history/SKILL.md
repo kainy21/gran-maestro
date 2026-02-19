@@ -12,6 +12,9 @@ argument-hint: "[{REQ-ID}] [--limit {N}]"
 
 ## 실행 프로토콜
 
+**스크립트 우선 실행**: `python3 {PLUGIN_ROOT}/scripts/mst.py request history` 실행. 성공 시 출력 그대로 사용. 실패 시 fallback.
+
+**Fallback:**
 1. `.gran-maestro/requests/` 스캔
 2. `status: completed` 또는 `status: cancelled`인 요청 필터링
 3. 특정 REQ ID 지정 시 상세 이력, 미지정 시 요약 목록

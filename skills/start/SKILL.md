@@ -41,6 +41,10 @@ Maestro 모드가 비활성 상태이면 자동으로 활성화합니다:
 ### Step 0: 아카이브 체크 (자동)
 
 config.json의 `archive.auto_archive_on_create`가 true이면:
+
+**스크립트 우선**: `python3 {PLUGIN_ROOT}/scripts/mst.py request count --active` 로 활성 세션 수 확인. `archive.max_active_sessions` 초과 시: `python3 {PLUGIN_ROOT}/scripts/mst.py archive run --max {max_active_sessions}` 실행. 실패 시 fallback.
+
+**Fallback:**
 1. `.gran-maestro/requests/` 하위의 REQ-* 디렉토리 수 확인
 2. `archive.max_active_sessions` 초과 시:
    - 완료된(completed/cancelled) 세션만 아카이브 대상
@@ -53,7 +57,9 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
 
 ### Step 1: 요청 생성
 
-1. 새 요청 ID 채번 (REQ-NNN) — **counter.json 기반**:
+1. 새 요청 ID 채번 (REQ-NNN):
+   - **스크립트 우선**: `python3 {PLUGIN_ROOT}/scripts/mst.py counter next` → 출력 ID 사용 (counter.json 자동 업데이트)
+   - **Fallback (counter.json 기반)**:
    - `.gran-maestro/requests/counter.json` 파일 Read
    - **파일 존재 시**: `next_id = last_id + 1`
    - **파일 미존재 시** (최초 또는 복구):

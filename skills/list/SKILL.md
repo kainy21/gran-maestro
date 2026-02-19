@@ -11,6 +11,9 @@ argument-hint: "[--all | --active | --completed]"
 
 ## 실행 프로토콜
 
+**스크립트 우선 실행**: `python3 {PLUGIN_ROOT}/scripts/mst.py request list --active` 실행. 성공(exit 0)이면 출력 그대로 사용. 실패 시 아래 fallback으로 진행.
+
+**Fallback (python3 미설치 또는 오류 시):**
 1. `.gran-maestro/requests/` 디렉토리 스캔
 2. 각 `request.json` 읽기
 3. 상태별 분류 및 포맷팅
