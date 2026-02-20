@@ -28,6 +28,16 @@ export interface PlanMeta {
   [key: string]: unknown;
 }
 
+export interface DebugMeta {
+  id: string;
+  issue?: string;
+  focus?: string;
+  status?: string;
+  created_at?: string;
+  content?: string | null;
+  [key: string]: unknown;
+}
+
 export interface SessionParticipant {
   key: string;
   role?: string;
