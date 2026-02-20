@@ -1429,12 +1429,12 @@ nav button.active {
     <div class="notif-list" id="notif-list"></div>
   </div>
   <nav>
-    <button class="active" data-view="workflow" onclick="switchView('workflow')" title="단축키: 1">Workflow</button>
-    <button data-view="ideation" onclick="switchView('ideation')" title="단축키: 2">Idea</button>
-    <button data-view="documents" onclick="switchView('documents')" title="단축키: 3">Docs</button>
-    <button data-view="log" onclick="switchView('log')" title="단축키: 4">Log</button>
-    <button data-view="settings" onclick="switchView('settings')" title="단축키: 5">Settings</button>
-    <button data-view="plans" onclick="switchView('plans')" title="단축키: 6">Plans</button>
+    <button class="active" data-view="plans" onclick="switchView('plans')" title="단축키: 1">Plans</button>
+    <button data-view="workflow" onclick="switchView('workflow')" title="단축키: 2">Workflow</button>
+    <button data-view="ideation" onclick="switchView('ideation')" title="단축키: 3">Idea</button>
+    <button data-view="debug" onclick="switchView('debug')" title="단축키: 4">Debug</button>
+    <button data-view="documents" onclick="switchView('documents')" title="단축키: 5">Docs</button>
+    <button data-view="settings" onclick="switchView('settings')" title="단축키: 6">Settings</button>
   </nav>
   <div class="search-container" id="search-container">
     <div class="search-input-wrapper">
@@ -1474,7 +1474,7 @@ function toggleTheme() {
 function getApiBase() {
   return currentProjectId ? '/api/projects/' + encodeURIComponent(currentProjectId) : '/api';
 }
-let currentView = 'workflow';
+let currentView = 'plans';
 let requests = [];
 let plans = [];
 let agentActivities = [];
@@ -1500,10 +1500,12 @@ let treeInitialized = false;
 const viewCache = {};
 let selectedRequestId = '';
 let selectedPlanId = '';
+let debugSessions = [];
+let selectedDebugId = '';
 let loadDataTimer = null;
 let dirtyLoadTimer = null;
 let pollInterval = null;
-let dirtyFlags = { requests: false, config: false, mode: false, tree: false, ideation: false, discussion: false, plans: false };
+let dirtyFlags = { requests: false, config: false, mode: false, tree: false, ideation: false, discussion: false, plans: false, debug: false };
 
 async function loadRequests() {
   try {
@@ -1530,7 +1532,7 @@ async function loadDirtyData() {
 
   await Promise.all(promises);
   // Reset dirty flags
-  dirtyFlags = { requests: false, config: false, mode: false, tree: false, ideation: false, discussion: false, plans: false };
+  dirtyFlags = { requests: false, config: false, mode: false, tree: false, ideation: false, discussion: false, plans: false, debug: false };
 
   renderCurrentView();
 }
@@ -1559,7 +1561,7 @@ window.addEventListener('keydown', (e) => {
   
   const key = e.key.toLowerCase();
   if (key >= '1' && key <= '6') {
-    const views = ['workflow', 'ideation', 'documents', 'log', 'settings', 'plans'];
+    const views = ['plans', 'workflow', 'ideation', 'debug', 'documents', 'settings'];
     switchView(views[parseInt(key) - 1]);
   } else if (key === 't') {
     toggleTheme();
@@ -1586,6 +1588,9 @@ async function refreshView(viewName) {
         break;
       case 'plans':
         plans = await apiFetch('/plans').catch(() => []);
+        break;
+      case 'debug':
+        await loadDebug();
         break;
       case 'log':
         if (logSelectedTask) { await selectLogTask(logSelectedTask); }
@@ -1815,6 +1820,15 @@ function phaseClass(phase, activePhase, reqStatus) {
   return 'waiting';
 }
 
+async function loadDebug() {
+  try {
+    debugSessions = await apiFetch('/debug');
+  } catch {
+    debugSessions = [];
+  }
+  renderCurrentView();
+}
+
 // ─── View Renderers ─────────────────────────────────────────────────────────
 
 function renderWorkflow() {
@@ -1990,6 +2004,77 @@ async function selectPlan(planId) {
   } catch (e) {
     const detailEl = document.getElementById('plan-detail');
     if (detailEl) detailEl.innerHTML = '<div style="color:var(--red);padding:12px">Failed to load plan content.</div>';
+  }
+}
+
+function renderDebug() {
+  const sortedDebugs = [...debugSessions].sort((a, b) => {
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+    if (aTime !== bTime) return bTime - aTime;
+    const aNum = parseInt((a.id || '').replace(/\\D+/g, ''), 10) || 0;
+    const bNum = parseInt((b.id || '').replace(/\\D+/g, ''), 10) || 0;
+    return bNum - aNum;
+  });
+
+  const header = '<div class=\"view-header\">' +
+    '<div class=\"view-header-title\">Debug</div>' +
+    '<button class=\"refresh-btn\" id=\"refresh-btn-debug\" onclick=\"refreshView(\\'debug\\')\"><span class=\"refresh-icon\">&#x21bb;</span> Refresh</button>' +
+    '</div>';
+
+  if (sortedDebugs.length === 0) {
+    return header + '<div class=\"empty-state\"><div class=\"icon\">[DBG]</div><h2>No debug sessions</h2><p>Run a debug flow to create DBG entries.</p></div>';
+  }
+
+  if (!selectedDebugId && sortedDebugs.length > 0) {
+    selectedDebugId = sortedDebugs[0].id;
+  }
+
+  const listHtml = sortedDebugs.map(debug => {
+    const statusText = (debug.status || 'unknown');
+    const status = statusText.toLowerCase();
+    const statusCls = status === 'completed' || status === 'done' || status === 'success'
+      ? 'completed'
+      : status === 'failed' || status === 'error'
+        ? 'failed'
+        : status === 'active' || status === 'running' || status === 'in_progress'
+          ? 'active'
+          : 'pending';
+    const created = debug.created_at ? new Date(debug.created_at).toLocaleString() : 'No timestamp';
+    const isActive = selectedDebugId === debug.id;
+    return '<div class=\"plan-card' + (isActive ? ' active' : '') + '\" onclick=\"selectDebug(\\'' + escapeHtml(debug.id) + '\\')\">' +
+      '<div>' +
+        '<div class=\"card-title\" style=\"margin-bottom:6px;font-size:15px;\">' + escapeHtml(debug.id || 'DBG-UNKNOWN') + '</div>' +
+        '<div class=\"plan-card-meta\">Issue: ' + escapeHtml(debug.issue || '-') + ' · Focus: ' + escapeHtml(debug.focus || '-') + ' · Status: ' + escapeHtml(statusText) + ' · Created: ' + escapeHtml(created) + '</div>' +
+      '</div>' +
+      '<span class=\"plan-status ' + statusCls + '\">' + escapeHtml(statusText) + '</span>' +
+    '</div>';
+  }).join('');
+
+  const detailHtml = selectedDebugId
+    ? '<div style=\"color:var(--text-muted);font-size:13px;\">Loading debug report...</div>'
+    : '<div class=\"plans-detail-empty\">Select a debug session to view its contents</div>';
+
+  return header +
+    '<div class=\"plans-layout\">' +
+      '<div class=\"plans-list\">' + listHtml + '</div>' +
+      '<div class=\"plans-detail\" id=\"debug-detail\">' + detailHtml + '</div>' +
+    '</div>';
+}
+
+async function selectDebug(debugId) {
+  selectedDebugId = debugId;
+  delete viewCache['debug'];
+  renderCurrentView();
+  try {
+    const debugData = await apiFetch('/debug/' + encodeURIComponent(debugId));
+    const detailEl = document.getElementById('debug-detail');
+    if (detailEl && debugData) {
+      detailEl.innerHTML = renderMarkdown(debugData.content || '*(내용 없음)*');
+    }
+  } catch (e) {
+    const detailEl = document.getElementById('debug-detail');
+    if (detailEl) detailEl.innerHTML = '<div style=\"color:var(--red);padding:12px\">Failed to load debug content.</div>';
   }
 }
 
@@ -3303,7 +3388,7 @@ function renderCurrentView() {
     case 'workflow': html = renderWorkflow(); break;
     case 'agents': html = renderAgents(); break;
     case 'documents': html = renderDocuments(); break;
-    case 'log': html = renderLog(); break;
+    case 'debug': html = renderDebug(); break;
     case 'ideation': html = renderIdeation(); break;
     case 'plans': html = renderPlans(); break;
     case 'dependencies': html = renderDependencies(); break;
@@ -3370,6 +3455,7 @@ async function loadData() {
     }
   } catch { requests = []; }
   try { plans = await apiFetch('/plans'); } catch { plans = []; }
+  await loadDebug();
 
   try { config = await apiFetch('/config'); } catch { config = {}; }
   try { modeStatus = await apiFetch('/mode'); } catch { modeStatus = {}; }
@@ -3507,10 +3593,13 @@ function connectSSE() {
       if (event.type === 'plan_update') {
         dirtyFlags.plans = true;
       }
+      if (event.type === 'debug_update') {
+        dirtyFlags.debug = true;
+      }
       if (event.type === 'trace_update') {
         dirtyFlags.requests = true;
       }
-      if (['task_update', 'request_update', 'phase_change', 'config_change', 'ideation_update', 'discussion_update', 'trace_update', 'plan_update'].includes(event.type)) {
+      if (['task_update', 'request_update', 'phase_change', 'config_change', 'ideation_update', 'discussion_update', 'trace_update', 'plan_update', 'debug_update'].includes(event.type)) {
         scheduleDirtyLoad();
       }
     } catch { /* ignore parse errors */ }
