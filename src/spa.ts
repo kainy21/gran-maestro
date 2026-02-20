@@ -2209,7 +2209,7 @@ async function toggleTaskDetail(event, el, reqId, taskId) {
           contentEl.innerHTML = '<div style="color:var(--text-muted);padding:8px">No traces found</div>';
         } else {
           contentEl.innerHTML = data.traces.map(t =>
-            '<div class="trace-item" onclick="loadTrace(event, \\\'' + reqId + '\\\\', \\\'' + taskId + '\\\\', \\\'' + t + '\\\\', this.parentElement)">' + escapeHtml(t) + '</div>'
+            '<div class="trace-item" data-req="' + escapeHtml(reqId) + '" data-task="' + escapeHtml(taskId) + '" data-trace="' + escapeHtml(t) + '" onclick="loadTrace(event,this.dataset.req,this.dataset.task,this.dataset.trace,this.parentElement)">' + escapeHtml(t) + '</div>'
           ).join('');
         }
       } else if (tab === 'live') {
