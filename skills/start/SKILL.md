@@ -2,7 +2,7 @@
 name: start
 description: "새 요청을 시작하고 PM 분석 워크플로우에 진입합니다. 사용자가 '구현해줘', '만들어줘', '개발해줘', '추가해줘'를 말하거나 /mst:start를 호출할 때 사용."
 user-invocable: true
-argument-hint: "{요청 내용} [--auto]"
+argument-hint: "[--auto|-a] {요청 내용}"
 ---
 
 # maestro:start
@@ -85,7 +85,7 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
      "dependencies": { "blockedBy": [], "relatedTo": [], "blocks": [] }
    }
    ```
-   - `--auto` 플래그가 설정된 경우: `"auto_approve": true`로 설정
+   - `--auto` 또는 `-a` 플래그가 인자 내 어느 위치(앞/뒤)에 있어도 감지: `"auto_approve": true`로 설정
 4. PM Conductor 역할로 Phase 1 분석 수행 (`agents/pm-conductor.md`의 `<phase1_protocol>` 준수):
    a. 요청 파싱 및 복잡도 분류 (simple | standard | complex)
    b. Simple → 단독 분석 / Standard·Complex → Analysis Squad 팀 소환
@@ -132,18 +132,20 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
    l. `request.json`의 `status`를 `"spec_ready"`로 업데이트
 5. ⚠️ **spec.md 작성 완료 확인** — spec.md 파일이 존재하지 않으면 이 스킬을 종료하지 않음
 6. 스펙 요약을 사용자에게 표시하고, `/mst:approve REQ-NNN`으로 승인 안내
-   - `--auto` 모드인 경우: 승인 단계 스킵, 자동으로 Phase 2 진입
+   - `--auto` 또는 `-a` 모드인 경우: 승인 단계 스킵, 자동으로 Phase 2 진입
 
 ## 옵션
 
-- `--auto`: 스펙 자동 승인 모드 (사용자 승인 단계 스킵, `auto_approve: true`)
+- `--auto` / `-a`: 스펙 자동 승인 모드 (사용자 승인 단계 스킵, `auto_approve: true`)
+  - 요청 앞(`/mst:start --auto "요청"`) 또는 뒤(`/mst:start "요청" --auto`) 모두 허용
 
 ## 예시
 
 ```
 /mst:start "JWT 기반 사용자 인증 기능을 추가해줘"
 /mst:start --auto "로그인 버튼 색상을 파란색으로 변경"
-/mst:start "사용자 프로필 페이지에 아바타 업로드 기능 추가"
+/mst:start -a "로그인 버튼 색상을 파란색으로 변경"
+/mst:start "사용자 프로필 페이지에 아바타 업로드 기능 추가" --auto
 ```
 
 ## 문제 해결
