@@ -14,6 +14,7 @@ Subcommands:
 
   plan list
   plan inspect       <PLN-ID>
+  plan complete      <PLN-ID>
   plan count         [--active | --all]
 
   archive run         [--type req|idn|dsc|dbg] [--max N] [--dir PATH]
@@ -27,6 +28,7 @@ Subcommands:
 
   session list        [--type ideation|discussion|debug]
   session inspect     <SESSION-ID>
+  session complete    <SESSION-ID>
 
   priority            <TASK-ID> [--before TASK-ID | --after TASK-ID]
 """
@@ -280,6 +282,22 @@ def cmd_plan_inspect(args):
     return 1
 
 
+def cmd_plan_complete(args):
+    pln_id = args.pln_id.upper()
+    for pid, path, data in iter_plan_dirs():
+        if pid == pln_id:
+            if data.get("status") == "completed":
+                print(f"{pln_id} is already completed.")
+                return 0
+            data["status"] = "completed"
+            data["completed_at"] = datetime.now(timezone.utc).isoformat()
+            save_json(path / "plan.json", data)
+            print(f"Completed: {pln_id}")
+            return 0
+    print(f"Error: {pln_id} not found.", file=sys.stderr)
+    return 1
+
+
 # ---------------------------------------------------------------------------
 # counter subcommands
 # ---------------------------------------------------------------------------
@@ -490,6 +508,32 @@ def cmd_session_inspect(args):
     return 0
 
 
+def cmd_session_complete(args):
+    sess_id = args.session_id.upper()
+    prefix = sess_id[:3]
+    type_map = {"IDN": "ideation", "DSC": "discussion", "DBG": "debug"}
+    subdir = type_map.get(prefix)
+    if subdir is None:
+        print(f"Error: Unknown session type '{prefix}'. Expected IDN/DSC/DBG.", file=sys.stderr)
+        return 1
+    sess_path = BASE_DIR / subdir / sess_id
+    if not sess_path.exists():
+        print(f"Error: {sess_id} not found.", file=sys.stderr)
+        return 1
+    sj = load_json(sess_path / "session.json")
+    if sj is None:
+        print(f"Error: session.json not found for {sess_id}.", file=sys.stderr)
+        return 1
+    if sj.get("status") == "completed":
+        print(f"{sess_id} is already completed.")
+        return 0
+    sj["status"] = "completed"
+    sj["completed_at"] = datetime.now(timezone.utc).isoformat()
+    save_json(sess_path / "session.json", sj)
+    print(f"Completed: {sess_id}")
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # priority subcommand
 # ---------------------------------------------------------------------------
@@ -556,6 +600,9 @@ def build_parser():
     plan_inspect = plan_sub.add_parser("inspect")
     plan_inspect.add_argument("pln_id")
 
+    plan_complete = plan_sub.add_parser("complete")
+    plan_complete.add_argument("pln_id")
+
     # --- counter ---
     ctr = sub.add_parser("counter")
     ctr_sub = ctr.add_subparsers(dest="subcommand")
@@ -597,6 +644,9 @@ def build_parser():
     sess_inspect = sess_sub.add_parser("inspect")
     sess_inspect.add_argument("session_id")
 
+    sess_complete = sess_sub.add_parser("complete")
+    sess_complete.add_argument("session_id")
+
     # --- priority ---
     pri = sub.add_parser("priority")
     pri.add_argument("task_id")
@@ -627,6 +677,7 @@ def main():
         ("plan", "list"): cmd_plan_list,
         ("plan", "count"): cmd_plan_count,
         ("plan", "inspect"): cmd_plan_inspect,
+        ("plan", "complete"): cmd_plan_complete,
         ("counter", "next"): cmd_counter_next,
         ("counter", "peek"): cmd_counter_peek,
         ("archive", "run"): cmd_archive_run,
@@ -635,6 +686,7 @@ def main():
         ("cleanup", None): cmd_cleanup,
         ("session", "list"): cmd_session_list,
         ("session", "inspect"): cmd_session_inspect,
+        ("session", "complete"): cmd_session_complete,
         ("priority", None): cmd_priority,
     }
 
