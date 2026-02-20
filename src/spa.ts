@@ -676,7 +676,7 @@ nav button.active {
 .doc-content h1 { font-size: 22px; color: var(--accent); margin: 16px 0 8px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
 .doc-content h2 { font-size: 18px; color: var(--text-primary); margin: 14px 0 6px; }
 .doc-content h3 { font-size: 15px; color: var(--text-secondary); margin: 12px 0 4px; }
-.doc-content ul, .doc-content ol { margin-left: 20px; margin-bottom: 8px; }
+.doc-content ul, .doc-content ol { padding-left: 20px; margin-left: 0; margin-bottom: 8px; }
 .doc-content blockquote {
   border-left: 3px solid var(--accent);
   margin: 8px 0;
@@ -1676,13 +1676,19 @@ function renderMarkdown(md) {
     var currentLine = line;
 
     // Horizontal Rule
-    if (/^(\\s*[-*_]){3,}\\s*$/.test(currentLine)) return '<hr>';
+    if (/^(\\s*[-*_]){3,}\\s*$/.test(currentLine)) {
+      var listClose = inList ? '</' + inList + '>' : '';
+      if (inList) inList = null;
+      return listClose + '<hr>';
+    }
 
     // Headers
     var headerMatch = currentLine.match(/^(#{1,6})\\s+(.*)$/);
     if (headerMatch) {
       var level = headerMatch[1].length;
-      return '<h' + level + '>' + headerMatch[2] + '</h' + level + '>';
+      var hListClose = inList ? '</' + inList + '>' : '';
+      if (inList) inList = null;
+      return hListClose + '<h' + level + '>' + headerMatch[2] + '</h' + level + '>';
     }
 
     // Blockquote
@@ -1735,7 +1741,10 @@ function renderMarkdown(md) {
     }
 
     // Paragraphs
-    if (currentLine.trim() === '') return '<br>';
+    if (currentLine.trim() === '') {
+      if (inList) { var tag = '</' + inList + '>'; inList = null; return tag; }
+      return '<br>';
+    }
     return currentLine;
   });
 
