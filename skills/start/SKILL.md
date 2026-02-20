@@ -129,6 +129,7 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
    i. 태스크 디렉토리 생성: `.gran-maestro/requests/REQ-NNN/tasks/01/`
    j. **spec.md 파일 저장**: `.gran-maestro/requests/REQ-NNN/tasks/01/spec.md`
    k. `request.json`의 `tasks` 배열에 태스크 메타데이터 추가
+   l. `request.json`의 `status`를 `"spec_ready"`로 업데이트
 5. ⚠️ **spec.md 작성 완료 확인** — spec.md 파일이 존재하지 않으면 이 스킬을 종료하지 않음
 6. 스펙 요약을 사용자에게 표시하고, `/mst:approve REQ-NNN`으로 승인 안내
    - `--auto` 모드인 경우: 승인 단계 스킵, 자동으로 Phase 2 진입
