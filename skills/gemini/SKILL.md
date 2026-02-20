@@ -21,13 +21,14 @@ Gemini CLI 호출의 단일 진입점입니다. Gran Maestro 워크플로우 내
 3. 파일 패턴 지정 시 해당 파일들을 컨텍스트로 포함
 4. `--files` 옵션의 패턴으로 파일 목록 확인. 매칭 파일이 없으면 경고 출력
 5. **`--trace` 모드 판별** (아래 "Trace 모드" 섹션 참조)
-6. Gemini CLI 실행:
+6. **기본 모델 결정**: `.gran-maestro/config.json`의 `models.gemini.default` 값을 읽어 `{model}`로 사용. 해당 키가 없거나 파일이 없으면 `--model` 플래그 없이 실행
+7. Gemini CLI 실행:
    ```bash
-   # 인라인 프롬프트 (기존)
-   gemini -p "{prompt}" --approval-mode yolo
+   # 인라인 프롬프트 (기본 모델 적용)
+   gemini -p "{prompt}" --model {model} --approval-mode yolo
 
    # 프롬프트 파일 (--prompt-file 지정 시) — 셸 치환으로 Claude 컨텍스트 미경유
-   gemini -p "$(cat {prompt_file})" --approval-mode yolo
+   gemini -p "$(cat {prompt_file})" --model {model} --approval-mode yolo
    ```
 7. **결과 처리 분기**:
    - `--trace` 있음 → Trace 문서 작성 후 경로만 출력 (전체 stdout 반환 금지)
@@ -122,18 +123,20 @@ Skill(skill: "mst:gemini", args: "{프롬프트} --files src/**/*.ts --trace REQ
 ## CLI 커맨드
 
 ```bash
-# 기본 실행 (인라인 프롬프트)
-gemini -p "{prompt}" --approval-mode yolo
+# 기본 실행 (인라인 프롬프트, config 기본 모델 적용)
+gemini -p "{prompt}" --model {model} --approval-mode yolo
 
 # 프롬프트 파일 — 셸 치환으로 Claude 컨텍스트 미경유
-gemini -p "$(cat {prompt_file})" --approval-mode yolo
+gemini -p "$(cat {prompt_file})" --model {model} --approval-mode yolo
 
 # 자동 승인
-gemini -p "{prompt}" -y
+gemini -p "{prompt}" --model {model} -y
 
 # 샌드박스
-gemini -p "{prompt}" --sandbox
+gemini -p "{prompt}" --model {model} --sandbox
 ```
+
+> `{model}`: `.gran-maestro/config.json`의 `models.gemini.default` 값 (예: `gemini-3.1-pro-preview`). 키가 없으면 `--model` 플래그 생략.
 
 ## 예시
 

@@ -2981,7 +2981,7 @@ function renderIdeation() {
   const allSessions = [];
   ideationSessions.forEach(function(s) { allSessions.push({ ...s, _type: 'ideation' }); });
   discussionSessions.forEach(function(s) { allSessions.push({ ...s, _type: 'discussion' }); });
-  allSessions.sort(function(a, b) { var numA = parseInt((a.id || '').replace(/\D+/g, '')) || 0; var numB = parseInt((b.id || '').replace(/\D+/g, '')) || 0; return numB - numA; });
+  allSessions.sort(function(a, b) { var tA = a.created_at ? new Date(a.created_at).getTime() : 0; var tB = b.created_at ? new Date(b.created_at).getTime() : 0; if (tA !== tB) return tB - tA; var numA = parseInt((a.id || '').replace(/\D+/g, '')) || 0; var numB = parseInt((b.id || '').replace(/\D+/g, '')) || 0; return numB - numA; });
 
   if (allSessions.length === 0) {
     return ideaHeader +
@@ -3004,7 +3004,7 @@ function renderIdeation() {
     html += '<span style="font-size:13px;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(s.topic || '') + '</span>';
     html += '<span class="ideation-status ' + statusCls + '">' + escapeHtml(s.status || 'collecting') + '</span>';
     if (isDiscussion && s.current_round != null) html += '<span style="font-size:11px;color:var(--text-muted)">R' + s.current_round + '/' + (s.max_rounds || 5) + '</span>';
-    if (s.created_at) html += '<span style="font-size:11px;color:var(--text-muted);min-width:80px;text-align:right">' + new Date(s.created_at).toLocaleDateString() + '</span>';
+    if (s.created_at) html += '<span style="font-size:11px;color:var(--text-muted);min-width:140px;text-align:right">' + new Date(s.created_at).toLocaleString() + '</span>';
     html += '</div>';
   });
   html += '</div>';
