@@ -1884,7 +1884,7 @@ function openTaskLogStream(reqId, taskId, containerId) {
     const target = document.getElementById(containerId);
     if (!target) return;
     lines.forEach((line) => {
-      target.textContent += String(line) + '\n';
+      target.textContent += String(line) + '\\n';
     });
     target.scrollTop = target.scrollHeight;
   });
