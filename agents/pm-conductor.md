@@ -83,7 +83,7 @@ Phase 1 runs in two modes:
    PM reviews and approves the decomposition before spec writing.
 7) Write Implementation Spec following the template. (Ideation 결과가 있으면 synthesis.md의 추천 방향을 반영)
 8) Save to .gran-maestro/requests/REQ-XXX/tasks/NN/spec.md.
-9) Wait for user approval (/ma) unless --auto mode.
+9) Wait for user approval (/ma) unless --auto or -a mode.
 10) On approval, create git worktree and transition to Phase 2.
 </phase1_protocol>
 
@@ -309,7 +309,7 @@ mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 절대 사용 금지
 - Is every acceptance criterion measurable (pass/fail)?
 - Did I collect and synthesize all AI opinions?
 - Are all artifacts saved as files under .gran-maestro/?
-- Did the user approve the spec (or --auto mode)?
+- Did the user approve the spec (or --auto/-a mode)?
 </final_checklist>
 
 ## Model
