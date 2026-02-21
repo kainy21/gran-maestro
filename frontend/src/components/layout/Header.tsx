@@ -1,7 +1,7 @@
 import { useAppContext } from '@/context/AppContext';
 import { SseStatusDot } from '@/components/shared/SseStatusDot';
 import { Button } from '@/components/ui/button';
-import { Moon, Sun, Bell, Terminal } from 'lucide-react';
+import { Moon, Sun, Bell, Terminal, HelpCircle } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -19,7 +19,7 @@ import {
 import { NotificationPanel } from './NotificationPanel';
 import { Badge } from '@/components/ui/badge';
 
-export function Header() {
+export function Header({ onShowShortcuts }: { onShowShortcuts: () => void }) {
   const { sseStatus, theme, setTheme, notifications, projectId, setProjectId, projects } = useAppContext();
   const unreadCount = notifications.length; // Simplified, usually you'd track read state
 
@@ -58,6 +58,9 @@ export function Header() {
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
         >
           {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </Button>
+        <Button variant="ghost" size="icon" onClick={onShowShortcuts}>
+          <HelpCircle className="h-5 w-5" />
         </Button>
 
         <Sheet>

@@ -3,6 +3,7 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { Header } from './components/layout/Header';
 import { TabNav } from './components/layout/TabNav';
 import { Tabs, TabsContent } from './components/ui/tabs';
+import { KeyboardShortcutsModal } from './components/shared/KeyboardShortcutsModal';
 
 // Views
 import { PlansView } from './views/PlansView';
@@ -15,6 +16,7 @@ import { SettingsView } from './views/SettingsView';
 function AppContent() {
   const { token } = useAppContext();
   const [activeTab, setActiveTab] = useState('plans');
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   if (!token) {
     return (
@@ -33,9 +35,13 @@ function AppContent() {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
-      <Header />
+      <Header onShowShortcuts={() => setShowShortcuts(true)} />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabNav
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onToggleShortcuts={() => setShowShortcuts((prev) => !prev)}
+        />
         <div className="flex-1 overflow-hidden relative">
           <TabsContent value="plans" className="absolute inset-0 m-0">
             <PlansView />
@@ -57,6 +63,7 @@ function AppContent() {
           </TabsContent>
         </div>
       </Tabs>
+      <KeyboardShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />
     </div>
   );
 }
