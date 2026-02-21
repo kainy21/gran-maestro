@@ -2,3 +2,5 @@
 .omc/
 /node_modules/
 /.gran-maestro/
+
+frontend/node_modules/

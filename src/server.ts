@@ -14,10 +14,10 @@
 
 import { Hono } from "https://deno.land/x/hono@v4.3.11/mod.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { serveDir } from "https://deno.land/std@0.224.0/http/file_server.ts";
 
 import { authMiddleware } from "./middleware.ts";
 import { sseApi } from "./sse.ts";
-import { renderSPA } from "./spa.ts";
 import { projectConfigApi } from "./routes/config.ts";
 import { projectDiscussionApi } from "./routes/discussion.ts";
 import { projectIdeationApi } from "./routes/ideation.ts";
@@ -44,6 +44,7 @@ import {
 
 const app = new Hono();
 const projectApi = new Hono();
+const DIST_DIR = new URL("../dist", import.meta.url).pathname;
 
 projectApi.route("/", projectConfigApi);
 projectApi.route("/", projectRequestsApi);
@@ -60,12 +61,32 @@ app.route("/api/projects/:projectId", projectApi);
 app.route("/api", projectApi);
 app.route("/", sseApi);
 
-app.get("/", (c) => {
-  return c.html(renderSPA(AUTH_TOKEN));
-});
+app.get("/*", async (c) => {
+  const pathname = new URL(c.req.url).pathname;
 
-app.get("/favicon.ico", (c) => {
-  return new Response(null, { status: 204 });
+  if (
+    pathname.startsWith("/static/") ||
+    pathname.startsWith("/assets/") ||
+    pathname.includes(".")
+  ) {
+    const response = await serveDir(c.req.raw, {
+      fsRoot: DIST_DIR,
+      quiet: true,
+    });
+    if (response.status !== 404) {
+      return response;
+    }
+  }
+
+  try {
+    const html = await Deno.readTextFile(`${DIST_DIR}/index.html`);
+    return c.html(html);
+  } catch {
+    return c.text(
+      "Dashboard not built. Run: cd frontend && npm install && npm run build",
+      503,
+    );
+  }
 });
 
 const BANNER = `
