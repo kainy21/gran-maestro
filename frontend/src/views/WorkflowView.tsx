@@ -69,8 +69,7 @@ export function WorkflowView() {
       startLogStream(selectedReq.id, selectedTask.id);
     }
     return () => stopLogStream();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskKey]);
+  }, [selectedReq, selectedTask]);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -78,7 +77,7 @@ export function WorkflowView() {
 
   async function startLogStream(reqId: string, taskId: string) {
     stopLogStream();
-    setLogs('');
+    setLogs('로그 수신 대기 중...');
 
     const controller = new AbortController();
     abortControllerRef.current = controller;

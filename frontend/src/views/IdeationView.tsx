@@ -146,12 +146,17 @@ export function IdeationView() {
                   {(selectedSession.participants || []).map((p: any, i: number) => (
                     <div key={i} className="border rounded-lg p-4 bg-muted/20">
                       <div className="flex justify-between items-center mb-3">
-                        <h3 className="font-bold text-sm">{p.agent_id || p.name}</h3>
+                        <div>
+                          <h3 className="font-bold text-sm">{p.key || p.role}</h3>
+                          {p.provider && p.provider !== p.key && (
+                            <p className="text-xs text-muted-foreground">{p.provider}</p>
+                          )}
+                        </div>
                         <StatusBadge status={p.status} />
                       </div>
-                      {p.contribution && (
-                        <div className="bg-background rounded p-3 text-xs border">
-                          <MarkdownRenderer content={p.contribution} />
+                      {p.perspective && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {p.perspective}
                         </div>
                       )}
                     </div>
