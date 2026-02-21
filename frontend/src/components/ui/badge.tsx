@@ -1,7 +1,5 @@
 import * as React from 'react'
-
 import { cva, type VariantProps } from 'class-variance-authority'
-
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
@@ -11,16 +9,12 @@ const badgeVariants = cva(
       variant: {
         default: 'border-transparent bg-primary text-primary-foreground',
         secondary: 'border-transparent bg-secondary text-secondary-foreground',
+        destructive: 'border-transparent bg-destructive text-destructive-foreground',
         outline: 'text-foreground border-border',
-      },
-      destructive: {
-        true: 'border-transparent bg-destructive text-destructive-foreground',
-        false: null,
       },
     },
     defaultVariants: {
       variant: 'default',
-      destructive: false,
     },
   },
 )
@@ -29,11 +23,11 @@ export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, destructive, ...props }: BadgeProps) {
+function Badge({ className, variant, ...props }: BadgeProps) {
   return (
     <div
       className={cn(
-        badgeVariants({ variant, destructive }),
+        badgeVariants({ variant }),
         className,
       )}
       {...props}
