@@ -1336,7 +1336,12 @@ nav button.active {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
+  font-size: 13px;
 }
+.plans-detail .doc-content { font-size: 13px; line-height: 1.6; }
+.plans-detail .doc-content h1 { font-size: 16px; margin: 10px 0 6px; padding-bottom: 4px; }
+.plans-detail .doc-content h2 { font-size: 14px; margin: 8px 0 4px; }
+.plans-detail .doc-content h3 { font-size: 13px; margin: 6px 0 4px; }
 .plans-detail-empty {
   display: flex;
   align-items: center;
@@ -2068,7 +2073,7 @@ function renderPlans() {
 
     return '<div class="plan-card' + (isActive ? ' active' : '') + '" onclick="selectPlan(\\'' + escapeHtml(plan.id) + '\\')">' +
       '<div>' +
-        '<div class="card-title" style="margin-bottom:6px;font-size:15px;">' + escapeHtml(plan.id || 'PLN-UNKNOWN') + ': ' + escapeHtml(plan.title || 'Untitled') + '</div>' +
+        '<div class="card-title" style="margin-bottom:6px;font-size:13px;">' + escapeHtml(plan.id || 'PLN-UNKNOWN') + ': ' + escapeHtml(plan.title || 'Untitled') + '</div>' +
         '<div class="plan-card-meta">Status: ' + escapeHtml(statusText) + ' · Created: ' + escapeHtml(created) + ' · ' + escapeHtml(linkedLabel) + '</div>' +
       '</div>' +
       '<span class="plan-status ' + statusCls + '">' + escapeHtml(statusText) + '</span>' +
@@ -2094,7 +2099,7 @@ async function selectPlan(planId) {
     const planData = await apiFetch('/plans/' + encodeURIComponent(planId));
     const detailEl = document.getElementById('plan-detail');
     if (detailEl && planData) {
-      detailEl.innerHTML = renderMarkdown(planData.content || '*(내용 없음)*');
+      detailEl.innerHTML = '<div class="doc-content" style="background:transparent;border:none;padding:0">' + renderMarkdown(planData.content || '*(내용 없음)*') + '</div>';
     }
   } catch (e) {
     const detailEl = document.getElementById('plan-detail');
