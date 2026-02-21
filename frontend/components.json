@@ -1,0 +1,20 @@
+{
+  "style": "default",
+  "tsx": true,
+  "rsc": false,
+  "jsxRuntime": "automatic",
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "src/index.css",
+    "baseColor": "slate",
+    "cssVariables": true,
+    "prefix": "",
+    "important": false
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils.ts",
+    "ui": "@/components/ui"
+  },
+  "iconLibrary": "lucide"
+}

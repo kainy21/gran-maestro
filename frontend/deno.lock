@@ -141,7 +141,22 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:typescript@5"
+        "npm:@types/node@^22.10.2",
+        "npm:@types/react-dom@19",
+        "npm:@types/react@19",
+        "npm:@vitejs/plugin-react@^4.3.4",
+        "npm:autoprefixer@^10.4.20",
+        "npm:class-variance-authority@~0.7.1",
+        "npm:clsx@^2.1.1",
+        "npm:lucide-react@0.469",
+        "npm:postcss@^8.4.47",
+        "npm:react-dom@^18.3.1",
+        "npm:react@^18.3.1",
+        "npm:tailwind-merge@^2.5.4",
+        "npm:tailwindcss-animate@^1.0.7",
+        "npm:tailwindcss@^3.4.17",
+        "npm:typescript@^5.7.3",
+        "npm:vite@^6.0.11"
       ]
     }
   }
