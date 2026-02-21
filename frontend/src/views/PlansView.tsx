@@ -9,15 +9,19 @@ import { MarkdownRenderer } from '@/components/shared/MarkdownRenderer';
 import { Badge } from '@/components/ui/badge';
 
 export function PlansView() {
-  const { token } = useAppContext();
+  const { token, projectId } = useAppContext();
   const [plans, setPlans] = useState<any[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
     async function fetchPlans() {
       try {
-        const data = await apiFetch<any[]>('/api/plans', token);
+        const data = await apiFetch<any[]>('/api/plans', token, projectId);
         setPlans(data);
         if (data.length > 0 && !selectedPlan) {
           setSelectedPlan(data[0]);
@@ -29,7 +33,15 @@ export function PlansView() {
       }
     }
     fetchPlans();
-  }, [token]);
+  }, [token, projectId]);
+
+  if (!projectId) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        프로젝트를 선택하세요
+      </div>
+    );
+  }
 
   if (loading) {
     return (

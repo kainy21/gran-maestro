@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { apiFetch } from '@/hooks/useApi';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Terminal, Activity, FileText } from 'lucide-react';
+import { Terminal, Activity } from 'lucide-react';
 
 export function WorkflowView() {
-  const { token } = useAppContext();
+  const { token, projectId } = useAppContext();
   const [requests, setRequests] = useState<any[]>([]);
   const [selectedReq, setSelectedReq] = useState<any>(null);
   const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -20,9 +20,13 @@ export function WorkflowView() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
     async function fetchRequests() {
       try {
-        const data = await apiFetch<any[]>('/api/requests', token);
+        const data = await apiFetch<any[]>('/api/requests', token, projectId);
         setRequests(data);
         if (data.length > 0 && !selectedReq) {
           setSelectedReq(data[0]);
@@ -34,7 +38,7 @@ export function WorkflowView() {
       }
     }
     fetchRequests();
-  }, [token]);
+  }, [token, projectId]);
 
   useEffect(() => {
     if (selectedReq?.tasks?.length > 0 && !selectedTask) {
@@ -56,7 +60,7 @@ export function WorkflowView() {
   async function startLogStream(reqId: string, taskId: string) {
     stopLogStream();
     setLogs('');
-    
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
@@ -67,7 +71,7 @@ export function WorkflowView() {
       });
 
       if (!response.ok) throw new Error('Failed to start log stream');
-      
+
       const reader = response.body?.getReader();
       if (!reader) return;
 
@@ -90,6 +94,14 @@ export function WorkflowView() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+  }
+
+  if (!projectId) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        프로젝트를 선택하세요
+      </div>
+    );
   }
 
   if (loading) {

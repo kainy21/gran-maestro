@@ -10,22 +10,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Lightbulb, Users } from 'lucide-react';
 
 export function IdeationView() {
-  const { token } = useAppContext();
+  const { token, projectId } = useAppContext();
   const [ideations, setIdeations] = useState<any[]>([]);
   const [discussions, setDiscussions] = useState<any[]>([]);
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
     async function fetchData() {
       try {
         const [idns, dscs] = await Promise.all([
-          apiFetch<any[]>('/api/ideation', token),
-          apiFetch<any[]>('/api/discussion', token)
+          apiFetch<any[]>('/api/ideation', token, projectId),
+          apiFetch<any[]>('/api/discussion', token, projectId)
         ]);
         setIdeations(idns);
         setDiscussions(dscs);
-        
+
         const all = [...idns, ...dscs];
         if (all.length > 0 && !selectedSession) {
           setSelectedSession(all[0]);
@@ -37,7 +41,15 @@ export function IdeationView() {
       }
     }
     fetchData();
-  }, [token]);
+  }, [token, projectId]);
+
+  if (!projectId) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        프로젝트를 선택하세요
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="p-6"><Skeleton className="h-full w-full" /></div>;
@@ -89,7 +101,7 @@ export function IdeationView() {
               </div>
               <StatusBadge status={selectedSession.status} />
             </div>
-            
+
             <Tabs defaultValue="result" className="flex-1 flex flex-col overflow-hidden">
               <div className="px-6 border-b">
                 <TabsList className="bg-transparent h-12 p-0 gap-6">

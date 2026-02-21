@@ -9,11 +9,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { NotificationPanel } from './NotificationPanel';
 import { Badge } from '@/components/ui/badge';
 
 export function Header() {
-  const { sseStatus, theme, setTheme, notifications } = useAppContext();
+  const { sseStatus, theme, setTheme, notifications, projectId, setProjectId, projects } = useAppContext();
   const unreadCount = notifications.length; // Simplified, usually you'd track read state
 
   return (
@@ -25,6 +32,23 @@ export function Header() {
         </div>
         <div className="h-4 w-[1px] bg-border mx-2" />
         <SseStatusDot status={sseStatus} />
+        {projects.length > 0 && (
+          <>
+            <div className="h-4 w-[1px] bg-border mx-2" />
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger className="w-48 h-8 text-sm">
+                <SelectValue placeholder="프로젝트 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name || p.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

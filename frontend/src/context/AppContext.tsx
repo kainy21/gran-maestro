@@ -1,9 +1,18 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSse, SSEStatus } from '../hooks/useSse';
+import { apiFetch } from '../hooks/useApi';
+
+interface Project {
+  id: string;
+  name: string;
+}
 
 interface AppContextType {
   token: string;
+  projectId: string;
+  setProjectId: (id: string) => void;
+  projects: Project[];
   sseStatus: SSEStatus;
   notifications: any[];
   addNotification: (notification: any) => void;
@@ -15,7 +24,9 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { token } = useAuth();
+  const { token, projectId: initialProjectId } = useAuth();
+  const [projectId, setProjectIdState] = useState<string>(initialProjectId);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [theme, setThemeState] = useState<'light' | 'dark'>(
     () => (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
@@ -27,10 +38,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   }, []);
 
+  const setProjectId = useCallback((id: string) => {
+    setProjectIdState(id);
+    sessionStorage.setItem('gm_project', id);
+  }, []);
+
   // Initialize theme on mount
-  React.useEffect(() => {
+  useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
+
+  // Load project list on mount
+  useEffect(() => {
+    if (!token) return;
+    apiFetch<Project[]>('/api/projects', token).then((data) => {
+      setProjects(data);
+    }).catch((err) => {
+      console.error('Failed to fetch projects:', err);
+    });
+  }, [token]);
 
   const onSseEvent = useCallback((event: any) => {
     setNotifications(prev => [event, ...prev].slice(0, 50));
@@ -50,6 +76,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       token,
+      projectId,
+      setProjectId,
+      projects,
       sseStatus,
       notifications,
       addNotification,

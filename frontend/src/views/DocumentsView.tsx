@@ -5,14 +5,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MarkdownRenderer } from '@/components/shared/MarkdownRenderer';
 import { JsonViewer } from '@/components/shared/JsonViewer';
-import { 
-  Folder, 
-  File, 
-  ChevronRight, 
-  ChevronDown, 
-  FileText, 
-  FileJson, 
-  FileCode 
+import {
+  Folder,
+  File,
+  ChevronRight,
+  FileText,
+  FileJson,
+  FileCode
 } from 'lucide-react';
 import {
   Collapsible,
@@ -28,7 +27,7 @@ interface FileNode {
 }
 
 export function DocumentsView() {
-  const { token } = useAppContext();
+  const { token, projectId } = useAppContext();
   const [tree, setTree] = useState<FileNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -36,9 +35,13 @@ export function DocumentsView() {
   const [contentLoading, setContentLoading] = useState(false);
 
   useEffect(() => {
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
     async function fetchTree() {
       try {
-        const data = await apiFetch<FileNode[]>('/api/tree', token);
+        const data = await apiFetch<FileNode[]>('/api/tree', token, projectId);
         setTree(data);
       } catch (err) {
         console.error('Failed to fetch tree:', err);
@@ -47,7 +50,7 @@ export function DocumentsView() {
       }
     }
     fetchTree();
-  }, [token]);
+  }, [token, projectId]);
 
   useEffect(() => {
     if (selectedFile) {
@@ -76,7 +79,7 @@ export function DocumentsView() {
   const renderTree = (nodes: FileNode[], depth = 0) => {
     return nodes.map((node) => {
       const isSelected = selectedFile === node.path;
-      
+
       if (node.type === 'directory') {
         return (
           <Collapsible key={node.path} defaultOpen={depth < 1}>
@@ -111,6 +114,14 @@ export function DocumentsView() {
       );
     });
   };
+
+  if (!projectId) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        프로젝트를 선택하세요
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="p-6"><Skeleton className="h-full w-full" /></div>;

@@ -6,23 +6,27 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Save, RefreshCcw } from 'lucide-react';
 
 export function SettingsView() {
-  const { token } = useAppContext();
+  const { token, projectId } = useAppContext();
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
     fetchConfig();
-  }, [token]);
+  }, [token, projectId]);
 
   async function fetchConfig() {
     setLoading(true);
     try {
-      const data = await apiFetch<any>('/api/config', token);
+      const data = await apiFetch<any>('/api/config', token, projectId);
       setConfig(data);
     } catch (err) {
       console.error('Failed to fetch config:', err);
@@ -49,6 +53,14 @@ export function SettingsView() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!projectId) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        프로젝트를 선택하세요
+      </div>
+    );
   }
 
   if (loading) {
@@ -92,18 +104,18 @@ export function SettingsView() {
                       </div>
                       <div className="flex-1 max-w-md flex justify-end">
                         {typeof value === 'boolean' ? (
-                          <Switch 
-                            checked={value} 
+                          <Switch
+                            checked={value}
                             onCheckedChange={(checked) => {
                               setConfig({
                                 ...config,
                                 [section]: { ...values, [key]: checked }
                               });
-                            }} 
+                            }}
                           />
                         ) : typeof value === 'number' || typeof value === 'string' ? (
-                          <Input 
-                            value={value} 
+                          <Input
+                            value={value}
                             type={typeof value === 'number' ? 'number' : 'text'}
                             className="text-right font-mono"
                             onChange={(e) => {
