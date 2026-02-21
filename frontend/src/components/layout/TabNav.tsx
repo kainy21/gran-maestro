@@ -8,6 +8,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useEffect } from 'react';
+import { useAppContext } from '@/context/AppContext';
 
 export const TABS = [
   { id: 'plans', label: 'Plans', icon: LayoutDashboard, key: '1' },
@@ -18,19 +19,38 @@ export const TABS = [
   { id: 'settings', label: 'Settings', icon: Settings, key: '6' },
 ];
 
-export function TabNav({ activeTab, onTabChange }: { activeTab: string, onTabChange: (id: string) => void }) {
+export function TabNav({
+  activeTab,
+  onTabChange,
+  onToggleShortcuts,
+}: {
+  activeTab: string;
+  onTabChange: (id: string) => void;
+  onToggleShortcuts: () => void;
+}) {
+  const { theme, setTheme } = useAppContext();
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) return;
+
+      if (e.key === '?') {
+        onToggleShortcuts();
+        return;
+      }
+      if (e.key === 't' || e.key === 'T') {
+        setTheme(theme === 'dark' ? 'light' : 'dark');
+        return;
+      }
+
       const tab = TABS.find(t => t.key === e.key);
-      if (tab && (e.metaKey || e.ctrlKey || true)) { // Allow 1-6 keys directly
-        // Check if user is not in an input/textarea
-        if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) return;
+      if (tab) {
         onTabChange(tab.id);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onTabChange]);
+  }, [onTabChange, onToggleShortcuts, setTheme, theme]);
 
   return (
     <div className="bg-background border-b px-6">
