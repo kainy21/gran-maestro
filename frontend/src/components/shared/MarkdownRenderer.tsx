@@ -28,9 +28,9 @@ export function MarkdownRenderer({ content, className }: { content: string; clas
               {children}
             </a>
           ),
-          ul: ({ children }) => <ul className="list-disc list-inside text-sm text-foreground mb-3 space-y-1 pl-4">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal list-inside text-sm text-foreground mb-3 space-y-1 pl-4">{children}</ol>,
-          li: ({ children }) => <li className="text-sm text-foreground">{children}</li>,
+          ul: ({ children }) => <ul className="list-disc pl-6 text-sm text-foreground mb-3 space-y-1">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-6 text-sm text-foreground mb-3 space-y-1">{children}</ol>,
+          li: ({ children }) => <li className="text-sm text-foreground leading-7 [&>p]:mb-0">{children}</li>,
           table: ({ children }) => (
             <div className="overflow-x-auto mb-4">
               <table className="w-full text-sm border-collapse border border-border">{children}</table>
