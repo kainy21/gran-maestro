@@ -4,3 +4,4 @@
 /.gran-maestro/
 
 frontend/node_modules/
+/frontend/.gran-maestro/
