@@ -181,6 +181,11 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
    l. `request.json`의 `status`를 `"spec_ready"`로 업데이트
 5. ⚠️ **spec.md 작성 완료 확인** — spec.md 파일이 존재하지 않으면 이 스킬을 종료하지 않음
 6. 스펙 요약을 사용자에게 표시하고, `/mst:approve REQ-NNN`으로 승인 안내
+   - **[필수] 할당 에이전트 보고**: 스펙 요약 표시 시 아래 형식으로 반드시 명시
+     - 단일 REQ: `[할당 예정] REQ-NNN → {agent명} ({provider})`
+     - 다중 REQ(분리 실행): 각 REQ별로 개별 명시
+       예: `REQ-NNN (①) → codex-dev (codex) | REQ-(N+1) (②) → gemini-dev (gemini)`
+     - 에이전트명은 `request.json`의 `tasks[].agent` 값, provider는 `config.json` `models.developer` 참조
    - ⚠️ 이 단계 이후 `/mst:approve` 수신 전까지: 코드 수정·파일 편집·커밋 전면 금지
    - `--auto` 또는 `-a` 모드인 경우: 승인 단계 스킵, 자동으로 Phase 2 진입
 
