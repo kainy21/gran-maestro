@@ -164,7 +164,15 @@ export function WorkflowView() {
         const parts = buffer.split('\n\n');
         buffer = parts.pop() ?? '';
         for (const part of parts) {
+          const eventLine = part.split('\n').find(l => l.startsWith('event:'));
           const dataLine = part.split('\n').find(l => l.startsWith('data:'));
+
+          // no_log 이벤트 처리
+          if (eventLine?.trim() === 'event: no_log') {
+            setLogs('실행 로그가 기록되지 않은 태스크입니다');
+            return;  // 스트림 종료 처리
+          }
+
           if (!dataLine) continue;
           try {
             const json = JSON.parse(dataLine.slice(5).trim());
@@ -177,7 +185,7 @@ export function WorkflowView() {
           }
         }
       }
-      setLogs(prev => (prev === '로그 수신 대기 중...' ? '이 태스크의 로그가 없습니다' : prev));
+      setLogs(prev => (prev === '로그 수신 대기 중...' ? '실행 로그가 기록되지 않은 태스크입니다' : prev));
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         console.error('Log stream error:', err);
