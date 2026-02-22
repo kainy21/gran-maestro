@@ -72,6 +72,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [token, authRequired]);
 
   const onSseEvent = useCallback((event: any) => {
+    const eventType = event?.type;
+    if (eventType === 'heartbeat' || eventType === 'connected') return;
     setNotifications(prev => [event, ...prev].slice(0, 50));
     // Trigger re-fetches or other logic based on event type if needed
   }, []);
