@@ -133,7 +133,7 @@ export function DebugView() {
                   {selectedSession.logs && (
                     <section>
                       <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Relevant Logs</h3>
-                      <pre className="p-4 rounded-lg bg-zinc-950 text-zinc-300 font-mono text-[10px] overflow-x-auto">
+                      <pre className="p-4 rounded-lg bg-zinc-100 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-300 font-mono text-[10px] overflow-x-auto">
                         {selectedSession.logs}
                       </pre>
                     </section>

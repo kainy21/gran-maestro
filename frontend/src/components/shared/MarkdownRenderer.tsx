@@ -1,7 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import 'highlight.js/styles/github-dark.css';
+import '@/styles/hljs-themes.css';
 import { cn } from '@/lib/utils';
 
 export function MarkdownRenderer({ content, className }: { content: string; className?: string }) {
@@ -57,7 +57,7 @@ export function MarkdownRenderer({ content, className }: { content: string; clas
             );
           },
           pre: ({ children }) => (
-            <pre className="my-3 rounded-lg bg-zinc-900 p-4 overflow-x-auto text-xs">{children}</pre>
+            <pre className="my-3 rounded-lg bg-[#f6f8fa] dark:bg-[#0d1117] p-4 overflow-x-auto text-xs">{children}</pre>
           ),
         }}
       >
