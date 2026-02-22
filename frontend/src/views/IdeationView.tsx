@@ -5,17 +5,18 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { MarkdownRenderer } from '@/components/shared/MarkdownRenderer';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Lightbulb, Users } from 'lucide-react';
+import { IdeationFlow } from '@/components/ideation/IdeationFlow';
+import { DiscussionFlow } from '@/components/ideation/DiscussionFlow';
 
 export function IdeationView() {
   const { token, projectId } = useAppContext();
   const [ideations, setIdeations] = useState<any[]>([]);
   const [discussions, setDiscussions] = useState<any[]>([]);
   const [selectedSession, setSelectedSession] = useState<any>(null);
-  const [sessionContent, setSessionContent] = useState<string | null>(null);
+  const [sessionData, setSessionData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,13 +52,14 @@ export function IdeationView() {
 
   useEffect(() => {
     if (!selectedSession || !projectId) {
-      setSessionContent(null);
+      setSessionData(null);
       return;
     }
+    setSessionData(null);
     const type = selectedSession.id.startsWith('IDN') ? 'ideation' : 'discussion';
-    apiFetch<any>(`/api/${type}/${selectedSession.id}`, token, projectId)
-      .then(data => setSessionContent(data.synthesis || data.consensus || null))
-      .catch(() => setSessionContent(null));
+    apiFetch<Record<string, unknown>>(`/api/${type}/${selectedSession.id}`, token, projectId)
+      .then((data) => setSessionData(data))
+      .catch(() => setSessionData(null));
   }, [selectedSession?.id, token, projectId]);
 
   if (!projectId) {
@@ -123,11 +125,11 @@ export function IdeationView() {
               <StatusBadge status={selectedSession.status} />
             </div>
 
-            <Tabs defaultValue="result" className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <Tabs defaultValue="flow" className="flex-1 flex flex-col overflow-hidden min-h-0">
               <div className="px-6 border-b">
                 <TabsList className="bg-transparent h-12 p-0 gap-6">
-                  <TabsTrigger value="result" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-1">
-                    Synthesis / Consensus
+                  <TabsTrigger value="flow" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-1">
+                    Flow
                   </TabsTrigger>
                   <TabsTrigger value="participants" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-1">
                     <Users className="h-4 w-4 mr-2" /> Participants
@@ -135,10 +137,14 @@ export function IdeationView() {
                 </TabsList>
               </div>
 
-              <TabsContent value="result" className="flex-1 m-0 p-0 overflow-hidden min-h-0">
+              <TabsContent value="flow" className="flex-1 m-0 p-0 overflow-hidden min-h-0">
                 <ScrollArea className="h-full">
                   <div className="p-8">
-                    <MarkdownRenderer content={sessionContent || '# No result yet'} />
+                    {selectedSession.id.startsWith('IDN') ? (
+                      sessionData ? <IdeationFlow sessionData={sessionData} /> : <div className="text-sm text-muted-foreground">아직 결과 없음</div>
+                    ) : (
+                      sessionData ? <DiscussionFlow sessionData={sessionData} /> : <div className="text-sm text-muted-foreground">아직 결과 없음</div>
+                    )}
                   </div>
                 </ScrollArea>
               </TabsContent>
