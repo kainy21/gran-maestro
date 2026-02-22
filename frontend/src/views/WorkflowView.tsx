@@ -128,7 +128,7 @@ export function WorkflowView() {
           }
         }
       }
-      setLogs(prev => prev || '이 태스크의 로그가 없습니다');
+      setLogs(prev => (prev === '로그 수신 대기 중...' ? '이 태스크의 로그가 없습니다' : prev));
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         console.error('Log stream error:', err);
