@@ -149,7 +149,16 @@ projectRequestsApi.get("/requests/:id/tasks", async (c) => {
     if (statusJson) {
       tasks.push({ ...statusJson, id: statusJson.id || dir, requestId: id });
     } else {
-      tasks.push({ id: dir, requestId: id, status: "unknown" });
+      const reqJson = await readJsonFile<{ tasks?: Array<{ id: string; status?: string; title?: string }> }>(
+        `${requestDir}/request.json`
+      );
+      const taskFromReq = reqJson?.tasks?.find((t) => t.id === dir);
+      tasks.push({
+        id: dir,
+        requestId: id,
+        status: taskFromReq?.status ?? "unknown",
+        name: taskFromReq?.title,
+      });
     }
   }
 
@@ -323,6 +332,8 @@ projectRequestsApi.get("/requests/:id/tasks/:taskId/log-stream", async (c) => {
             return;
           } catch {
             if (await isRequestFinished()) {
+              const noLogPayload = JSON.stringify({ type: "no_log", requestId, taskId });
+              controller.enqueue(encoder.encode(`event: no_log\ndata: ${noLogPayload}\n\n`));
               closed = true;
               return;
             }
