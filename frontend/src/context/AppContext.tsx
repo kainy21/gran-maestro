@@ -20,6 +20,7 @@ interface AppContextType {
   clearNotifications: () => void;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
+  lastSseEvent: any | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -29,6 +30,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [projectId, setProjectIdState] = useState<string>(initialProjectId);
   const [projects, setProjects] = useState<Project[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [lastSseEvent, setLastSseEvent] = useState<any | null>(null);
   const [authRequired, setAuthRequired] = useState<boolean>(true);
   const [theme, setThemeState] = useState<'light' | 'dark'>(
     () => (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
@@ -75,6 +77,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const eventType = event?.type;
     if (eventType === 'heartbeat' || eventType === 'connected') return;
     setNotifications(prev => [event, ...prev].slice(0, 50));
+    setLastSseEvent(event);
     // Trigger re-fetches or other logic based on event type if needed
   }, []);
 
@@ -100,7 +103,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addNotification,
       clearNotifications,
       theme,
-      setTheme
+      setTheme,
+      lastSseEvent
     }}>
       {children}
     </AppContext.Provider>

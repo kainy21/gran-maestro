@@ -12,7 +12,7 @@ import { MarkdownRenderer } from '@/components/shared/MarkdownRenderer';
 import { SessionCard } from '@/components/shared/SessionCard';
 
 export function WorkflowView() {
-  const { token, projectId } = useAppContext();
+  const { token, projectId, lastSseEvent } = useAppContext();
   const [requests, setRequests] = useState<any[]>([]);
   const [selectedReq, setSelectedReq] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -43,6 +43,43 @@ export function WorkflowView() {
     }
     fetchRequests();
   }, [token, projectId]);
+
+  useEffect(() => {
+    if (!lastSseEvent || !projectId) return;
+    if (lastSseEvent.type !== 'request_update' && lastSseEvent.type !== 'task_update') return;
+
+    if (lastSseEvent.type === 'request_update') {
+      apiFetch<any[]>('/api/requests', token, projectId)
+        .then((data) => {
+          setRequests(data);
+          if (selectedReq) {
+            const updatedReq = data.find((req) => req.id === selectedReq.id);
+            if (updatedReq) {
+              setSelectedReq(updatedReq);
+            }
+          }
+        })
+        .catch((err) => console.error('SSE re-fetch requests failed:', err));
+      return;
+    }
+
+    if (lastSseEvent.type === 'task_update' && selectedReq) {
+      const eventReqId = lastSseEvent.requestId || lastSseEvent.req_id;
+      if (eventReqId && eventReqId !== selectedReq.id) return;
+
+      apiFetch<any[]>(`/api/requests/${selectedReq.id}/tasks`, token, projectId)
+        .then((data) => {
+          setTasks(data);
+          if (selectedTask) {
+            const updatedTask = data.find((task) => task.id === selectedTask.id);
+            if (updatedTask) {
+              setSelectedTask(updatedTask);
+            }
+          }
+        })
+        .catch((err) => console.error('SSE re-fetch tasks failed:', err));
+    }
+  }, [lastSseEvent, projectId, token, selectedReq?.id, selectedTask?.id]);
 
   useEffect(() => {
     if (!selectedReq || !projectId) {

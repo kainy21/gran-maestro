@@ -24,7 +24,7 @@ interface DebugDetail {
 }
 
 export function DebugView() {
-  const { token, projectId } = useAppContext();
+  const { token, projectId, lastSseEvent } = useAppContext();
   const [sessions, setSessions] = useState<DebugMeta[]>([]);
   const [selectedSession, setSelectedSession] = useState<DebugMeta | null>(null);
   const [reportContent, setReportContent] = useState<string | null>(null);
@@ -50,6 +50,34 @@ export function DebugView() {
     }
     fetchData();
   }, [token, projectId]);
+
+  useEffect(() => {
+    if (!lastSseEvent || !projectId) return;
+    if (lastSseEvent.type !== 'debug_update') return;
+
+    apiFetch<DebugMeta[]>('/api/debug', token, projectId)
+      .then(data => {
+        setSessions(data);
+        if (selectedSession) {
+          const updated = data.find(session => session.id === selectedSession.id);
+          if (updated) {
+            setSelectedSession(updated);
+          }
+        }
+      })
+      .catch(err => console.error('SSE re-fetch debug failed:', err));
+
+    if (selectedSession) {
+      const eventSessionId =
+        (lastSseEvent as { sessionId?: string }).sessionId ??
+        (lastSseEvent as { session_id?: string }).session_id;
+      if (!eventSessionId || eventSessionId === selectedSession.id) {
+        apiFetch<DebugDetail>(`/api/debug/${selectedSession.id}`, token, projectId)
+          .then(data => setReportContent(data.content || null))
+          .catch(() => setReportContent(null));
+      }
+    }
+  }, [lastSseEvent, projectId, token, selectedSession?.id]);
 
   useEffect(() => {
     if (!selectedSession || !projectId) {

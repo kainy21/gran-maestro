@@ -22,7 +22,7 @@ interface PlanDetail {
 }
 
 export function PlansView() {
-  const { token, projectId } = useAppContext();
+  const { token, projectId, lastSseEvent } = useAppContext();
   const [plans, setPlans] = useState<PlanMeta[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<PlanMeta | null>(null);
   const [planContent, setPlanContent] = useState<string | null>(null);
@@ -48,6 +48,34 @@ export function PlansView() {
     }
     fetchPlans();
   }, [token, projectId]);
+
+  useEffect(() => {
+    if (!lastSseEvent || !projectId) return;
+    if (lastSseEvent.type !== 'plan_update') return;
+
+    apiFetch<PlanMeta[]>('/api/plans', token, projectId)
+      .then(data => {
+        setPlans(data);
+        if (selectedPlan) {
+          const updated = data.find(plan => plan.id === selectedPlan.id);
+          if (updated) {
+            setSelectedPlan(updated);
+          }
+        }
+      })
+      .catch(err => console.error('SSE re-fetch plans failed:', err));
+
+    if (selectedPlan) {
+      const eventPlanId =
+        (lastSseEvent as { planId?: string }).planId ??
+        (lastSseEvent as { plan_id?: string }).plan_id;
+      if (!eventPlanId || eventPlanId === selectedPlan.id) {
+        apiFetch<PlanDetail>(`/api/plans/${selectedPlan.id}`, token, projectId)
+          .then(data => setPlanContent(data.content || null))
+          .catch(() => setPlanContent(null));
+      }
+    }
+  }, [lastSseEvent, projectId, token, selectedPlan?.id]);
 
   useEffect(() => {
     if (!selectedPlan || !projectId) {

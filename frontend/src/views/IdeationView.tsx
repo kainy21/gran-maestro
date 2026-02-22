@@ -12,7 +12,7 @@ import { DiscussionFlow } from '@/components/ideation/DiscussionFlow';
 import { SessionCard } from '@/components/shared/SessionCard';
 
 export function IdeationView() {
-  const { token, projectId } = useAppContext();
+  const { token, projectId, lastSseEvent } = useAppContext();
   const [ideations, setIdeations] = useState<any[]>([]);
   const [discussions, setDiscussions] = useState<any[]>([]);
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -49,6 +49,46 @@ export function IdeationView() {
     }
     fetchData();
   }, [token, projectId]);
+
+  useEffect(() => {
+    if (!lastSseEvent || !projectId) return;
+
+    if (lastSseEvent.type !== 'ideation_update' && lastSseEvent.type !== 'discussion_update') return;
+
+    Promise.all([
+      apiFetch<any[]>('/api/ideation', token, projectId),
+      apiFetch<any[]>('/api/discussion', token, projectId)
+    ])
+      .then(([idns, dscs]) => {
+        setIdeations(idns);
+        setDiscussions(dscs);
+
+        if (selectedSession) {
+          const all = [...idns, ...dscs];
+          const updated = all.find((s) => s.id === selectedSession.id);
+          if (updated) {
+            setSelectedSession(updated);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to refresh ideation/discussion lists:', err);
+      });
+
+    if (selectedSession) {
+      const eventSessionId = (lastSseEvent as { sessionId?: string; session_id?: string }).sessionId
+        ?? (lastSseEvent as { sessionId?: string; session_id?: string }).session_id;
+
+      if (!eventSessionId || eventSessionId === selectedSession.id) {
+        const type = selectedSession.id.startsWith('IDN') ? 'ideation' : 'discussion';
+        apiFetch<Record<string, unknown>>(`/api/${type}/${selectedSession.id}`, token, projectId)
+          .then((data) => setSessionData(data))
+          .catch(() => {
+            /* keep previous session data on refresh failure */
+          });
+      }
+    }
+  }, [lastSseEvent, token, projectId, selectedSession?.id]);
 
   useEffect(() => {
     if (!selectedSession || !projectId) {
