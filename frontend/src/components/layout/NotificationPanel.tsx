@@ -29,13 +29,29 @@ export function NotificationPanel() {
   };
 
   const renderNotification = (n: any) => {
-    if (n.type !== 'task_update' || !n.requestId || !n.taskId) {
-      return typeof n.data === 'string' ? n.data : JSON.stringify(n.data);
-    }
-
     const fileName = formatTaskUpdatePath(n.data?.path);
     const kind = getTaskUpdateKindLabel(n.data?.kind);
-    return `${fileName} ${kind}`.trim();
+
+    if (n.type === 'task_update' && n.requestId && n.taskId) {
+      return `${fileName} ${kind}`.trim();
+    }
+    if (n.type === 'plan_update' && n.planId && fileName) {
+      return `${fileName} ${kind}`.trim();
+    }
+    if (n.type === 'request_update' && n.requestId && fileName) {
+      return `${fileName} ${kind}`.trim();
+    }
+    if (n.type === 'debug_update' && n.sessionId && fileName) {
+      return `${fileName} ${kind}`.trim();
+    }
+    if (n.type === 'ideation_update' && n.sessionId && fileName) {
+      return `${fileName} ${kind}`.trim();
+    }
+    if (n.type === 'discussion_update' && n.sessionId && fileName) {
+      return `${fileName} ${kind}`.trim();
+    }
+
+    return typeof n.data === 'string' ? n.data : JSON.stringify(n.data);
   };
 
   return (
@@ -57,6 +73,16 @@ export function NotificationPanel() {
                   <span className="font-semibold text-xs uppercase tracking-wider text-primary">
                     {n.type === 'task_update' && n.requestId && n.taskId
                       ? `${n.requestId} / Task ${n.taskId}`
+                      : n.type === 'plan_update' && n.planId
+                      ? n.planId
+                      : n.type === 'request_update' && n.requestId
+                      ? n.requestId
+                      : n.type === 'debug_update' && n.sessionId
+                      ? n.sessionId
+                      : n.type === 'ideation_update' && n.sessionId
+                      ? n.sessionId
+                      : n.type === 'discussion_update' && n.sessionId
+                      ? n.sessionId
                       : (n.type || 'Event')}
                   </span>
                   <span className="text-[10px] text-muted-foreground">

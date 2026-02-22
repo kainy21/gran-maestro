@@ -18,6 +18,8 @@ argument-hint: "{플래닝 주제}"
 
 **그 외 모든 경로(스킬 파일, 소스 코드, 설정 파일 등)에 대한 Write/Edit 사용은 절대 금지입니다.**
 
+- **plan.md 생성은 어떤 경우에도 생략 불가**: 요청이 단순해 보이더라도 Step 2 → Step 3 → Step 4를 모두 거쳐 **plan.md를 파일로 저장한 후에만** mst:start를 호출합니다. plan.md 없이 mst:start를 직접 호출하는 것은 절대 금지입니다.
+
 사용자가 plan 스킬 실행 중 위 허용 경로 외 파일 수정을 요청할 경우:
 1. 해당 수정 작업을 즉시 중단한다
 2. "plan 스킬 실행 중이므로 직접 수정 대신 plan.md에 기록합니다"를 사용자에게 알린다
@@ -98,6 +100,8 @@ argument-hint: "{플래닝 주제}"
 4. `AskUserQuestion`로 첫 질문 제시 — 선택지에 debug 제안과 연계된 구체적 옵션 포함
 
 **`debug_context` 없는 일반 상태일 때:**
+
+> ⚠️ 요청이 단순해 보이더라도 이 단계를 건너뛰지 않습니다. **최소 1회의 `AskUserQuestion`**을 통해 핵심 결정 사항을 사용자와 확인한 후에만 Step 4로 진행합니다.
 
 1. PM이 요청 주제를 분석해 핵심 미결 항목, 제약, 우선순위가 높은 이슈를 정리
 2. 가장 중요한 항목 하나를 고른 뒤 `AskUserQuestion`로 **한 번에 하나씩** 질문
@@ -229,6 +233,7 @@ ASCII 도식 작성 규칙:
    - `debug_context` 활성 상태이면 `plan.json`에도 `"linked_debug": "{DBG-NNN}"` 필드를 추가
 5. **mst:start 자동 호출 — spec.md 생성 (필수)**
    - "저장하고 /mst:start 실행" 선택 시에만 해당
+   - ⚠️ **plan.md가 디스크에 기록(Write)된 것을 확인한 후에만** mst:start를 호출합니다. plan.md 미저장 상태에서의 mst:start 호출은 절대 금지입니다.
    - plan.md 작성 직후 `Skill(skill: "mst:start", args: "--plan PLN-NNN {plan 주제}")`를 즉시 **단 1회** 호출
    - plan.md에 `## 분리 실행` 섹션이 있는 경우: mst:start가 섹션을 감지하여 다중 REQ를 자동 생성하므로, 이 스킬에서 추가 mst:start 호출 불필요
    - ⚠️ **spec.md 작성이 완료되기 전까지 plan 스킬을 종료하지 않음**

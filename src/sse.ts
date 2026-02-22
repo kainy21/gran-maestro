@@ -34,10 +34,15 @@ sseApi.get("/events", async (c) => {
       }, 30000);
 
       // Watch .gran-maestro/ for changes
+      interface PendingFsEvent {
+        path: string;
+        kind: string;
+      }
+
       interface EventWatcherState {
         watcher: Deno.FsWatcher;
         debounceTimer: number | undefined;
-        pendingPaths: string[];
+        pendingEvents: PendingFsEvent[];
         baseDir: string;
         projectId?: string;
       }
@@ -55,7 +60,7 @@ sseApi.get("/events", async (c) => {
           const state: EventWatcherState = {
             watcher,
             debounceTimer: undefined,
-            pendingPaths: [],
+            pendingEvents: [],
             baseDir,
             projectId,
           };
@@ -67,14 +72,16 @@ sseApi.get("/events", async (c) => {
                 if (state.debounceTimer) {
                   clearTimeout(state.debounceTimer);
                 }
-                state.pendingPaths.push(...event.paths);
+                for (const p of event.paths) {
+                  state.pendingEvents.push({ path: p, kind: event.kind });
+                }
                 state.debounceTimer = setTimeout(() => {
-                  const paths = state.pendingPaths.splice(0);
-                  for (const p of paths) {
+                  const pending = state.pendingEvents.splice(0);
+                  for (const { path: p, kind } of pending) {
                     const relPath = stripBasePath(p, state.baseDir);
                     const sseEvent = classifyFsEvent(
                       relPath,
-                      event.kind,
+                      kind,
                       state.projectId
                     );
                     if (sseEvent) {
