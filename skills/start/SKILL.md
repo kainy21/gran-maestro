@@ -38,6 +38,11 @@ Maestro 모드가 비활성 상태이면 자동으로 활성화합니다:
 
 ## 실행 프로토콜
 
+> ⚠️ **절대 금지 (예외 없음)**: spec.md 저장 및 `/mst:approve` 확인 전에는
+> 코드 수정·파일 편집·git 커밋·빌드 등 어떠한 구현 행위도 수행하지 않는다.
+> 요청이 아무리 단순하거나 수정 위치가 명확해 보여도 이 규칙은 적용된다.
+> `--auto`/`-a` 플래그가 명시된 경우에만 승인 단계를 건너뛸 수 있다.
+
 ### Step 0: 아카이브 체크 (자동)
 
 config.json의 `archive.auto_archive_on_create`가 true이면:
@@ -155,6 +160,7 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
    l. `request.json`의 `status`를 `"spec_ready"`로 업데이트
 5. ⚠️ **spec.md 작성 완료 확인** — spec.md 파일이 존재하지 않으면 이 스킬을 종료하지 않음
 6. 스펙 요약을 사용자에게 표시하고, `/mst:approve REQ-NNN`으로 승인 안내
+   - ⚠️ 이 단계 이후 `/mst:approve` 수신 전까지: 코드 수정·파일 편집·커밋 전면 금지
    - `--auto` 또는 `-a` 모드인 경우: 승인 단계 스킵, 자동으로 Phase 2 진입
 
 ## 옵션
