@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Save, RefreshCcw } from 'lucide-react';
+import { SETTING_DESCRIPTIONS } from '@/config/settingDescriptions';
 
 function isObject(v: any) {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -81,19 +82,23 @@ export function SettingsView() {
     }
 
     const fullPath = [...path, key];
+    const description = SETTING_DESCRIPTIONS[fullPath.join('.')];
 
     return (
       <Card key={key} style={{ marginLeft: indent }}>
         <CardContent className="p-4 flex items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="text-sm font-semibold font-mono">{key}</div>
+            {description && (
+              <div className="text-xs text-muted-foreground">{description}</div>
+            )}
           </div>
           <div className="flex-1 max-w-md flex justify-end">
             {value === null ? (
               <Input
                 value=""
                 placeholder="null"
-                className="text-right font-mono"
+                className="text-left font-mono"
                 onChange={(e) => {
                   const val = e.target.value === '' ? null : e.target.value;
                   setConfig((current: any) => deepSet(current, fullPath, val));
@@ -108,7 +113,7 @@ export function SettingsView() {
               <Input
                 value={value}
                 type={typeof value === 'number' ? 'number' : 'text'}
-                className="text-right font-mono"
+                className="text-left font-mono"
                 onChange={(e) => {
                   const val = typeof value === 'number' ? Number(e.target.value) : e.target.value;
                   setConfig((current: any) => deepSet(current, fullPath, val));
@@ -164,16 +169,22 @@ export function SettingsView() {
             <section>
               <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 px-1">Plugin Info</h3>
               <div className="grid grid-cols-1 gap-4">
-                {topLevelPrimitives.map(([key, value]) => (
-                  <Card key={key}>
-                    <CardContent className="p-4 flex items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="text-sm font-semibold font-mono">{key}</div>
-                        <div className="text-xs text-muted-foreground">{String(value)}</div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {topLevelPrimitives.map(([key, value]) => {
+                  const topLevelDescription = SETTING_DESCRIPTIONS[key];
+                  return (
+                    <Card key={key}>
+                      <CardContent className="p-4 flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="text-sm font-semibold font-mono">{key}</div>
+                          <div className="text-xs text-muted-foreground">{String(value)}</div>
+                          {topLevelDescription && (
+                            <div className="text-xs text-muted-foreground">{topLevelDescription}</div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </section>
           )}
