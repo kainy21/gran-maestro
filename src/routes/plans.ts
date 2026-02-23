@@ -23,7 +23,18 @@ projectPlansApi.get("/plans", async (c) => {
   for (const dir of planDirs) {
     const planJson = await readJsonFile<PlanMeta>(`${plansDir}/${dir}/plan.json`);
     if (planJson) {
-      plans.push({ ...planJson, id: planJson.id || dir });
+      let createdAt = planJson.created_at;
+      if (!createdAt || createdAt.includes("T00:00:00")) {
+        try {
+          const stat = await Deno.stat(`${plansDir}/${dir}/plan.json`);
+          if (stat.mtime) {
+            createdAt = stat.mtime.toISOString();
+          }
+        } catch (_error) {
+          // ignore fallback failure
+        }
+      }
+      plans.push({ ...planJson, id: planJson.id || dir, created_at: createdAt });
     }
   }
   plans.sort((a, b) => {

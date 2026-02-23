@@ -1,0 +1,49 @@
+from datetime import datetime, timezone
+import json
+from pathlib import Path
+from typing import Optional
+
+
+def timestamp_now() -> str:
+    """현재 UTC ISO 8601 타임스탬프 반환."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
+def _find_json_file(base_dir: Path, id: str) -> Optional[Path]:
+    """ID 기반으로 request.json / plan.json / session.json 탐색."""
+    for candidate in [
+        base_dir / "requests" / id / "request.json",
+        base_dir / "requests" / "completed" / id / "request.json",
+        base_dir / "plans" / id / "plan.json",
+        base_dir / "debug" / id / "session.json",
+        base_dir / "ideation" / id / "session.json",
+        base_dir / "discussion" / id / "session.json",
+    ]:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def set_status(base_dir: Path, id: str, status: str) -> None:
+    """JSON 파일의 status 필드와 updated_at을 갱신."""
+    path = _find_json_file(base_dir, id)
+    if not path:
+        raise FileNotFoundError(f"JSON not found for ID: {id}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["status"] = status
+    data["updated_at"] = timestamp_now()
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def set_field(base_dir: Path, id: str, field: str, value: str) -> None:
+    """JSON 파일의 단일 필드를 업데이트."""
+    path = _find_json_file(base_dir, id)
+    if not path:
+        raise FileNotFoundError(f"JSON not found for ID: {id}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data[field] = value
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    raise SystemExit("직접 실행 금지. python3 scripts/mst.py를 통해 호출하세요.")

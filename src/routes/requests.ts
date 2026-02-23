@@ -69,7 +69,23 @@ projectRequestsApi.get("/requests", async (c) => {
     const reqJson = await readJsonFile<RequestMeta>(`${requestsDir}/${dir}/request.json`);
     if (reqJson) {
       const requestId = reqJson.id || dir;
-      requests.push({ ...reqJson, id: requestId, linked_plan: reqToPlanMap.get(requestId) ?? null });
+      let createdAt = reqJson.created_at as string | undefined;
+      if (!createdAt || createdAt.includes("T00:00:00")) {
+        try {
+          const stat = await Deno.stat(`${requestsDir}/${dir}/request.json`);
+          if (stat.mtime) {
+            createdAt = stat.mtime.toISOString();
+          }
+        } catch (_error) {
+          // ignore fallback failure
+        }
+      }
+      requests.push({
+        ...reqJson,
+        id: requestId,
+        created_at: createdAt,
+        linked_plan: reqToPlanMap.get(requestId) ?? null,
+      });
     }
   }
 
@@ -79,9 +95,21 @@ projectRequestsApi.get("/requests", async (c) => {
     );
     if (reqJson) {
       const requestId = reqJson.id || dir;
+      let createdAt = reqJson.created_at as string | undefined;
+      if (!createdAt || createdAt.includes("T00:00:00")) {
+        try {
+          const stat = await Deno.stat(`${requestsDir}/completed/${dir}/request.json`);
+          if (stat.mtime) {
+            createdAt = stat.mtime.toISOString();
+          }
+        } catch (_error) {
+          // ignore fallback failure
+        }
+      }
       requests.push({
         ...reqJson,
         id: requestId,
+        created_at: createdAt,
         _location: "completed",
         linked_plan: reqToPlanMap.get(requestId) ?? null,
       });
@@ -117,7 +145,23 @@ projectRequestsApi.get("/requests/:id", async (c) => {
   }
   const reqToPlanMap = await buildReqToPlanMap(baseDir);
   const requestId = reqJson.id || id;
-  return c.json({ ...reqJson, id: requestId, linked_plan: reqToPlanMap.get(requestId) ?? null });
+  let createdAt = reqJson.created_at as string | undefined;
+  if (!createdAt || createdAt.includes("T00:00:00")) {
+    try {
+      const stat = await Deno.stat(`${requestDir}/request.json`);
+      if (stat.mtime) {
+        createdAt = stat.mtime.toISOString();
+      }
+    } catch (_error) {
+      // ignore fallback failure
+    }
+  }
+  return c.json({
+    ...reqJson,
+    id: requestId,
+    created_at: createdAt,
+    linked_plan: reqToPlanMap.get(requestId) ?? null,
+  });
 });
 
 // ─── API: Tasks ─────────────────────────────────────────────────────────────

@@ -241,6 +241,27 @@ def cmd_request_cancel(args):
     return 1
 
 
+def cmd_timestamp(args):
+    """현재 UTC ISO 타임스탬프를 stdout 출력."""
+    from _state_manager import timestamp_now
+    print(timestamp_now())
+    return 0
+
+
+def cmd_set_status(args):
+    """지정 ID의 status 필드 + updated_at 갱신."""
+    from _state_manager import set_status
+    set_status(BASE_DIR, args.id, args.status)
+    return 0
+
+
+def cmd_set_field(args):
+    """지정 ID의 단일 JSON 필드 업데이트."""
+    from _state_manager import set_field
+    set_field(BASE_DIR, args.id, args.field, args.value)
+    return 0
+
+
 def cmd_plan_list(args):
     rows = []
     for pln_id, path, data in iter_plan_dirs():
@@ -584,6 +605,26 @@ def build_parser():
     req_cancel = req_sub.add_parser("cancel")
     req_cancel.add_argument("req_id")
 
+    # --- timestamp ---
+    ts = sub.add_parser("timestamp")
+    ts_sub = ts.add_subparsers(dest="subcommand")
+
+    ts_now = ts_sub.add_parser("now")
+    ts_now.set_defaults(func=cmd_timestamp)
+
+    # --- set-status ---
+    set_status_cmd = sub.add_parser("set-status")
+    set_status_cmd.add_argument("id", help="REQ-NNN / PLN-NNN / DBG-NNN 등")
+    set_status_cmd.add_argument("status", help="새 상태값")
+    set_status_cmd.set_defaults(func=cmd_set_status)
+
+    # --- set-field ---
+    set_field_cmd = sub.add_parser("set-field")
+    set_field_cmd.add_argument("id", help="REQ-NNN / PLN-NNN / DBG-NNN 등")
+    set_field_cmd.add_argument("field", help="JSON 필드명")
+    set_field_cmd.add_argument("value", help="새 값 (문자열)")
+    set_field_cmd.set_defaults(func=cmd_set_field)
+
     # --- plan ---
     plan = sub.add_parser("plan")
     plan_sub = plan.add_subparsers(dest="subcommand")
@@ -674,6 +715,9 @@ def main():
         ("request", "filter"): cmd_request_filter,
         ("request", "count"): cmd_request_count,
         ("request", "cancel"): cmd_request_cancel,
+        ("timestamp", "now"): cmd_timestamp,
+        ("set-status", None): cmd_set_status,
+        ("set-field", None): cmd_set_field,
         ("plan", "list"): cmd_plan_list,
         ("plan", "count"): cmd_plan_count,
         ("plan", "inspect"): cmd_plan_inspect,
