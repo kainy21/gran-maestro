@@ -208,9 +208,26 @@ export function DiscussionFlow({ sessionData }: DiscussionFlowProps) {
                   <FlowSection title={`Responses (${responses.length})`} defaultOpen={false}>
                     <Cards items={responses} fallbackText="아직 응답이 없습니다." />
                   </FlowSection>
-                  <FlowSection title={`Critiques (${critiques.length})`} defaultOpen={false}>
-                    <Cards items={critiques} fallbackText="아직 비평이 없습니다." />
-                  </FlowSection>
+                  {(() => {
+                    const critiqueRawData = round.data.critiques;
+                    const hasPendingCritiques =
+                      critiqueRawData !== null &&
+                      critiqueRawData !== undefined &&
+                      typeof critiqueRawData === 'object' &&
+                      !Array.isArray(critiqueRawData) &&
+                      Object.keys(critiqueRawData as Record<string, unknown>).length > 0 &&
+                      Object.values(critiqueRawData as Record<string, unknown>).every(v => v === null);
+
+                    const critiqueFallbackText = hasPendingCritiques
+                      ? 'Critic 평가 대기 중...'
+                      : '아직 비평이 없습니다.';
+
+                    return (
+                      <FlowSection title={`Critiques (${critiques.length})`} defaultOpen={false}>
+                        <Cards items={critiques} fallbackText={critiqueFallbackText} />
+                      </FlowSection>
+                    );
+                  })()}
                   <FlowSection title={`Round ${roundIndex + 1} Synthesis`} defaultOpen={false}>
                     <MarkdownRenderer content={synthesis || 'Synthesis 데이터가 아직 없습니다.'} />
                   </FlowSection>
