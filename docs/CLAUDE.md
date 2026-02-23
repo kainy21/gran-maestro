@@ -353,3 +353,18 @@ Claude Code 세션이 종료된 후 미완료 워크플로우를 복구하려면
 복구 시 파일 기반 상태(`.gran-maestro/requests/`)에서 마지막 활성 Phase를 자동 감지합니다.
 
 </session_recovery>
+
+---
+
+## 타임스탬프 규칙
+
+JSON 파일(`request.json`, `plan.json`, session 파일 등)의 `created_at`, `activated_at` 등
+시각 필드를 기입할 때는 반드시 시스템 시계를 통해 실제 시각을 취득해야 합니다.
+
+```bash
+python3 {PLUGIN_ROOT}/scripts/mst.py timestamp now
+# 출력 예: 2026-02-23T14:35:22.483Z
+```
+
+**금지**: 날짜만 기입(`2026-02-23T00:00:00.000Z`), 임의 추정 시각 사용
+**허용**: 위 명령 출력값 직접 사용

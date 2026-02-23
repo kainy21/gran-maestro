@@ -87,6 +87,12 @@ argument-hint: "[--auto] [--variants] [--req REQ-NNN] {화면 설명}"
 ## 메타데이터 기록
 
 REQ-NNN이 있는 경우 `request.json`의 `stitch_screens` 배열에 추가:
+
+> ⏱️ **타임스탬프 취득 (MANDATORY)**:
+> `TS=$(python3 {PLUGIN_ROOT}/scripts/mst.py timestamp now)`
+> 위 명령 실패 시 폴백: `python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())"`
+> 출력값을 `created_at` 필드에 기입한다. 날짜만 기입 금지.
+
 ```json
 {
   "screen_id": "uuid-{random}",
@@ -96,7 +102,7 @@ REQ-NNN이 있는 경우 `request.json`의 `stitch_screens` 배열에 추가:
   "route": "{경로 또는 null}",
   "hash": "{요청 텍스트 hash}",
   "url": "{Stitch 화면 URL}",
-  "created_at": "{ISO timestamp}",
+  "created_at": "{TS — mst.py timestamp now 출력값}",
   "status": "active"
 }
 ```

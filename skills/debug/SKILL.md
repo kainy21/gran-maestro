@@ -47,13 +47,18 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
 3. `.gran-maestro/debug/DBG-NNN/` 디렉토리 생성 (NNN은 3자리 zero-padded)
 4. `session.json` 작성:
 
+> ⏱️ **타임스탬프 취득 (MANDATORY)**:
+> `TS=$(python3 {PLUGIN_ROOT}/scripts/mst.py timestamp now)`
+> 위 명령 실패 시 폴백: `python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())"`
+> 출력값을 `created_at` 필드에 기입한다. 날짜만 기입 금지.
+
 ```json
 {
   "id": "DBG-NNN",
   "issue": "{사용자 이슈 설명}",
   "focus": "{--focus 값 또는 null}",
   "status": "analyzing",
-  "created_at": "{현재 날짜+시각 ISO 8601, 예: 2026-02-23T14:35:22.000Z — 날짜만 입력 금지}",
+  "created_at": "{TS — mst.py timestamp now 출력값}",
   "investigators": {
     "codex": { "role": "", "status": "pending", "provider": "codex" },
     "codex-2": { "role": "", "status": "pending", "provider": "codex" },
@@ -237,6 +242,11 @@ Claude 자체 조사 완료 후 에이전트 결과를 합류합니다.
 
 #### 4c. session.json 업데이트
 
+> ⏱️ **타임스탬프 취득 (MANDATORY)**:
+> `TS=$(python3 {PLUGIN_ROOT}/scripts/mst.py timestamp now)`
+> 위 명령 실패 시 폴백: `python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())"`
+> 출력값을 `merge_completed_at` 필드에 기입한다. 날짜만 기입 금지.
+
 ```json
 {
   "status": "synthesizing",
@@ -245,7 +255,7 @@ Claude 자체 조사 완료 후 에이전트 결과를 합류합니다.
     "gemini": { "status": "timeout", ... }
   },
   "claude_investigation": { "status": "done" },
-  "merge_completed_at": "{현재 날짜+시각 ISO 8601, 예: 2026-02-23T14:35:22.000Z — 날짜만 입력 금지}"
+  "merge_completed_at": "{TS — mst.py timestamp now 출력값}"
 }
 ```
 

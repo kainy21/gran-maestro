@@ -41,13 +41,18 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
 3. `.gran-maestro/ideation/IDN-NNN/` 디렉토리 생성 (NNN은 3자리 zero-padded)
 4. `session.json` 작성:
 
+> ⏱️ **타임스탬프 취득 (MANDATORY)**:
+> `TS=$(python3 {PLUGIN_ROOT}/scripts/mst.py timestamp now)`
+> 위 명령 실패 시 폴백: `python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())"`
+> 출력값을 `created_at` 필드에 기입한다. 날짜만 기입 금지.
+
 ```json
 {
   "id": "IDN-NNN",
   "topic": "{사용자 주제}",
   "focus": "{focus 옵션 또는 null}",
   "status": "analyzing",
-  "created_at": "{현재 날짜+시각 ISO 8601, 예: 2026-02-23T14:35:22.000Z — 날짜만 입력 금지}",
+  "created_at": "{TS — mst.py timestamp now 출력값}",
   "participants": [
     {
       "key": "architect(codex)",

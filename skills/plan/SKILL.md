@@ -83,12 +83,18 @@ argument-hint: "{플래닝 주제}"
 3. 위 정보는 실행 중에만 메모리에 보관하고 파일은 아직 작성하지 않음
 4. `.gran-maestro/plans/PLN-NNN/` 디렉토리 생성
 5. `.gran-maestro/plans/PLN-NNN/plan.json` 먼저 작성:
+
+   > ⏱️ **타임스탬프 취득 (MANDATORY)**:
+   > `TS=$(python3 {PLUGIN_ROOT}/scripts/mst.py timestamp now)`
+   > 위 명령 실패 시 폴백: `python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())"`
+   > 출력값을 `created_at` 필드에 기입한다. 날짜만 기입 금지.
+
    ```json
    {
      "id": "PLN-NNN",
      "title": "플랜 주제",
      "status": "active",
-     "created_at": "ISO-timestamp",
+     "created_at": "{TS — mst.py timestamp now 출력값}",
      "linked_requests": []
    }
    ```

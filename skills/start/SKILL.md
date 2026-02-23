@@ -25,10 +25,16 @@ Maestro 모드가 비활성 상태이면 자동으로 활성화합니다:
    - 없으면: 플러그인의 `templates/defaults/agents.json` 내용을 복사
 6. `.gran-maestro/mode.json` 확인
    - `active: false`이거나 파일 없음 → 아래 내용으로 생성/업데이트:
+
+   > ⏱️ **타임스탬프 취득 (MANDATORY)**:
+   > `TS=$(python3 {PLUGIN_ROOT}/scripts/mst.py timestamp now)`
+   > 위 명령 실패 시 폴백: `python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())"`
+   > 출력값을 `activated_at` 필드에 기입한다. 날짜만 기입 금지.
+
      ```json
      {
        "active": true,
-       "activated_at": "{현재 ISO timestamp}",
+       "activated_at": "{TS — mst.py timestamp now 출력값}",
        "auto_deactivate": true,
        }
      ```
@@ -77,6 +83,12 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
 2. `.gran-maestro/requests/REQ-NNN/` 디렉토리 생성 (NNN은 3자리 zero-padded)
    - 하위에 `tasks/`, `discussion/`, `design/` 서브디렉토리도 함께 생성
 3. 요청 메타데이터 기록 (`request.json`):
+
+   > ⏱️ **타임스탬프 취득 (MANDATORY)**:
+   > `TS=$(python3 {PLUGIN_ROOT}/scripts/mst.py timestamp now)`
+   > 위 명령 실패 시 폴백: `python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())"`
+   > 출력값을 `created_at` 필드에 기입한다. 날짜만 기입 금지.
+
    ```json
    {
      "id": "REQ-NNN",
@@ -84,7 +96,7 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
      "original_request": "{전체 요청 텍스트}",
      "status": "phase1_analysis",
      "current_phase": 1,
-     "created_at": "{현재 날짜+시각 ISO 8601, 예: 2026-02-23T14:35:22.000Z — 날짜만 입력 금지}",
+     "created_at": "{TS — mst.py timestamp now 출력값}",
      "auto_approve": false,
      "tasks": [],
      "dependencies": { "blockedBy": [], "relatedTo": [], "blocks": [] },

@@ -46,6 +46,11 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
 3. `.gran-maestro/discussion/DSC-NNN/` 디렉토리 생성 (NNN은 3자리 zero-padded)
 4. `session.json` 작성:
 
+> ⏱️ **타임스탬프 취득 (MANDATORY)**:
+> `TS=$(python3 {PLUGIN_ROOT}/scripts/mst.py timestamp now)`
+> 위 명령 실패 시 폴백: `python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())"`
+> 출력값을 `created_at` 필드에 기입한다. 날짜만 기입 금지.
+
 ```json
 {
   "id": "DSC-NNN",
@@ -55,7 +60,7 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
   "status": "analyzing",
   "max_rounds": "{config.json의 discussion.default_max_rounds}",
   "current_round": 0,
-  "created_at": "{현재 날짜+시각 ISO 8601, 예: 2026-02-23T14:35:22.000Z — 날짜만 입력 금지}",
+  "created_at": "{TS — mst.py timestamp now 출력값}",
   "participants": [
     { "key": "architect(codex)", "role": "architect", "perspective": "", "type": "opinion", "status": "pending", "provider": "codex" },
     { "key": "ux(codex)", "role": "ux", "perspective": "", "type": "opinion", "status": "pending", "provider": "codex" },
