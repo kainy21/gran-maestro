@@ -117,7 +117,7 @@ export function DebugView() {
           <RefreshButton onClick={handleRefresh} isRefreshing={isRefreshing} />
         </div>
         <ScrollArea className="flex-1">
-          <div className="p-4 space-y-3">
+          <div className="p-3 space-y-1.5">
             {sessions.map((s) => (
               <SessionCard
                 key={s.id}

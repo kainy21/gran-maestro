@@ -39,17 +39,17 @@ export function SessionCard({
       className={`cursor-pointer transition-colors hover:bg-accent/50 ${isSelected ? 'border-primary ring-1 ring-primary' : ''}`}
       onClick={onClick}
     >
-      <CardContent className="p-3">
-        <div className="flex justify-between items-start mb-1">
+      <CardContent className="p-2">
+        <div className="flex justify-between items-start mb-0.5">
           <div className="flex items-center gap-1.5 min-w-0">
             {icon}
             <Badge variant="outline" className="text-[10px] font-mono">{id}</Badge>
           </div>
           <StatusBadge status={status} />
         </div>
-        <p className="text-[11px] text-muted-foreground line-clamp-2 mt-1">{title}</p>
+        <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{title}</p>
         {(extraBadge || (extraLinks && extraLinks.length > 0) || dateTime) && (
-          <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-muted-foreground flex-wrap">
+          <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground flex-wrap">
             {extraBadge && <Badge variant="secondary" className="text-[10px]">{extraBadge}</Badge>}
             {extraLinks && extraLinks.length > 0 && (
               <span>
