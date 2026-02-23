@@ -38,10 +38,15 @@ PM Conductor의 "I conduct, I don't code" 원칙을 유지하면서 Codex/Gemini
    - `--trace {REQ-ID}/{TASK-NUM}/{label}` 제공 시:
      `task_dir` = `.gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/`
    - `--trace` 없고 `--dir {worktree_path}` 제공 시:
-     worktree 경로에서 REQ-ID와 TASK-NUM을 추론할 수 없으므로 running.log 기록 스킵
+     worktree 경로가 `.gran-maestro/worktrees/REQ-NNN-NN` 형태이면:
+     - 정규식 `worktrees/(REQ-\w+)-(\d+)$`로 REQ-ID와 TASK-NUM 추출
+     - `task_dir` = `.gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/`
+     - 추론 실패 시: running.log 기록 스킵
    - 둘 다 없는 경우: running.log 기록 스킵
 
-   `task_dir`가 확정된 경우:
+   `task_dir`가 확정된 경우 (running.log 생성 필수):
+   - 시작 전 `Bash`로 파일 생성 (없으면 생성, 있으면 유지):
+     `Bash("touch {task_dir}/running.log")`
    - 시작 시 `Bash`로 append:
      `echo '[start] Claude subagent dispatched' >> {task_dir}/running.log`
    - Task 완료 후 `Bash`로 append:
