@@ -160,6 +160,23 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 - 템플릿: `templates/discussion-round-synthesis.md` + `role/provider` 동적 표기
 - 결과 저장 후 `status: "debating"`, `current_round: 0`
 
+### Step 3.5: Round 0 완료 상태 업데이트
+
+`participants` 순회 → `rounds/00/{participant.key}.md` 존재 + 비어있지 않음 여부 확인:
+- 성공: `participant.status = "done"`
+- 실패: `participant.status = "failed"`
+
+`critics` 순회 → `rounds/00/critique-{criticKey}.md` 존재 + 비어있지 않음 여부 확인:
+- 성공: `critics[key].status = "done"`
+- 실패: `critics[key].status = "failed"`
+
+`session.json` 단일 Write로 업데이트:
+- `participants` 상태 반영 (위 결과)
+- `critics` 상태 반영 (위 결과)
+- `rounds` 배열에 `{ "round": 0, "status": "completed" }` 추가
+- `current_round: 0`
+- `status: "debating"` (Step 3에서 이미 설정되나 participants 업데이트와 동시에 기록)
+
 ### Step 4: 토론 라운드 (반복)
 
 #### 4a. PM이 맞춤 프롬프트 작성
@@ -238,6 +255,22 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 - 템플릿: `templates/discussion-round-synthesis.md`의 동적 표 사용
 - 출력: `rounds/NN/synthesis.md`
 - `status`, `current_round` 업데이트
+
+### Step 4c.5: Round N 완료 상태 업데이트
+
+`participants` 순회 → `rounds/NN/{participant.key}.md` 존재 + 비어있지 않음 여부 확인:
+- 성공: `participant.status = "done"`
+- 실패: `participant.status = "failed"`
+
+`critics` 순회 → `rounds/NN/critique-{criticKey}.md` 존재 + 비어있지 않음 여부 확인:
+- 성공: `critics[key].status = "done"`
+- 실패: `critics[key].status = "failed"`
+
+`session.json` 단일 Write로 업데이트:
+- `participants` 상태 반영 (위 결과)
+- `critics` 상태 반영 (위 결과)
+- `rounds` 배열에 `{ "round": N, "status": "completed" }` 추가
+- `current_round: N`
 
 ### Step 4d. 수렴 판단
 
