@@ -527,7 +527,12 @@ Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_pat
 
 Phase 3 리뷰가 PASS로 완료되면, `workflow.auto_accept_result` 설정에 따라 동작합니다:
 
-- **`true` (기본)**: `/mst:accept` 프로토콜을 자동으로 실행합니다. 사용자 개입 없이 머지 → 정리 → 완료까지 진행됩니다.
+- **`true` (기본)**: 아래와 같이 accept 스킬을 명시적으로 호출합니다:
+  ```
+  Skill(skill: "mst:accept", args: "{REQ_ID}")
+  ```
+  > ⚠️ **MANDATORY**: in-context 실행 시 Step 6 (Plan 상태 동기화)가 생략되는 것을 방지하기 위해
+  > 반드시 Skill 도구를 통해 mst:accept를 호출해야 합니다.
 - **`false`**: Phase 3 리뷰 PASS 후 멈추고, 사용자에게 `/mst:accept`를 수동으로 호출하라고 안내합니다.
 
 설정 변경: `/mst:settings workflow.auto_accept_result false`

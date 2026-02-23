@@ -19,6 +19,11 @@ argument-hint: "{REQ-ID} [--force]"
    - Git worktree 삭제
    - 임시 브랜치 정리
    - `request.json` 상태를 `cancelled`로 변경
+4.5. **Plan 상태 동기화**:
+   - 취소된 `request.json`의 `source_plan` 필드 확인
+   - `source_plan`이 있으면: `python3 {PLUGIN_ROOT}/scripts/mst.py plan sync {source_plan}` 실행
+     (취소로 인해 linked_requests 중 미완료가 생겼으므로 sync는 대부분 no-op)
+   - `source_plan`이 없으면 스킵
 5. `.gran-maestro/requests/*/request.json`을 스캔하여 모든 요청이 terminal 상태(`done`, `completed`, `cancelled`, `failed`)이고 `auto_deactivate: true`이면 → Maestro 모드 자동 비활성화
 
 ## 옵션
