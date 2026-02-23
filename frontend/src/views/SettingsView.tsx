@@ -49,17 +49,17 @@ export function SettingsView() {
   async function handleSave() {
     setSaving(true);
     try {
-      await fetch('/api/config', {
+      await apiFetch('/api/config', projectId, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(config)
       });
-      // Simple notification via alert if needed or just visual feedback
       alert('Config saved successfully');
     } catch (err) {
       console.error('Failed to save config:', err);
+      alert(`Failed to save config: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSaving(false);
     }
