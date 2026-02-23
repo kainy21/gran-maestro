@@ -233,8 +233,8 @@ def cmd_request_cancel(args):
             if data.get("status") == "cancelled":
                 print(f"{req_id} is already cancelled.")
                 return 0
-            data["status"] = "cancelled"
-            save_json(path / "request.json", data)
+            from _state_manager import cancel
+            cancel(BASE_DIR, req_id)
             print(f"Cancelled: {req_id}")
             return 0
     print(f"Error: {req_id} not found.", file=sys.stderr)
@@ -310,9 +310,8 @@ def cmd_plan_complete(args):
             if data.get("status") == "completed":
                 print(f"{pln_id} is already completed.")
                 return 0
-            data["status"] = "completed"
-            data["completed_at"] = datetime.now(timezone.utc).isoformat()
-            save_json(path / "plan.json", data)
+            from _state_manager import complete
+            complete(BASE_DIR, pln_id)
             print(f"Completed: {pln_id}")
             return 0
     print(f"Error: {pln_id} not found.", file=sys.stderr)
@@ -548,9 +547,8 @@ def cmd_session_complete(args):
     if sj.get("status") == "completed":
         print(f"{sess_id} is already completed.")
         return 0
-    sj["status"] = "completed"
-    sj["completed_at"] = datetime.now(timezone.utc).isoformat()
-    save_json(sess_path / "session.json", sj)
+    from _state_manager import complete
+    complete(BASE_DIR, sess_id)
     print(f"Completed: {sess_id}")
     return 0
 

@@ -34,6 +34,31 @@ def set_status(base_dir: Path, id: str, status: str) -> None:
     data["updated_at"] = timestamp_now()
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
+def complete(base_dir: Path, id: str) -> None:
+    """JSON 파일의 status를 completed로 변경하고 completed_at/updated_at 갱신."""
+    path = _find_json_file(base_dir, id)
+    if not path:
+        raise FileNotFoundError(f"JSON not found for ID: {id}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    now = timestamp_now()
+    data["status"] = "completed"
+    data["completed_at"] = now
+    data["updated_at"] = now
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def cancel(base_dir: Path, id: str) -> None:
+    """JSON 파일의 status를 cancelled로 변경하고 cancelled_at/updated_at 갱신."""
+    path = _find_json_file(base_dir, id)
+    if not path:
+        raise FileNotFoundError(f"JSON not found for ID: {id}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    now = timestamp_now()
+    data["status"] = "cancelled"
+    data["cancelled_at"] = now
+    data["updated_at"] = now
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
 
 def set_field(base_dir: Path, id: str, field: str, value: str) -> None:
     """JSON 파일의 단일 필드를 업데이트."""
