@@ -4,8 +4,27 @@
 - Task ID: {TASK_ID}
 - Created: {DATE}
 - Status: pending | queued | executing | pre_check | pre_check_failed | review | feedback | merging | merge_conflict | done | failed | cancelled
-- Assigned Agent: codex | gemini
+- Assigned Agent: codex | gemini | claude-dev
 - Assigned Team: {에이전트 팀 구성 설명}
+
+<!-- Decision Tree — 에이전트 선택 기준
+1단계: 변경 파일 유형
+  .md 스킬/문서, .json config, .env, .yaml    → claude-dev 허용
+  .tsx, .jsx, React hooks/context/page        → gemini-dev 우선
+  .ts 백엔드 로직, API, DB, 신규 .ts 파일 생성 → codex-dev 우선
+  *.config.ts (vite, tailwind 등 설정성 TS)  → claude-dev 허용
+
+2단계: 혼합 작업 게이트
+  .tsx/.jsx 또는 신규 .ts 파일 생성이 1개라도 포함 → claude-dev 금지
+  변경 파일이 모두 기존 .ts 인라인 수정만      → claude-dev 허용 가능 (3단계 확인)
+
+3단계: 예외 — 코어 로직 변경 여부
+  YES (새 SKILL.md, 오케스트레이션 변경 등)   → claude-dev 허용
+  NO + 레이어 기준 금지                       → [EXCEPTION] 태그 + 사유 필수
+
+⚠️  컨텍스트 보유를 이유로 한 claude-dev 선택은 유효하지 않다.
+    외주 에이전트는 worktree를 직접 탐색하므로 컨텍스트 보유는 실질적 이점이 아님.
+-->
 - Worktree: .gran-maestro/worktrees/{TASK_ID}
 
 ## 1. 요약 (Summary)
