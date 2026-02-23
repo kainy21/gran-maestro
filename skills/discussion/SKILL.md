@@ -101,7 +101,7 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 > - 백그라운드 작업 완료 시 사용자에게 확인 질문 금지
 > - 모든 단계는 사용자 입력 없이 자동 진행
 > - 모든 호출이 모두 완료되면 즉시 다음 step 진행
-> - Step 4d 종료 판단은 PM이 자율적으로 처리
+> - Step 4e 종료 판단은 PM이 자율적으로 처리
 > - 최종 사용자 보고는 Step 6에서만
 
 ### 병렬 Write 원칙 (CRITICAL)
@@ -160,7 +160,14 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 - 템플릿: `templates/discussion-round-synthesis.md` + `role/provider` 동적 표기
 - 결과 저장 후 `status: "debating"`, `current_round: 0`
 
-### Step 3.5: Round 0 완료 상태 업데이트
+#### Step 3.5: Critic 초기 평가 (단일 라운드 수렴 시)
+
+- `critics` 객체가 존재하고 `critic_count >= 1`이면 실행
+- `rounds/00` 응답 파일들을 기반으로 `rounds/00/prompts/critique-{criticKey}-prompt.md` 생성
+- Step 4c와 동일한 호출 방식으로 `rounds/00/critique-{criticKey}.md` 저장
+- 이후 Step 4e(수렴 판단)에서 조기 수렴이 판정되어 Step 4가 미실행되더라도 Critic 평가는 보장됨
+
+### Step 3.6: Round 0 완료 상태 업데이트
 
 `participants` 순회 → `rounds/00/{participant.key}.md` 존재 + 비어있지 않음 여부 확인:
 - 성공: `participant.status = "done"`
@@ -215,12 +222,16 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
   )
   ```
 
-#### 4b.5. Critic 평가
+### Step 4c. Critic 평가 ⚠️ (MANDATORY — 절대 건너뛰기 금지)
+
+> ⚠️ MANDATORY: `critics` 객체가 비어있지 않으면 이 단계를 건너뛸 수 없습니다.
+> `rounds/NN/critique-{criticKey}.md` 파일 저장 완료를 확인한 후에만 Step 4d로 진행합니다.
+> 파일 저장 전 Step 4d 진행 금지.
 
 - `critics` 키 순회하여 `rounds/NN/prompts/critique-{criticKey}-prompt.md` 생성
 - `provider` 규칙에 따라 역할별 배정 수행
 - `rounds/NN/critique-{criticKey}.md` 저장
-  
+
 호출 방식:
 
 - `provider: "codex"`:
@@ -249,14 +260,14 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
   )
   ```
 
-#### 4c. 라운드 종합
+### Step 4d. 라운드 종합
 
 - 입력: `rounds/{NN-1}/synthesis.md` + `rounds/NN/{participant.key}.md` + `rounds/NN/critique-{criticKey}.md`
 - 템플릿: `templates/discussion-round-synthesis.md`의 동적 표 사용
 - 출력: `rounds/NN/synthesis.md`
 - `status`, `current_round` 업데이트
 
-### Step 4c.5: Round N 완료 상태 업데이트
+### Step 4d.5: Round N 완료 상태 업데이트
 
 `participants` 순회 → `rounds/NN/{participant.key}.md` 존재 + 비어있지 않음 여부 확인:
 - 성공: `participant.status = "done"`
@@ -272,9 +283,9 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 - `rounds` 배열에 `{ "round": N, "status": "completed" }` 추가
 - `current_round: N`
 
-### Step 4d. 수렴 판단
+### Step 4e. 수렴 판단
 
-PM이 4c 결과의 합의 정도를 판정:
+PM이 4d 결과의 합의 정도를 판정:
 - 합의 판단 기준 충족 또는 최대 라운드 도달 시 Step 5
 - 미충족 시 다음 라운드 수행
 
