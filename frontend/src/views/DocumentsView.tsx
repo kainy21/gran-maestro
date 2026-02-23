@@ -30,7 +30,7 @@ interface FileNode {
 }
 
 export function DocumentsView() {
-  const { token, projectId } = useAppContext();
+  const { projectId } = useAppContext();
   const [tree, setTree] = useState<FileNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -40,12 +40,12 @@ export function DocumentsView() {
 
   const fetchTree = useCallback(async () => {
     try {
-      const data = await apiFetch<FileNode[]>('/api/tree', token, projectId);
+      const data = await apiFetch<FileNode[]>('/api/tree', projectId);
       setTree(data);
     } catch (err) {
       console.error('Failed to fetch tree:', err);
     }
-  }, [token, projectId]);
+  }, [projectId]);
 
   useEffect(() => {
     if (!projectId) {
@@ -54,20 +54,19 @@ export function DocumentsView() {
     }
     setLoading(true);
     fetchTree().finally(() => setLoading(false));
-  }, [token, projectId]);
+  }, [projectId]);
 
   useEffect(() => {
     if (selectedFile) {
       fetchFileContent(selectedFile);
     }
-  }, [selectedFile, token]);
+  }, [selectedFile]);
 
   async function fetchFileContent(path: string) {
     setContentLoading(true);
     try {
       const data = await apiFetch<{ path: string; content: string }>(
         `/api/file?path=${encodeURIComponent(path)}`,
-        token,
         projectId
       );
       setFileContent(data.content);

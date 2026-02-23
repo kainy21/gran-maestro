@@ -13,7 +13,7 @@ import { SessionCard } from '@/components/shared/SessionCard';
 import { RefreshButton } from '@/components/shared/RefreshButton';
 
 export function IdeationView() {
-  const { token, projectId, lastSseEvent } = useAppContext();
+  const { projectId, lastSseEvent } = useAppContext();
   const [ideations, setIdeations] = useState<any[]>([]);
   const [discussions, setDiscussions] = useState<any[]>([]);
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -24,8 +24,8 @@ export function IdeationView() {
   const fetchData = useCallback(async () => {
     try {
       const [idns, dscs] = await Promise.all([
-        apiFetch<any[]>('/api/ideation', token, projectId),
-        apiFetch<any[]>('/api/discussion', token, projectId)
+        apiFetch<any[]>('/api/ideation', projectId),
+        apiFetch<any[]>('/api/discussion', projectId)
       ]);
       setIdeations(idns);
       setDiscussions(dscs);
@@ -41,7 +41,7 @@ export function IdeationView() {
     } catch (err) {
       console.error('Failed to fetch ideation data:', err);
     }
-  }, [token, projectId]);
+  }, [projectId]);
 
   useEffect(() => {
     if (!projectId) {
@@ -50,7 +50,7 @@ export function IdeationView() {
     }
     setLoading(true);
     fetchData().finally(() => setLoading(false));
-  }, [token, projectId]);
+  }, [projectId]);
 
   useEffect(() => {
     if (!lastSseEvent || !projectId) return;
@@ -58,8 +58,8 @@ export function IdeationView() {
     if (lastSseEvent.type !== 'ideation_update' && lastSseEvent.type !== 'discussion_update') return;
 
     Promise.all([
-      apiFetch<any[]>('/api/ideation', token, projectId),
-      apiFetch<any[]>('/api/discussion', token, projectId)
+      apiFetch<any[]>('/api/ideation', projectId),
+      apiFetch<any[]>('/api/discussion', projectId)
     ])
       .then(([idns, dscs]) => {
         setIdeations(idns);
@@ -83,14 +83,14 @@ export function IdeationView() {
 
       if (!eventSessionId || eventSessionId === selectedSession.id) {
         const type = selectedSession.id.startsWith('IDN') ? 'ideation' : 'discussion';
-        apiFetch<Record<string, unknown>>(`/api/${type}/${selectedSession.id}`, token, projectId)
+        apiFetch<Record<string, unknown>>(`/api/${type}/${selectedSession.id}`, projectId)
           .then((data) => setSessionData(data))
           .catch(() => {
             /* keep previous session data on refresh failure */
           });
       }
     }
-  }, [lastSseEvent, token, projectId, selectedSession?.id]);
+  }, [lastSseEvent, projectId, selectedSession?.id]);
 
   useEffect(() => {
     if (!selectedSession || !projectId) {
@@ -99,10 +99,10 @@ export function IdeationView() {
     }
     setSessionData(null);
     const type = selectedSession.id.startsWith('IDN') ? 'ideation' : 'discussion';
-    apiFetch<Record<string, unknown>>(`/api/${type}/${selectedSession.id}`, token, projectId)
+    apiFetch<Record<string, unknown>>(`/api/${type}/${selectedSession.id}`, projectId)
       .then((data) => setSessionData(data))
       .catch(() => setSessionData(null));
-  }, [selectedSession?.id, token, projectId]);
+  }, [selectedSession?.id, projectId]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

@@ -2,14 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 export type SSEStatus = 'connected' | 'disconnected' | 'connecting';
 
-export function useSse(token: string, onEvent: (event: any) => void) {
+export function useSse(onEvent: (event: any) => void) {
   const [status, setStatus] = useState<SSEStatus>('disconnected');
   const esRef = useRef<EventSource | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const connect = useCallback(() => {
-    if (!token) return;
-
     // 기존 연결 종료
     if (esRef.current) {
       esRef.current.close();
@@ -17,7 +15,7 @@ export function useSse(token: string, onEvent: (event: any) => void) {
     }
 
     setStatus('connecting');
-    const url = `/events?token=${token}`;
+    const url = '/events';
     const es = new EventSource(url);
     esRef.current = es;
 
@@ -47,7 +45,7 @@ export function useSse(token: string, onEvent: (event: any) => void) {
         connect();
       }, 3000);
     };
-  }, [token, onEvent]);
+  }, [onEvent]);
 
   useEffect(() => {
     connect();

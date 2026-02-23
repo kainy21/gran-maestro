@@ -9,12 +9,10 @@ interface Project {
 }
 
 interface AppContextType {
-  token: string;
   projectId: string;
   setProjectId: (id: string) => void;
   projects: Project[];
   sseStatus: SSEStatus;
-  authRequired: boolean;
   notifications: any[];
   addNotification: (notification: any) => void;
   clearNotifications: () => void;
@@ -31,12 +29,11 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { token, projectId: initialProjectId } = useAuth();
+  const { projectId: initialProjectId } = useAuth();
   const [projectId, setProjectIdState] = useState<string>(initialProjectId);
   const [projects, setProjects] = useState<Project[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [lastSseEvent, setLastSseEvent] = useState<any | null>(null);
-  const [authRequired, setAuthRequired] = useState<boolean>(true);
   const [theme, setThemeState] = useState<'light' | 'dark'>(
     () => (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
   );
@@ -76,26 +73,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
 
-  useEffect(() => {
-    fetch('/api/auth/status')
-      .then((response) => response.json())
-      .then((data: { auth_required: boolean }) => {
-        setAuthRequired(data.auth_required);
-      })
-      .catch(() => {
-        // keep default true
-      });
-  }, []);
-
   // Load project list on mount
   useEffect(() => {
-    if (authRequired && !token) return;
-    apiFetch<Project[]>('/api/projects', token).then((data) => {
+    apiFetch<Project[]>('/api/projects').then((data) => {
       setProjects(data);
     }).catch((err) => {
       console.error('Failed to fetch projects:', err);
     });
-  }, [token, authRequired]);
+  }, []);
 
   const onSseEvent = useCallback((event: any) => {
     const eventType = event?.type;
@@ -105,7 +90,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Trigger re-fetches or other logic based on event type if needed
   }, []);
 
-  const { status: sseStatus } = useSse(token, onSseEvent);
+  const { status: sseStatus } = useSse(onSseEvent);
 
   const addNotification = useCallback((n: any) => {
     setNotifications(prev => [n, ...prev].slice(0, 50));
@@ -117,12 +102,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      token,
       projectId,
       setProjectId,
       projects,
       sseStatus,
-      authRequired,
       notifications,
       addNotification,
       clearNotifications,

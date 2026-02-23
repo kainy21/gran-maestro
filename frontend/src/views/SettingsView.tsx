@@ -20,7 +20,7 @@ function deepSet(obj: any, path: string[], value: any): any {
 }
 
 export function SettingsView() {
-  const { token, projectId } = useAppContext();
+  const { projectId } = useAppContext();
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,12 +31,12 @@ export function SettingsView() {
       return;
     }
     fetchConfig();
-  }, [token, projectId]);
+  }, [projectId]);
 
   async function fetchConfig() {
     setLoading(true);
     try {
-      const data = await apiFetch<any>('/api/config', token, projectId);
+      const data = await apiFetch<any>('/api/config', projectId);
       setConfig(data);
     } catch (err) {
       console.error('Failed to fetch config:', err);
@@ -52,7 +52,6 @@ export function SettingsView() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(config)
       });

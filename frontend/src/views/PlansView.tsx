@@ -23,7 +23,7 @@ interface PlanDetail {
 }
 
 export function PlansView() {
-  const { token, projectId, lastSseEvent, navigateTo, pendingNavigation, clearPendingNavigation } = useAppContext();
+  const { projectId, lastSseEvent, navigateTo, pendingNavigation, clearPendingNavigation } = useAppContext();
   const [plans, setPlans] = useState<PlanMeta[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<PlanMeta | null>(null);
   const [planContent, setPlanContent] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export function PlansView() {
 
   const fetchPlans = useCallback(async () => {
     try {
-      const data = await apiFetch<PlanMeta[]>('/api/plans', token, projectId);
+      const data = await apiFetch<PlanMeta[]>('/api/plans', projectId);
       setPlans(data);
       if (data.length > 0 && !selectedPlan) {
         setSelectedPlan(data[0]);
@@ -40,7 +40,7 @@ export function PlansView() {
     } catch (err) {
       console.error('Failed to fetch plans:', err);
     }
-  }, [token, projectId]);
+  }, [projectId]);
 
   useEffect(() => {
     if (!projectId) {
@@ -49,7 +49,7 @@ export function PlansView() {
     }
     setLoading(true);
     fetchPlans().finally(() => setLoading(false));
-  }, [token, projectId]);
+  }, [projectId]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -61,7 +61,7 @@ export function PlansView() {
     if (!lastSseEvent || !projectId) return;
     if (lastSseEvent.type !== 'plan_update') return;
 
-    apiFetch<PlanMeta[]>('/api/plans', token, projectId)
+    apiFetch<PlanMeta[]>('/api/plans', projectId)
       .then(data => {
         setPlans(data);
         if (selectedPlan) {
@@ -78,22 +78,22 @@ export function PlansView() {
         (lastSseEvent as { planId?: string }).planId ??
         (lastSseEvent as { plan_id?: string }).plan_id;
       if (!eventPlanId || eventPlanId === selectedPlan.id) {
-        apiFetch<PlanDetail>(`/api/plans/${selectedPlan.id}`, token, projectId)
+        apiFetch<PlanDetail>(`/api/plans/${selectedPlan.id}`, projectId)
           .then(data => setPlanContent(data.content || null))
           .catch(() => setPlanContent(null));
       }
     }
-  }, [lastSseEvent, projectId, token, selectedPlan?.id]);
+  }, [lastSseEvent, projectId, selectedPlan?.id]);
 
   useEffect(() => {
     if (!selectedPlan || !projectId) {
       setPlanContent(null);
       return;
     }
-    apiFetch<PlanDetail>(`/api/plans/${selectedPlan.id}`, token, projectId)
+    apiFetch<PlanDetail>(`/api/plans/${selectedPlan.id}`, projectId)
       .then(data => setPlanContent(data.content || null))
       .catch(() => setPlanContent(null));
-  }, [selectedPlan?.id, token, projectId]);
+  }, [selectedPlan?.id, projectId]);
 
   useEffect(() => {
     if (pendingNavigation?.tab !== 'plans' || loading) return;

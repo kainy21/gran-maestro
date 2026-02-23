@@ -13,7 +13,7 @@ import { SessionCard } from '@/components/shared/SessionCard';
 import { RefreshButton } from '@/components/shared/RefreshButton';
 
 export function WorkflowView() {
-  const { token, projectId, lastSseEvent, navigateTo, pendingNavigation, clearPendingNavigation } = useAppContext();
+  const { projectId, lastSseEvent, navigateTo, pendingNavigation, clearPendingNavigation } = useAppContext();
   const [requests, setRequests] = useState<any[]>([]);
   const [selectedReq, setSelectedReq] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -28,7 +28,7 @@ export function WorkflowView() {
 
   const fetchRequests = useCallback(async () => {
     try {
-      const data = await apiFetch<any[]>('/api/requests', token, projectId);
+      const data = await apiFetch<any[]>('/api/requests', projectId);
       setRequests(data);
       if (data.length > 0 && !selectedReq) {
         setSelectedReq(data[0]);
@@ -36,7 +36,7 @@ export function WorkflowView() {
     } catch (err) {
       console.error('Failed to fetch requests:', err);
     }
-  }, [token, projectId]);
+  }, [projectId]);
 
   useEffect(() => {
     if (!projectId) {
@@ -45,7 +45,7 @@ export function WorkflowView() {
     }
     setLoading(true);
     fetchRequests().finally(() => setLoading(false));
-  }, [token, projectId]);
+  }, [projectId]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -58,7 +58,7 @@ export function WorkflowView() {
     if (lastSseEvent.type !== 'request_update' && lastSseEvent.type !== 'task_update') return;
 
     if (lastSseEvent.type === 'request_update') {
-      apiFetch<any[]>('/api/requests', token, projectId)
+      apiFetch<any[]>('/api/requests', projectId)
         .then((data) => {
           setRequests(data);
           if (selectedReq) {
@@ -76,7 +76,7 @@ export function WorkflowView() {
       const eventReqId = lastSseEvent.requestId || lastSseEvent.req_id;
       if (eventReqId && eventReqId !== selectedReq.id) return;
 
-      apiFetch<any[]>(`/api/requests/${selectedReq.id}/tasks`, token, projectId)
+      apiFetch<any[]>(`/api/requests/${selectedReq.id}/tasks`, projectId)
         .then((data) => {
           setTasks(data);
           if (selectedTask) {
@@ -88,7 +88,7 @@ export function WorkflowView() {
         })
         .catch((err) => console.error('SSE re-fetch tasks failed:', err));
     }
-  }, [lastSseEvent, projectId, token, selectedReq?.id, selectedTask?.id]);
+  }, [lastSseEvent, projectId, selectedReq?.id, selectedTask?.id]);
 
   useEffect(() => {
     if (!selectedReq || !projectId) {
@@ -96,7 +96,7 @@ export function WorkflowView() {
       setSelectedTask(null);
       return;
     }
-    apiFetch<any[]>(`/api/requests/${selectedReq.id}/tasks`, token, projectId)
+    apiFetch<any[]>(`/api/requests/${selectedReq.id}/tasks`, projectId)
       .then(data => {
         setTasks(data);
         if (data.length > 0) {
@@ -106,7 +106,7 @@ export function WorkflowView() {
         }
       })
       .catch(() => setTasks([]));
-  }, [selectedReq?.id, token, projectId]);
+  }, [selectedReq?.id, projectId]);
 
   const taskKey = selectedReq && selectedTask
     ? `${selectedReq.id}/${selectedTask.id}`
@@ -154,10 +154,10 @@ export function WorkflowView() {
       setSelectedTaskDetail(null);
       return;
     }
-    apiFetch<any>(`/api/requests/${selectedReq.id}/tasks/${selectedTask.id}`, token, projectId)
+    apiFetch<any>(`/api/requests/${selectedReq.id}/tasks/${selectedTask.id}`, projectId)
       .then(data => setSelectedTaskDetail(data))
       .catch(() => setSelectedTaskDetail(null));
-  }, [selectedReq?.id, selectedTask?.id, token, projectId]);
+  }, [selectedReq?.id, selectedTask?.id, projectId]);
 
   async function startLogStream(reqId: string, taskId: string) {
     stopLogStream();
@@ -168,7 +168,6 @@ export function WorkflowView() {
 
     try {
       const response = await fetch(`/api/projects/${projectId}/requests/${reqId}/tasks/${taskId}/log-stream`, {
-        headers: { 'Authorization': `Bearer ${token}` },
         signal: controller.signal
       });
 

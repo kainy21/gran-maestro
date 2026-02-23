@@ -25,7 +25,7 @@ interface DebugDetail {
 }
 
 export function DebugView() {
-  const { token, projectId, lastSseEvent } = useAppContext();
+  const { projectId, lastSseEvent } = useAppContext();
   const [sessions, setSessions] = useState<DebugMeta[]>([]);
   const [selectedSession, setSelectedSession] = useState<DebugMeta | null>(null);
   const [reportContent, setReportContent] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export function DebugView() {
 
   const fetchData = useCallback(async () => {
     try {
-      const data = await apiFetch<DebugMeta[]>('/api/debug', token, projectId);
+      const data = await apiFetch<DebugMeta[]>('/api/debug', projectId);
       setSessions(data);
       if (data.length > 0 && !selectedSession) {
         setSelectedSession(data[0]);
@@ -42,7 +42,7 @@ export function DebugView() {
     } catch (err) {
       console.error('Failed to fetch debug data:', err);
     }
-  }, [token, projectId]);
+  }, [projectId]);
 
   useEffect(() => {
     if (!projectId) {
@@ -51,13 +51,13 @@ export function DebugView() {
     }
     setLoading(true);
     fetchData().finally(() => setLoading(false));
-  }, [token, projectId]);
+  }, [projectId]);
 
   useEffect(() => {
     if (!lastSseEvent || !projectId) return;
     if (lastSseEvent.type !== 'debug_update') return;
 
-    apiFetch<DebugMeta[]>('/api/debug', token, projectId)
+    apiFetch<DebugMeta[]>('/api/debug', projectId)
       .then(data => {
         setSessions(data);
         if (selectedSession) {
@@ -74,22 +74,22 @@ export function DebugView() {
         (lastSseEvent as { sessionId?: string }).sessionId ??
         (lastSseEvent as { session_id?: string }).session_id;
       if (!eventSessionId || eventSessionId === selectedSession.id) {
-        apiFetch<DebugDetail>(`/api/debug/${selectedSession.id}`, token, projectId)
+        apiFetch<DebugDetail>(`/api/debug/${selectedSession.id}`, projectId)
           .then(data => setReportContent(data.content || null))
           .catch(() => setReportContent(null));
       }
     }
-  }, [lastSseEvent, projectId, token, selectedSession?.id]);
+  }, [lastSseEvent, projectId, selectedSession?.id]);
 
   useEffect(() => {
     if (!selectedSession || !projectId) {
       setReportContent(null);
       return;
     }
-    apiFetch<DebugDetail>(`/api/debug/${selectedSession.id}`, token, projectId)
+    apiFetch<DebugDetail>(`/api/debug/${selectedSession.id}`, projectId)
       .then(data => setReportContent(data.content || null))
       .catch(() => setReportContent(null));
-  }, [selectedSession?.id, token, projectId]);
+  }, [selectedSession?.id, projectId]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

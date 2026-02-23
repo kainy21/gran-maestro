@@ -14,23 +14,8 @@ import { DocumentsView } from './views/DocumentsView';
 import { SettingsView } from './views/SettingsView';
 
 function AppContent() {
-  const { token, authRequired, activeTab, setActiveTab } = useAppContext();
+  const { activeTab, setActiveTab } = useAppContext();
   const [showShortcuts, setShowShortcuts] = useState(false);
-
-  if (authRequired && !token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-8">
-        <div className="max-w-md w-full border rounded-lg p-8 shadow-lg text-center bg-card">
-          <h1 className="text-2xl font-bold mb-4">Token Required</h1>
-          <p className="text-muted-foreground mb-6">
-            Please access the dashboard with a valid token in the URL.
-            <br />
-            <code className="text-xs bg-muted px-2 py-1 rounded">?token=YOUR_TOKEN</code>
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
