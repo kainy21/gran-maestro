@@ -292,6 +292,8 @@ projectRequestsApi.get("/requests/:id/tasks/:taskId/log-stream", async (c) => {
   }
 
   const taskDir = `${requestDir}/tasks/${taskId}`;
+  const lastEventIdHeader = c.req.header("Last-Event-ID");
+  const resumeOffset = lastEventIdHeader ? parseInt(lastEventIdHeader, 10) || null : null;
   try {
     const taskStat = await Deno.stat(taskDir);
     if (!taskStat.isDirectory) {
@@ -307,19 +309,25 @@ projectRequestsApi.get("/requests/:id/tasks/:taskId/log-stream", async (c) => {
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
+      const CHECK_INTERVAL_MS = 30000;
       let closed = false;
       let watcher: Deno.FsWatcher | null = null;
       let offset = 0;
+      let keepAliveInterval: number | null = null;
 
       const cleanup = () => {
         closed = true;
+        if (keepAliveInterval !== null) {
+          clearInterval(keepAliveInterval);
+          keepAliveInterval = null;
+        }
         if (watcher) {
           try { watcher.close(); } catch { /* ignore */ }
           watcher = null;
         }
       };
 
-      const send = async (lines: string[]) => {
+      const send = async (lines: string[], currentOffset: number) => {
         if (closed || lines.length === 0) return;
         const payload = JSON.stringify({
           type: "log_line",
@@ -330,14 +338,30 @@ projectRequestsApi.get("/requests/:id/tasks/:taskId/log-stream", async (c) => {
             timestamp: new Date().toISOString(),
           },
         });
-        controller.enqueue(encoder.encode(`event: log_line\ndata: ${payload}\n\n`));
+        controller.enqueue(
+          encoder.encode(
+            `id: ${currentOffset}\nevent: log_line\ndata: ${payload}\n\n`
+          )
+        );
       };
 
       const sendInitialContent = async () => {
         try {
           const bytes = await Deno.readFile(runningLog);
-          offset = bytes.length;
-          await send(splitLogLines(decoder.decode(bytes)));
+          if (resumeOffset !== null && resumeOffset <= bytes.length) {
+            const added = bytes.slice(resumeOffset);
+            offset = resumeOffset;
+            if (added.length > 0) {
+              await send(splitLogLines(decoder.decode(added)), bytes.length);
+            } else {
+              offset = bytes.length;
+            }
+          } else if (resumeOffset === null) {
+            offset = bytes.length;
+            await send(splitLogLines(decoder.decode(bytes)), offset);
+          } else {
+            offset = bytes.length;
+          }
         } catch {
           offset = 0;
         }
@@ -352,7 +376,7 @@ projectRequestsApi.get("/requests/:id/tasks/:taskId/log-stream", async (c) => {
           const added = bytes.slice(offset);
           offset = bytes.length;
           if (added.length === 0) return;
-          await send(splitLogLines(decoder.decode(added)));
+          await send(splitLogLines(decoder.decode(added)), offset);
         } catch {
           // ignore read errors
         }
@@ -382,20 +406,51 @@ projectRequestsApi.get("/requests/:id/tasks/:taskId/log-stream", async (c) => {
               return;
             }
             watcher = Deno.watchFs(taskDir);
-            for await (const event of watcher) {
-              if (closed) break;
-              const matched = event.paths.some((path) =>
-                path.endsWith("/running.log") || path.endsWith("\\running.log")
-              );
-              if (matched) {
-                break;
+            if (closed) {
+              try { watcher.close(); } catch { /* ignore */ }
+              watcher = null;
+              return;
+            }
+            try {
+              for await (const event of watcher) {
+                if (closed) break;
+                const matched = event.paths.some((path) =>
+                  path.endsWith("/running.log") || path.endsWith("\\running.log")
+                );
+                if (matched) {
+                  break;
+                }
               }
+            } finally {
+              watcher?.close();
+              watcher = null;
             }
             if (closed) break;
-            watcher?.close();
-            watcher = null;
           }
         }
+      };
+
+      const waitForRunningLogEvent = async (): Promise<"event"> => {
+        const watched = watcher;
+        if (!watched) return "event";
+        return new Promise<"event">((resolve) => {
+          (async () => {
+            try {
+              for await (const event of watched) {
+                const isRunningLog = event.paths.some((path: string) =>
+                  path.endsWith("/running.log") || path.endsWith("\\running.log")
+                );
+                if (isRunningLog) {
+                  resolve("event");
+                  return;
+                }
+              }
+            } catch {
+              // ignore
+            }
+            resolve("event");
+          })();
+        });
       };
 
       c.req.raw.signal?.addEventListener("abort", () => {
@@ -409,14 +464,43 @@ projectRequestsApi.get("/requests/:id/tasks/:taskId/log-stream", async (c) => {
         await waitForFile();
         if (closed) return;
         await sendInitialContent();
+
+        keepAliveInterval = setInterval(() => {
+          if (closed) {
+            clearInterval(keepAliveInterval!);
+            keepAliveInterval = null;
+            return;
+          }
+          try {
+            controller.enqueue(encoder.encode(": ping\n\n"));
+          } catch {
+            clearInterval(keepAliveInterval!);
+            keepAliveInterval = null;
+          }
+        }, CHECK_INTERVAL_MS);
+
         watcher = Deno.watchFs(taskDir);
-        for await (const event of watcher) {
+        let waitingForRunningLog = waitForRunningLogEvent();
+
+        while (!closed) {
+          const result = await Promise.race([
+            waitingForRunningLog,
+            new Promise<"timer">((resolve) =>
+              setTimeout(() => resolve("timer"), CHECK_INTERVAL_MS)
+            ),
+          ]);
+
           if (closed) break;
-          const isRunningLog = event.paths.some((path) =>
-            path.endsWith("/running.log") || path.endsWith("\\running.log")
-          );
-          if (!isRunningLog) continue;
+          if (result === "timer") {
+            if (await isRequestFinished()) {
+              cleanup();
+              break;
+            }
+            continue;
+          }
+
           await sendNewContent();
+          waitingForRunningLog = waitForRunningLogEvent();
         }
       } finally {
         cleanup();

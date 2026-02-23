@@ -13,6 +13,8 @@ import { SessionCard } from '@/components/shared/SessionCard';
 import { RefreshButton } from '@/components/shared/RefreshButton';
 import { EditModeToolbar } from '@/components/EditModeToolbar';
 
+type LogStreamStatus = 'idle' | 'connecting' | 'live' | 'ended' | 'error';
+
 export function WorkflowView() {
   const { projectId, lastSseEvent, navigateTo, pendingNavigation, clearPendingNavigation } = useAppContext();
   const [requests, setRequests] = useState<any[]>([]);
@@ -21,12 +23,17 @@ export function WorkflowView() {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<string>('');
+  const [streamStatus, setStreamStatus] = useState<LogStreamStatus>('idle');
   const [selectedTaskDetail, setSelectedTaskDetail] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const logScrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortedByUserRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const lastEventIdRef = useRef<string | null>(null);
   const isAtBottomRef = useRef(true);
 
   const fetchRequests = useCallback(async () => {
@@ -132,12 +139,11 @@ export function WorkflowView() {
       .catch(() => setTasks([]));
   }, [selectedReq?.id, projectId]);
 
-  const taskKey = selectedReq && selectedTask
-    ? `${selectedReq.id}/${selectedTask.id}`
-    : null;
+  const taskKey = selectedTask?.id ?? null;
 
   useEffect(() => {
     if (selectedReq && selectedTask) {
+      lastEventIdRef.current = null;
       startLogStream(selectedReq.id, selectedTask.id);
     }
     return () => stopLogStream();
@@ -220,16 +226,58 @@ export function WorkflowView() {
     }
   };
 
-  async function startLogStream(reqId: string, taskId: string) {
+  async function startLogStream(reqId: string, taskId: string, isReconnect = false) {
     stopLogStream();
-    setLogs('로그 수신 대기 중...');
+    abortedByUserRef.current = false;
+    retryCountRef.current = 0;
+    setLogs('');
+    setStreamStatus('connecting');
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    const appendLogLines = (lines: string[]) => {
+      if (lines.length === 0) return;
+      setLogs(prev => (prev === '' ? '' : prev) + lines.join('\n') + '\n');
+    };
+
+    const handleSseChunk = (part: string) => {
+      const idLine = part.split('\n').find(line => line.startsWith('id:'));
+      if (idLine) {
+        lastEventIdRef.current = idLine.slice(3).trim();
+      }
+
+      const eventLine = part.split('\n').find(line => line.startsWith('event:'));
+      const dataLine = part.split('\n').find(line => line.startsWith('data:'));
+
+      if (eventLine?.trim() === 'event: no_log') {
+        setLogs(prev => (prev === '' ? '실행 로그가 기록되지 않은 태스크입니다' : prev));
+        setStreamStatus('ended');
+        return true;
+      }
+
+      if (!dataLine) return false;
+      setStreamStatus('live');
+
+      try {
+        const json = JSON.parse(dataLine.slice(5).trim());
+        const lines: string[] = json?.data?.lines ?? [];
+        appendLogLines(lines);
+      } catch {
+        // ignore parse errors
+      }
+
+      return false;
+    };
+
     try {
+      const headers: HeadersInit = {};
+      if (lastEventIdRef.current && isReconnect) {
+        headers['Last-Event-ID'] = lastEventIdRef.current;
+      }
       const response = await fetch(`/api/projects/${projectId}/requests/${reqId}/tasks/${taskId}/log-stream`, {
-        signal: controller.signal
+        signal: controller.signal,
+        headers,
       });
 
       if (!response.ok) throw new Error('Failed to start log stream');
@@ -241,47 +289,112 @@ export function WorkflowView() {
       let buffer = '';
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          if (buffer.trim()) {
+            const eventLine = buffer.split('\n').find(line => line.startsWith('event:'));
+            const dataLine = buffer.split('\n').find(line => line.startsWith('data:'));
+            if (eventLine?.trim() === 'event: no_log') {
+              setLogs(prev => (prev === '' ? '실행 로그가 기록되지 않은 태스크입니다' : prev));
+            } else if (dataLine) {
+              setStreamStatus('live');
+              try {
+                const json = JSON.parse(dataLine.slice(5).trim());
+                const lines: string[] = json?.data?.lines ?? [];
+                appendLogLines(lines);
+              } catch {
+                // ignore parse errors
+              }
+            }
+          }
+          setStreamStatus('ended');
+          break;
+        }
         buffer += decoder.decode(value, { stream: true });
         const parts = buffer.split('\n\n');
         buffer = parts.pop() ?? '';
         for (const part of parts) {
-          const eventLine = part.split('\n').find(l => l.startsWith('event:'));
-          const dataLine = part.split('\n').find(l => l.startsWith('data:'));
-
-          // no_log 이벤트 처리
-          if (eventLine?.trim() === 'event: no_log') {
-            setLogs('실행 로그가 기록되지 않은 태스크입니다');
-            return;  // 스트림 종료 처리
-          }
-
-          if (!dataLine) continue;
-          try {
-            const json = JSON.parse(dataLine.slice(5).trim());
-            const lines: string[] = json?.data?.lines ?? [];
-            if (lines.length > 0) {
-              setLogs(prev => prev + lines.join('\n') + '\n');
-            }
-          } catch {
-            // ignore parse errors
-          }
+          if (handleSseChunk(part)) return;
         }
       }
-      setLogs(prev => (prev === '로그 수신 대기 중...' ? '실행 로그가 기록되지 않은 태스크입니다' : prev));
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error('Log stream error:', err);
-        setLogs(prev => prev + '\n[Stream Error]');
+      if (err.name === 'AbortError') {
+        setStreamStatus('idle');
+        return;
+      }
+
+      console.error('Log stream error:', err);
+      if (abortedByUserRef.current) {
+        setStreamStatus('idle');
+        return;
+      }
+
+      if (retryCountRef.current < 3) {
+        const delayMs = Math.pow(2, retryCountRef.current) * 1000;
+        retryCountRef.current += 1;
+        setStreamStatus('connecting');
+
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (!abortedByUserRef.current) {
+            startLogStream(reqId, taskId, true);
+          }
+        }, delayMs);
+      } else {
+        setStreamStatus('error');
       }
     }
   }
 
   function stopLogStream() {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+    abortedByUserRef.current = true;
+    retryCountRef.current = 0;
+    setStreamStatus('idle');
   }
+
+  const handleLogRefresh = () => {
+    if (!selectedReq || !selectedTask) return;
+    startLogStream(selectedReq.id, selectedTask.id);
+  };
+
+  const streamStatusMeta = (() => {
+    if (streamStatus === 'idle') return null;
+    if (streamStatus === 'connecting') {
+      return {
+        label: 'Connecting...',
+        badge: 'border-muted-foreground/30 text-muted-foreground',
+        dot: 'bg-muted-foreground/70',
+      };
+    }
+    if (streamStatus === 'live') {
+      return {
+        label: 'Live',
+        badge: 'border-emerald-500/50 text-emerald-700 dark:text-emerald-300',
+        dot: 'bg-emerald-500 animate-pulse',
+      };
+    }
+    if (streamStatus === 'ended') {
+      return {
+        label: 'Ended',
+        badge: 'border-muted-foreground/40 text-muted-foreground',
+        dot: 'bg-muted-foreground/80',
+      };
+    }
+    return {
+      label: 'Error',
+      badge: 'border-red-500/50 text-red-600 dark:text-red-300',
+      dot: 'bg-red-500',
+    };
+  })();
 
   if (!projectId) {
     return (
@@ -413,7 +526,7 @@ export function WorkflowView() {
               {/* Task View (Logs / Info) */}
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {selectedTask ? (
-                  <Tabs key={`${selectedReq?.id}-${selectedTask?.id}`} defaultValue="info" className="flex-1 flex flex-col overflow-hidden">
+                  <Tabs key={taskKey} defaultValue="info" className="flex-1 flex flex-col overflow-hidden">
                     <div className="px-4 border-b">
                       <TabsList className="bg-transparent h-10 p-0 gap-4">
                         <TabsTrigger value="info" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-1">
@@ -481,9 +594,24 @@ export function WorkflowView() {
                         )}
                       </div>
                     </TabsContent>
-                    <TabsContent value="logs" className="flex-1 m-0 p-0 overflow-hidden min-h-0">
+                    <TabsContent value="logs" className="flex-1 m-0 p-0 overflow-hidden min-h-0 flex flex-col">
+                      <div className="px-4 py-2 border-b bg-muted/10 flex items-center justify-between gap-2">
+                        {streamStatusMeta && (
+                          <span className={`inline-flex items-center gap-1 text-[11px] h-6 px-2 rounded-full border ${streamStatusMeta.badge}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${streamStatusMeta.dot}`} />
+                            {streamStatusMeta.label}
+                          </span>
+                        )}
+                        <div className="ml-auto">
+                          <RefreshButton onClick={handleLogRefresh} isRefreshing={streamStatus === 'connecting'} />
+                        </div>
+                      </div>
                       <ScrollArea ref={logScrollAreaRef} className="h-full bg-zinc-950 text-zinc-300 font-mono text-[11px]">
-                        <pre className="whitespace-pre-wrap p-4">{logs}</pre>
+                        {logs === '' ? (
+                          <div className="p-4 text-muted-foreground">로그 수신 대기 중...</div>
+                        ) : (
+                          <pre className="whitespace-pre-wrap p-4">{logs}</pre>
+                        )}
                       </ScrollArea>
                     </TabsContent>
                   </Tabs>
