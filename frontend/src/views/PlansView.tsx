@@ -34,9 +34,9 @@ export function PlansView() {
     try {
       const data = await apiFetch<PlanMeta[]>('/api/plans', projectId);
       setPlans(data);
-      if (data.length > 0 && !selectedPlan) {
-        setSelectedPlan(data[0]);
-      }
+      setSelectedPlan(prev =>
+        prev ? (data.find(plan => plan.id === prev.id) ?? data[0] ?? null) : (data[0] ?? null)
+      );
     } catch (err) {
       console.error('Failed to fetch plans:', err);
     }
@@ -53,8 +53,17 @@ export function PlansView() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchPlans();
-    setIsRefreshing(false);
+    try {
+      await fetchPlans();
+      if (selectedPlan && projectId) {
+        const data = await apiFetch<PlanDetail>(`/api/plans/${selectedPlan.id}`, projectId);
+        setPlanContent(data.content || null);
+      }
+    } catch (err) {
+      console.error('Failed to refresh plans:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   useEffect(() => {

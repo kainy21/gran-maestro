@@ -80,8 +80,16 @@ export function DocumentsView() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchTree();
-    setIsRefreshing(false);
+    try {
+      await fetchTree();
+      if (selectedFile) {
+        await fetchFileContent(selectedFile);
+      }
+    } catch (err) {
+      console.error('Failed to refresh documents:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const renderTree = (nodes: FileNode[], depth = 0) => {

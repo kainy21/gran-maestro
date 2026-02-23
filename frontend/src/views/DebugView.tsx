@@ -36,9 +36,9 @@ export function DebugView() {
     try {
       const data = await apiFetch<DebugMeta[]>('/api/debug', projectId);
       setSessions(data);
-      if (data.length > 0 && !selectedSession) {
-        setSelectedSession(data[0]);
-      }
+      setSelectedSession(prev =>
+        prev ? (data.find(session => session.id === prev.id) ?? data[0] ?? null) : (data[0] ?? null)
+      );
     } catch (err) {
       console.error('Failed to fetch debug data:', err);
     }
@@ -93,8 +93,17 @@ export function DebugView() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchData();
-    setIsRefreshing(false);
+    try {
+      await fetchData();
+      if (selectedSession && projectId) {
+        const data = await apiFetch<DebugDetail>(`/api/debug/${selectedSession.id}`, projectId);
+        setReportContent(data.content || null);
+      }
+    } catch (err) {
+      console.error('Failed to refresh debug sessions:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (!projectId) {

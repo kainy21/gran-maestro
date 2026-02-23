@@ -35,9 +35,11 @@ export function IdeationView() {
         const bTime = b.created_at ?? '';
         return bTime.localeCompare(aTime);
       });
-      if (all.length > 0 && !selectedSession) {
-        setSelectedSession(all[0]);
-      }
+      setSelectedSession((prev: any) => {
+        if (all.length === 0) return null;
+        if (!prev) return all[0];
+        return all.find((session: any) => session.id === prev.id) ?? prev;
+      });
     } catch (err) {
       console.error('Failed to fetch ideation data:', err);
     }
@@ -106,8 +108,18 @@ export function IdeationView() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchData();
-    setIsRefreshing(false);
+    try {
+      await fetchData();
+      if (selectedSession && projectId) {
+        const type = selectedSession.id.startsWith('IDN') ? 'ideation' : 'discussion';
+        const data = await apiFetch<Record<string, unknown>>(`/api/${type}/${selectedSession.id}`, projectId);
+        setSessionData(data);
+      }
+    } catch (err) {
+      console.error('Failed to refresh ideation sessions:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (!projectId) {

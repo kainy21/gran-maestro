@@ -30,9 +30,9 @@ export function WorkflowView() {
     try {
       const data = await apiFetch<any[]>('/api/requests', projectId);
       setRequests(data);
-      if (data.length > 0 && !selectedReq) {
-        setSelectedReq(data[0]);
-      }
+      setSelectedReq((prev: any) =>
+        prev ? (data.find((req: any) => req.id === prev.id) ?? data[0] ?? null) : (data[0] ?? null)
+      );
     } catch (err) {
       console.error('Failed to fetch requests:', err);
     }
@@ -49,8 +49,29 @@ export function WorkflowView() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchRequests();
-    setIsRefreshing(false);
+    try {
+      const data = await apiFetch<any[]>('/api/requests', projectId);
+      setRequests(data);
+      if (selectedReq) {
+        const updatedReq = data.find(req => req.id === selectedReq.id) ?? selectedReq;
+        setSelectedReq(updatedReq);
+        const taskData = await apiFetch<any[]>(`/api/requests/${updatedReq.id}/tasks`, projectId);
+        setTasks(taskData);
+        if (selectedTask) {
+          const updatedTask = taskData.find(task => task.id === selectedTask.id) ?? selectedTask;
+          setSelectedTask(updatedTask);
+          const detail = await apiFetch<any>(
+            `/api/requests/${updatedReq.id}/tasks/${updatedTask.id}`,
+            projectId
+          );
+          setSelectedTaskDetail(detail);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh workflow data:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   useEffect(() => {
