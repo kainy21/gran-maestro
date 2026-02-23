@@ -24,6 +24,7 @@ export function WorkflowView() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const logScrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isAtBottomRef = useRef(true);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -116,12 +117,25 @@ export function WorkflowView() {
       startLogStream(selectedReq.id, selectedTask.id);
     }
     return () => stopLogStream();
-  }, [selectedReq, selectedTask]);
+  }, [selectedReq?.id, selectedTask?.id]);
 
   useEffect(() => {
+    if (!isAtBottomRef.current) return;
     const viewport = logScrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (viewport) viewport.scrollTop = viewport.scrollHeight;
   }, [logs]);
+
+  useEffect(() => {
+    const viewport = logScrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (!viewport) return;
+    isAtBottomRef.current = true;
+    const handleScroll = () => {
+      isAtBottomRef.current =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 80;
+    };
+    viewport.addEventListener('scroll', handleScroll);
+    return () => viewport.removeEventListener('scroll', handleScroll);
+  }, [selectedTask?.id]);
 
   useEffect(() => {
     if (pendingNavigation?.tab !== 'workflow' || loading) return;
@@ -293,7 +307,7 @@ export function WorkflowView() {
               </div>
 
               {/* Task View (Logs / Info) */}
-              <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 {selectedTask ? (
                   <Tabs key={`${selectedReq?.id}-${selectedTask?.id}`} defaultValue="info" className="flex-1 flex flex-col overflow-hidden">
                     <div className="px-4 border-b">
@@ -363,9 +377,9 @@ export function WorkflowView() {
                         )}
                       </div>
                     </TabsContent>
-                    <TabsContent value="logs" className="flex-1 m-0 p-0 overflow-hidden relative min-h-0">
-                      <ScrollArea ref={logScrollAreaRef} className="absolute inset-0 bg-zinc-950 text-zinc-300 font-mono text-[11px] p-4">
-                        <pre className="whitespace-pre-wrap">{logs}</pre>
+                    <TabsContent value="logs" className="flex-1 m-0 p-0 overflow-hidden min-h-0">
+                      <ScrollArea ref={logScrollAreaRef} className="h-full bg-zinc-950 text-zinc-300 font-mono text-[11px]">
+                        <pre className="whitespace-pre-wrap p-4">{logs}</pre>
                       </ScrollArea>
                     </TabsContent>
                   </Tabs>
