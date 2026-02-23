@@ -11,6 +11,7 @@ import { IdeationFlow } from '@/components/ideation/IdeationFlow';
 import { DiscussionFlow } from '@/components/ideation/DiscussionFlow';
 import { SessionCard } from '@/components/shared/SessionCard';
 import { RefreshButton } from '@/components/shared/RefreshButton';
+import { EditModeToolbar } from '@/components/EditModeToolbar';
 
 export function IdeationView() {
   const { projectId, lastSseEvent } = useAppContext();
@@ -20,6 +21,8 @@ export function IdeationView() {
   const [sessionData, setSessionData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -122,6 +125,43 @@ export function IdeationView() {
     }
   };
 
+  const handleStatusChange = async (targetStatus: string) => {
+    try {
+      await apiFetch('/api/manage/status', projectId, {
+        method: 'PATCH',
+        body: JSON.stringify({ ids: selectedIds, targetStatus }),
+      });
+      setIsEditMode(false);
+      setSelectedIds([]);
+      await fetchData();
+    } catch (err) {
+      console.error('상태 변경 실패:', err);
+    }
+  };
+
+  const handleBackup = async () => {
+    try {
+      const resolvedPath = projectId
+        ? `/api/projects/${projectId}/manage/backup`
+        : '/api/manage/backup';
+      const response = await fetch(resolvedPath, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      if (!response.ok) throw new Error(`백업 실패: ${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gran-maestro-backup-${Date.now()}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('백업 실패:', err);
+    }
+  };
+
   if (!projectId) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -145,25 +185,52 @@ export function IdeationView() {
       <div className="col-span-4 border-r flex flex-col min-h-0">
         <div className="p-4 border-b bg-muted/30 flex justify-between items-center">
           <h2 className="font-semibold">Sessions ({allSessions.length})</h2>
-          <RefreshButton onClick={handleRefresh} isRefreshing={isRefreshing} />
+          <div className="flex items-center gap-2">
+            <EditModeToolbar
+              isEditMode={isEditMode}
+              selectedIds={selectedIds}
+              itemType="session"
+              onToggleEditMode={() => { setIsEditMode(v => !v); setSelectedIds([]); }}
+              onStatusChange={handleStatusChange}
+              onBackup={handleBackup}
+              onCancel={() => { setIsEditMode(false); setSelectedIds([]); }}
+            />
+            <RefreshButton onClick={handleRefresh} isRefreshing={isRefreshing} />
+          </div>
         </div>
         <ScrollArea className="flex-1">
           <div className="p-3 space-y-1.5">
             {allSessions.map((s) => (
-              <SessionCard
-                key={s.id}
-                id={s.id}
-                title={s.objective || s.topic || 'Ideation Session'}
-                status={s.status}
-                createdAt={s.created_at}
-                icon={
-                  s.id.startsWith('IDN')
-                    ? <Lightbulb className="h-3 w-3 text-yellow-500" />
-                    : <MessageSquare className="h-3 w-3 text-blue-500" />
-                }
-                isSelected={selectedSession?.id === s.id}
-                onClick={() => setSelectedSession(s)}
-              />
+              <div key={s.id} className="flex items-center">
+                {isEditMode && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(s.id)}
+                    onChange={(e) => {
+                      setSelectedIds(prev =>
+                        e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id)
+                      );
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="mr-2 h-4 w-4"
+                  />
+                )}
+                <div className="flex-1">
+                  <SessionCard
+                    id={s.id}
+                    title={s.objective || s.topic || 'Ideation Session'}
+                    status={s.status}
+                    createdAt={s.created_at}
+                    icon={
+                      s.id.startsWith('IDN')
+                        ? <Lightbulb className="h-3 w-3 text-yellow-500" />
+                        : <MessageSquare className="h-3 w-3 text-blue-500" />
+                    }
+                    isSelected={selectedSession?.id === s.id}
+                    onClick={() => setSelectedSession(s)}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </ScrollArea>

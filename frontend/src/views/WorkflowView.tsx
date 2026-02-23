@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { MarkdownRenderer } from '@/components/shared/MarkdownRenderer';
 import { SessionCard } from '@/components/shared/SessionCard';
 import { RefreshButton } from '@/components/shared/RefreshButton';
+import { EditModeToolbar } from '@/components/EditModeToolbar';
 
 export function WorkflowView() {
   const { projectId, lastSseEvent, navigateTo, pendingNavigation, clearPendingNavigation } = useAppContext();
@@ -22,6 +23,8 @@ export function WorkflowView() {
   const [logs, setLogs] = useState<string>('');
   const [selectedTaskDetail, setSelectedTaskDetail] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const logScrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const isAtBottomRef = useRef(true);
@@ -180,6 +183,43 @@ export function WorkflowView() {
       .catch(() => setSelectedTaskDetail(null));
   }, [selectedReq?.id, selectedTask?.id, projectId]);
 
+  const handleStatusChange = async (targetStatus: string) => {
+    try {
+      await apiFetch('/api/manage/status', projectId, {
+        method: 'PATCH',
+        body: JSON.stringify({ ids: selectedIds, targetStatus }),
+      });
+      setIsEditMode(false);
+      setSelectedIds([]);
+      await fetchRequests();
+    } catch (err) {
+      console.error('상태 변경 실패:', err);
+    }
+  };
+
+  const handleBackup = async () => {
+    try {
+      const resolvedPath = projectId
+        ? `/api/projects/${projectId}/manage/backup`
+        : '/api/manage/backup';
+      const response = await fetch(resolvedPath, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      if (!response.ok) throw new Error(`백업 실패: ${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gran-maestro-backup-${Date.now()}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('백업 실패:', err);
+    }
+  };
+
   async function startLogStream(reqId: string, taskId: string) {
     stopLogStream();
     setLogs('로그 수신 대기 중...');
@@ -261,21 +301,48 @@ export function WorkflowView() {
       <div className="col-span-3 border-r flex flex-col min-h-0">
         <div className="p-4 border-b bg-muted/30 flex justify-between items-center">
           <h2 className="font-semibold">Requests</h2>
-          <RefreshButton onClick={handleRefresh} isRefreshing={isRefreshing} />
+          <div className="flex items-center gap-2">
+            <EditModeToolbar
+              isEditMode={isEditMode}
+              selectedIds={selectedIds}
+              itemType="request"
+              onToggleEditMode={() => { setIsEditMode(v => !v); setSelectedIds([]); }}
+              onStatusChange={handleStatusChange}
+              onBackup={handleBackup}
+              onCancel={() => { setIsEditMode(false); setSelectedIds([]); }}
+            />
+            <RefreshButton onClick={handleRefresh} isRefreshing={isRefreshing} />
+          </div>
         </div>
         <ScrollArea className="flex-1">
           <div className="p-3 space-y-1.5">
             {requests.map((req) => (
-              <SessionCard
-                key={req.id}
-                id={req.id}
-                title={req.title || 'No title'}
-                status={req.status ?? ''}
-                createdAt={req.created_at}
-                extraBadge={req.linked_plan ?? undefined}
-                isSelected={selectedReq?.id === req.id}
-                onClick={() => setSelectedReq(req)}
-              />
+              <div key={req.id} className="flex items-center">
+                {isEditMode && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(req.id)}
+                    onChange={(e) => {
+                      setSelectedIds(prev =>
+                        e.target.checked ? [...prev, req.id] : prev.filter(id => id !== req.id)
+                      );
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="mr-2 h-4 w-4"
+                  />
+                )}
+                <div className="flex-1">
+                  <SessionCard
+                    id={req.id}
+                    title={req.title || 'No title'}
+                    status={req.status ?? ''}
+                    createdAt={req.created_at}
+                    extraBadge={req.linked_plan ?? undefined}
+                    isSelected={selectedReq?.id === req.id}
+                    onClick={() => setSelectedReq(req)}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </ScrollArea>

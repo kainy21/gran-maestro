@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { ClipboardList } from 'lucide-react';
 import { SessionCard } from '@/components/shared/SessionCard';
 import { RefreshButton } from '@/components/shared/RefreshButton';
+import { EditModeToolbar } from '@/components/EditModeToolbar';
 
 interface PlanMeta {
   id: string;
@@ -29,6 +30,8 @@ export function PlansView() {
   const [planContent, setPlanContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -116,6 +119,43 @@ export function PlansView() {
     clearPendingNavigation();
   }, [pendingNavigation, loading, clearPendingNavigation, plans]);
 
+  const handleStatusChange = async (targetStatus: string) => {
+    try {
+      await apiFetch('/api/manage/status', projectId, {
+        method: 'PATCH',
+        body: JSON.stringify({ ids: selectedIds, targetStatus }),
+      });
+      setIsEditMode(false);
+      setSelectedIds([]);
+      await fetchPlans();
+    } catch (err) {
+      console.error('상태 변경 실패:', err);
+    }
+  };
+
+  const handleBackup = async () => {
+    try {
+      const resolvedPath = projectId
+        ? `/api/projects/${projectId}/manage/backup`
+        : '/api/manage/backup';
+      const response = await fetch(resolvedPath, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      if (!response.ok) throw new Error(`백업 실패: ${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gran-maestro-backup-${Date.now()}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('백업 실패:', err);
+    }
+  };
+
   if (!projectId) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -142,22 +182,49 @@ export function PlansView() {
       <div className="col-span-4 border-r flex flex-col min-h-0">
         <div className="p-4 border-b bg-muted/30 flex justify-between items-center">
           <h2 className="font-semibold">Plans ({plans.length})</h2>
-          <RefreshButton onClick={handleRefresh} isRefreshing={isRefreshing} />
+          <div className="flex items-center gap-2">
+            <EditModeToolbar
+              isEditMode={isEditMode}
+              selectedIds={selectedIds}
+              itemType="plan"
+              onToggleEditMode={() => { setIsEditMode(v => !v); setSelectedIds([]); }}
+              onStatusChange={handleStatusChange}
+              onBackup={handleBackup}
+              onCancel={() => { setIsEditMode(false); setSelectedIds([]); }}
+            />
+            <RefreshButton onClick={handleRefresh} isRefreshing={isRefreshing} />
+          </div>
         </div>
         <ScrollArea className="flex-1">
           <div className="p-3 space-y-1.5">
             {plans.map((plan) => (
-              <SessionCard
-                key={plan.id}
-                id={plan.id}
-                title={plan.title || plan.id}
-                status={plan.status ?? ''}
-                createdAt={plan.created_at}
-                extraLinks={plan.linked_requests}
-                onExtraLinkClick={(reqId) => navigateTo('workflow', reqId)}
-                isSelected={selectedPlan?.id === plan.id}
-                onClick={() => setSelectedPlan(plan)}
-              />
+              <div key={plan.id} className="flex items-center">
+                {isEditMode && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(plan.id)}
+                    onChange={(e) => {
+                      setSelectedIds(prev =>
+                        e.target.checked ? [...prev, plan.id] : prev.filter(id => id !== plan.id)
+                      );
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="mr-2 h-4 w-4"
+                  />
+                )}
+                <div className="flex-1">
+                  <SessionCard
+                    id={plan.id}
+                    title={plan.title || plan.id}
+                    status={plan.status ?? ''}
+                    createdAt={plan.created_at}
+                    extraLinks={plan.linked_requests}
+                    onExtraLinkClick={(reqId) => navigateTo('workflow', reqId)}
+                    isSelected={selectedPlan?.id === plan.id}
+                    onClick={() => setSelectedPlan(plan)}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </ScrollArea>
