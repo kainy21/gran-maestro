@@ -52,25 +52,23 @@ export function SessionCard({
           <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground flex-wrap">
             {extraBadge && <Badge variant="secondary" className="text-[10px]">{extraBadge}</Badge>}
             {extraLinks && extraLinks.length > 0 && (
-              <span>
-                {extraLinks.length === 1 ? (
+              <span className="inline-flex items-center gap-1 flex-wrap">
+                {extraLinks.slice(0, 10).map((link) =>
                   onExtraLinkClick ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onExtraLinkClick(extraLinks[0]);
-                      }}
+                    <button key={link} type="button"
+                      onClick={(e) => { e.stopPropagation(); onExtraLinkClick(link); }}
                       className="inline-flex items-center gap-1 text-primary/90 hover:underline"
                     >
-                      🔗
-                      <Badge variant="secondary" className="text-[10px]">{extraLinks[0]}</Badge>
+                      🔗 <Badge variant="secondary" className="text-[10px]">{link}</Badge>
                     </button>
                   ) : (
-                    <span>🔗 {extraLinks[0]}</span>
+                    <span key={link}>🔗 {link}</span>
                   )
-                ) : (
-                  `🔗 ${extraLinks.length}개 요청`
+                )}
+                {extraLinks.length > 10 && (
+                  <span className="text-[10px] text-muted-foreground">
+                    +{extraLinks.length - 10}개 더
+                  </span>
                 )}
               </span>
             )}
