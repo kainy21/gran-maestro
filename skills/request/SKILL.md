@@ -1,6 +1,6 @@
 ---
 name: request
-description: "새 요청을 시작하고 PM 분석 워크플로우에 진입합니다. 사용자가 '구현해줘', '만들어줘', '개발해줘', '추가해줘'를 말하거나 /mst:request를 호출할 때 사용."
+description: "요구사항을 분석하고 구현 스펙(spec.md)을 작성합니다. 실행 승인은 /mst:approve로 별도 진행합니다. 사용자가 '구현해줘', '만들어줘', '개발해줘', '추가해줘'를 말하거나 /mst:request를 호출할 때 사용."
 user-invocable: true
 argument-hint: "[--auto|-a] {요청 내용}"
 ---
