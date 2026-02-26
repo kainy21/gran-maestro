@@ -118,6 +118,18 @@ Claude Code에서 (v1.0.33 이상 필요):
 /plugin uninstall mst@gran-maestro
 ```
 
+### Stitch MCP 설정 (선택)
+
+`/mst:stitch`로 UI 목업을 생성하려면 Claude Code에 Stitch MCP를 먼저 추가해야 합니다.
+
+Stitch는 Google의 UI 설계 도구입니다. `/mcp add` 명령 또는 Claude Code MCP 설정을 통해 추가한 뒤, Gran Maestro에서 활성화합니다:
+
+```
+/mst:settings stitch.enabled true
+```
+
+> **Tip.** Gran Maestro 기본값은 `stitch.enabled: true`입니다. Stitch MCP만 추가하면 별도 설정 없이 바로 사용할 수 있습니다.
+
 ### 2. 시작
 
 ```
@@ -149,6 +161,25 @@ Claude Code에서 (v1.0.33 이상 필요):
 ```
 /mst:debug "로그인 시 간헐적으로 401 에러가 발생합니다"
 ```
+
+자세한 내용: [docs/skills-reference.md](docs/skills-reference.md)
+
+### Stitch — UI 목업 생성
+
+Google Stitch MCP를 통해 UI 화면 목업/시안을 생성합니다. 명시적 디자인 요청 시 즉시 실행되고, 새 화면 추가 감지 시 사용자 확인 후 실행됩니다.
+
+```
+/mst:stitch 로그인 화면 — 이메일/비밀번호 폼 + 구글 로그인 버튼
+/mst:stitch --variants 대시보드 전체 리디자인   # 3가지 방향 제안
+/mst:stitch --req REQ-007 알림 설정 패널        # REQ에 연결
+```
+
+| 요청 유형 | 동작 |
+|-----------|------|
+| "화면 디자인해줘", "목업 만들어줘", "Stitch로 그려줘" | 즉시 생성 |
+| 새 라우트/페이지 추가 | 사용자 확인 후 생성 |
+| "전체 리디자인해줘", "리디자인" | 확인 후 3가지 방향 제안 |
+| 기존 컴포넌트/스타일만 수정 | 개입 안 함 |
 
 자세한 내용: [docs/skills-reference.md](docs/skills-reference.md)
 
