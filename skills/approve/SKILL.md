@@ -57,11 +57,11 @@ PM이 작성한 구현 스펙을 승인하고 Phase 2 실행을 시작합니다.
 
 `$ARGUMENTS`에 REQ 패턴이 없고 플래그만 있거나 완전히 비어 있는 경우:
 
-**스크립트 우선**: `python3 {PLUGIN_ROOT}/scripts/mst.py request filter --phase 1 --format json` 실행 후 `status`가 `phase1_analysis`가 아닌 것 필터링. 실패 시 fallback.
+**스크립트 우선**: `python3 {PLUGIN_ROOT}/scripts/mst.py request filter --phase 1 --format json` 실행 후 `status`가 `phase1_analysis` 또는 `pending_dependency`가 아닌 것 필터링. 실패 시 fallback.
 
 **Fallback:**
 1. `.gran-maestro/requests/` 디렉토리의 모든 `request.json` 스캔
-2. 승인 가능 상태 필터링: `current_phase == 1` + `status != phase1_analysis`, 또는 `status == phase2_spec_review`
+2. 승인 가능 상태 필터링: `current_phase == 1` 이고 `status`가 `phase1_analysis` 또는 `pending_dependency`가 아닌 것 (PM 분석 완료 상태), 또는 `status`가 `phase2_spec_review`인 것
 3. `--priority` 필터 있으면 추가 적용
 4. REQ 번호 오름차순 정렬
 5. 결과에 따라 분기:

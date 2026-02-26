@@ -201,6 +201,9 @@ def cmd_request_filter(args):
     for req_id, path, data in iter_request_dirs(include_completed=False):
         if args.phase is not None and data.get("current_phase") != args.phase:
             continue
+        # pending_dependency는 --status 명시 없는 한 기본 제외
+        if not args.status and data.get("status") == "pending_dependency":
+            continue
         if args.status and data.get("status") != args.status:
             continue
         if args.priority and data.get("priority", "normal") != args.priority:
@@ -300,6 +303,38 @@ def cmd_plan_inspect(args):
             print(json.dumps(data, ensure_ascii=False, indent=2))
             return 0
     print(f"Error: {pln_id} not found.", file=sys.stderr)
+    return 1
+
+
+def cmd_plan_sync(args):
+    """plan.json의 linked_requests 전체가 done/completed이면 plan을 completed로 업데이트"""
+    plan_id = args.plan_id.upper()
+    for pid, path, data in iter_plan_dirs():
+        if pid == plan_id:
+            linked = data.get("linked_requests", [])
+            if not linked:
+                print(f"{plan_id}: linked_requests 없음, 스킵")
+                return 0
+            all_done = True
+            for req_id in linked:
+                req_path = requests_dir() / req_id / "request.json"
+                if req_path.exists():
+                    req_data = load_json(req_path)
+                    st = req_data.get("status", "") if req_data else ""
+                    if st not in ("done", "completed", "cancelled"):
+                        all_done = False
+                        break
+                # 파일 없으면(아카이브된 경우) 완료로 간주
+            if all_done:
+                data["status"] = "completed"
+                from datetime import datetime, timezone
+                data["completed_at"] = datetime.now(timezone.utc).isoformat()
+                save_json(path / "plan.json", data)
+                print(f"{plan_id}: completed")
+            else:
+                print(f"{plan_id}: 미완료 REQ 있음, 스킵")
+            return 0
+    print(f"Error: {plan_id} not found.", file=sys.stderr)
     return 1
 
 
@@ -657,6 +692,9 @@ def build_parser():
     plan_complete = plan_sub.add_parser("complete")
     plan_complete.add_argument("pln_id")
 
+    p_plan_sync = plan_sub.add_parser("sync", help="Plan 완료 여부 동기화")
+    p_plan_sync.add_argument("plan_id", help="Plan ID (예: PLN-068)")
+
     # --- counter ---
     ctr = sub.add_parser("counter")
     ctr_sub = ctr.add_subparsers(dest="subcommand")
@@ -740,6 +778,7 @@ def main():
         ("plan", "count"): cmd_plan_count,
         ("plan", "inspect"): cmd_plan_inspect,
         ("plan", "complete"): cmd_plan_complete,
+        ("plan", "sync"): cmd_plan_sync,
         ("counter", "next"): cmd_counter_next,
         ("counter", "peek"): cmd_counter_peek,
         ("archive", "run"): cmd_archive_run,
