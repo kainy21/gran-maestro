@@ -62,7 +62,10 @@ argument-hint: "[--auto] [--variants] [--req REQ-NNN] {화면 설명}"
    - `status: "pending"` 항목 발견 시: 이전 생성 시도가 타임아웃됐을 가능성 있음 → 서버 확인 진행
      - `mcp__stitch__list_screens` 호출로 실제 화면 존재 여부 확인
      - 발견 시: `get_screen`으로 URL 확보 → pending 항목을 active로 갱신 → 기존 URL 반환, 종료
-     - 미발견 시: pending 항목 제거 → 새 생성 진행
+     - 매칭 기준: pending 항목의 `created_at` 이후 생성된 화면 중 최근 3개를 검사
+     - 미발견 시: `stale_at`(= `created_at` + 5분) 경과 여부 확인
+       - `stale_at` 이내: pending 항목 유지 → "이전 생성 요청이 아직 처리 중일 수 있습니다. 잠시 후 다시 시도하세요." 출력 후 종료
+       - `stale_at` 경과: pending 항목 제거 → 새 생성 진행
 
 2. **pending 선기록**:
    - REQ-NNN이 있을 경우, `generate_screen_from_text` 호출 직전 `request.json`의 `stitch_screens`에 임시 항목 기록:
@@ -88,9 +91,11 @@ argument-hint: "[--auto] [--variants] [--req REQ-NNN] {화면 설명}"
    - **실패/타임아웃 시**: list_screens 폴백 검증 진행:
      1. 3~5초 대기 (서버 작업 완료 대기)
      2. `mcp__stitch__list_screens` 호출
-     3. 목록 상위 3개 화면 중 현재 pending 항목과 매칭되는 화면 탐색
+     3. pending 항목의 `created_at` 이후 생성된 화면 중 최근 3개를 검사하여 매칭되는 화면 탐색
      4. 발견 시: step 5(get_screen)로 진행하여 URL 확보 → pending 항목을 active로 갱신 → 정상 사용자 보고
-     5. 미발견 시: pending 항목 제거 → "[Stitch] 화면 생성 실패 — {오류}. 텍스트 명세로 진행합니다." 출력 후 종료
+     5. 미발견 시: `stale_at`(= `created_at` + 5분) 경과 여부 확인
+        - `stale_at` 이내: pending 항목 유지 → "[Stitch] 화면 생성 요청이 처리 중입니다 — Stitch 서버가 응답하는 데 수 분이 걸릴 수 있습니다. 잠시 후 다시 실행하면 자동으로 재확인합니다." 출력 후 종료
+        - `stale_at` 경과: pending 항목 제거 → "[Stitch] 화면 생성 실패 — {오류}. 텍스트 명세로 진행합니다." 출력 후 종료
 
 5. **화면 URL 확보** (`get_screen` 최대 3회 재시도):
    ```
@@ -163,7 +168,7 @@ variants 생성 시:
 | 오류 | 처리 |
 |------|------|
 | list_projects 타임아웃 (30초) | "[Stitch] 연결 불가 — 건너뜀. /mst:stitch로 수동 실행 가능." 출력 후 종료 |
-| generate_screen 타임아웃 | 즉시 종료 금지 — 3~5초 대기 후 list_screens 폴백 검증 수행. 화면 발견 시 복구, 미발견 시 "[Stitch] 화면 생성 실패 — {오류}. 텍스트 명세로 진행합니다." 출력 |
+| generate_screen 타임아웃 | 즉시 종료 금지 — 3~5초 대기 후 list_screens 폴백 검증 수행 (pending의 created_at 이후 최근 3개 화면 검사). 화면 발견 시 복구. 미발견 시 stale_at(created_at+5분) 이내면 pending 유지하고 "수 분 후 재시도 안내" 출력; stale_at 경과 시 pending 제거 후 실패 보고 |
 | get_screen 실패 | 5초 간격으로 최대 3회 재시도. 모두 실패 시 screen_id를 pending 항목에 기록하고 URL 미확보 안내 출력 |
 | 프로젝트 ID 무효 | project_id를 null로 초기화 후 새 프로젝트 생성으로 재시도 |
 | 화면 생성 실패 | "[Stitch] 화면 생성 실패 — {오류}. 텍스트 명세로 진행합니다." |
