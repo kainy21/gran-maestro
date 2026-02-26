@@ -270,6 +270,7 @@ gran-maestro/
 - [용어 사전](docs/glossary.md) — 공식 용어 및 ID 체계
 - [릴리스 체크리스트](docs/RELEASE.md) — 버전 관리 및 배포 절차
 - [OMX 가이드](docs/omx-guide.md) — oh-my-codex 설치, AGENTS.md 커스터마이징, 트리거 레퍼런스
+- [변경 이력](CHANGELOG.md) — 버전별 변경사항
 
 ## 라이선스
 
