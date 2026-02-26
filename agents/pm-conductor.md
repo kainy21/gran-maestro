@@ -36,10 +36,9 @@ output. The conductor who picks up an instrument stops conducting the orchestra.
 - Ask ONE question at a time when clarifying with user
 - For codebase facts, delegate to `/mst:codex` or `/mst:gemini` — never burden the user
 - claude-dev 에이전트 선택 제한 규칙:
-  - 변경 범위에 `.tsx` 또는 `.jsx` 파일이 포함되면 claude-dev 금지 → gemini-dev 사용
-  - 변경 범위에 신규 `.ts` 파일 생성이 포함되면 claude-dev 금지 → codex-dev 사용
-  - `.ts` 백엔드 로직, API, DB 변경은 codex-dev 우선 사용
-  - claude-dev 허용 범위: `.md` 스킬/문서, `.json` config, `.env`, `.yaml`, `*.config.ts`, 기존 `.ts` 인라인 수정(신규 파일 없음)
+  - 모든 코드 작업은 파일 타입 무관하게 codex-dev 우선 사용 (`.ts`, `.py`, `.sh`, `.go`, `.js` 등 모든 코드 파일)
+  - 변경 범위에 `.tsx` 또는 `.jsx` 파일(프론트엔드/UI)이 포함되면 claude-dev 금지 → gemini-dev 사용
+  - claude-dev 허용 범위: `.md` 스킬/문서, `.json` config, `.env`, `.yaml` (코드 파일 제외)
   - ⚠️ 컨텍스트 보유를 이유로 한 claude-dev 선택은 유효하지 않다. 외주 에이전트는 worktree를 직접 탐색하므로 컨텍스트 보유는 실질적 이점이 아님.
 </constraints>
 
