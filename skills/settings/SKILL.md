@@ -64,18 +64,16 @@ Gran Maestro의 설정을 조회하거나 변경합니다.
 | `explore.agents.gemini` | `1` | Explore Gemini 탐색 에이전트 수 (0=제외) | number |
 | `explore.agents.claude` | `0` | Explore Claude 탐색 에이전트 수 (0=제외, Claude는 PM 종합자로만 사용) | number |
 
-### participants
+### debug.agents
 | 키 | 기본값 | 설명 |
 |---|---|---|
-| `participants.opinion_providers.codex` | 1 | Codex 참여 인원수 (0=제외) |
-| `participants.opinion_providers.gemini` | 1 | Gemini 참여 인원수 (0=제외) |
-| `participants.opinion_providers.claude` | 1 | Claude 참여 인원수 (0=제외) |
+| `debug.agents.codex` | 1 | Debug 조사에 참여하는 Codex 에이전트 수 (0=제외) |
+| `debug.agents.gemini` | 1 | Debug 조사에 참여하는 Gemini 에이전트 수 (0=제외) |
+| `debug.agents.claude` | 0 | Debug 조사에 참여하는 Claude 에이전트 수 (0=제외) |
 
-- 총합: 2명 이상 7명 이하
+- 총합: 1명 이상 6명 이하
 - 프로바이더별 상한 없음
-- Critic: Claude 우선, Claude가 0명이면 Codex가 대체
-- 누락 시 기본값: `codex: 1`, `gemini: 1`, `claude: 1`
-- `ideation.agents`와 `discussion.agents`가 우선 사용되며, `participants.opinion_providers`는 하위 호환 fallback입니다.
+- 누락 시 기본값: `codex: 1`, `gemini: 1`, `claude: 0`
 
 예시:
 ```
@@ -89,8 +87,8 @@ discussion:
     codex: 1
     gemini: 2
     claude: 1
-participants:
-  opinion_providers:
+debug:
+  agents:
     codex: 2
     gemini: 1
     claude: 0

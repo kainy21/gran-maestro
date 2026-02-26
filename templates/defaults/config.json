@@ -65,7 +65,12 @@
   "debug": {
     "enabled": false,
     "log_level": "info",
-    "log_prompts": false
+    "log_prompts": false,
+    "agents": {
+      "codex": 1,
+      "gemini": 1,
+      "claude": 0
+    }
   },
   "discussion": {
     "agents": {
@@ -91,13 +96,6 @@
     "finding_char_limit": 3000,
     "merge_wait_ms": 60000,
     "auto_trigger_from_start": true
-  },
-  "participants": {
-    "opinion_providers": {
-      "codex": 1,
-      "gemini": 1,
-      "claude": 1
-    }
   },
   "models": {
     "claude": {
