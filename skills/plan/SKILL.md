@@ -18,6 +18,10 @@ argument-hint: "{플래닝 주제}"
 
 **그 외 모든 경로(스킬 파일, 소스 코드, 설정 파일 등)에 대한 Write/Edit 사용은 절대 금지입니다.**
 
+- **`mcp__stitch__*` 도구 직접 호출 절대 금지**: Stitch 관련 작업은 반드시
+  `Skill(skill: "mst:stitch", args: "...")` 도구를 통해서만 실행합니다.
+  직접 호출 감지 시 즉시 중단하고 mst:stitch 스킬로 재실행합니다.
+
 - **plan.md 생성은 어떤 경우에도 생략 불가**: 요청이 단순해 보이더라도 Step 2 → Step 3 → Step 4를 모두 거쳐 **plan.md를 파일로 저장한 후에만** mst:request를 호출합니다. plan.md 없이 mst:request를 직접 호출하는 것은 절대 금지입니다.
 
 허용 경로 외 수정 요청 시: 즉시 중단 → "plan.md에 기록합니다" 알림 → 의도를 plan.md 요구사항 섹션에 흡수

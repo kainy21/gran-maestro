@@ -32,16 +32,23 @@ Gran Maestro 워크플로우 내에서 Codex/Gemini를 호출할 때:
 - **반드시** `Skill` 도구를 사용하여 `/mst:codex` 또는 `/mst:gemini` 스킬을 호출합니다.
 - **절대** MCP 도구(`mcp__*__ask_codex`, `mcp__*__ask_gemini`)를 직접 호출하지 않습니다.
 
+Stitch를 호출할 때:
+- **반드시** `Skill` 도구를 사용하여 `/mst:stitch` 스킬을 호출합니다.
+- **절대** MCP 도구(`mcp__stitch__*`)를 직접 호출하지 않습니다.
+
 올바른 호출 방법:
 ```
 Skill(skill: "mst:codex", args: "{프롬프트} --dir {경로}")
 Skill(skill: "mst:gemini", args: "{프롬프트} --files {패턴}")
+Skill(skill: "mst:stitch", args: "--req REQ-NNN {요청 내용}")
 ```
 
 금지된 호출 방법:
 ```
 mcp__plugin_oh-my-claudecode_x__ask_codex(...)   ← 사용 금지
 mcp__plugin_oh-my-claudecode_g__ask_gemini(...)   ← 사용 금지
+mcp__stitch__generate_screen_from_text(...)        ← 사용 금지
+mcp__stitch__edit_screens(...)                     ← 사용 금지
 ```
 
 ### 모드 전환 명령어

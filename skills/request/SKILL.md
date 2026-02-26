@@ -117,7 +117,10 @@ Maestro 모드 비활성 시 자동 활성화:
       - 결과(`synthesis.md`)를 spec 작성에 반영하고 `discussion/req-approach-synthesis.md`에 저장
       - simple 요청/접근 방식 명백한 경우 ideation 없이 진행
    h-0. **Stitch 트리거 감지** (config.stitch.enabled=true인 경우):
-      - 명시적 디자인 요청("화면 디자인해줘", "Stitch로", "목업", "시안" 등): `Skill(skill: "mst:stitch", args: "--req REQ-NNN {요청 내용}")` 즉시 호출 → 완료 후 spec.md 작성 계속
+      - 명시적 디자인 요청("화면 디자인해줘", "Stitch로", "목업", "시안" 등):
+        ⚠️ **`mcp__stitch__*` 도구를 직접 호출하는 것은 절대 금지.**
+        반드시 `Skill(skill: "mst:stitch", args: "--req REQ-NNN {요청 내용}")` 스킬을 통해서만 호출합니다.
+        → Stitch 완료 후 spec.md 작성 계속
       - 그 외(새 화면 추가/약한 신호): approve Phase 2.5에서 제안, 이 단계 skip
    h. **Implementation Spec 작성** (`templates/spec.md` 템플릿 사용); `--plan` 없으면 `## 가정 사항` 섹션 포함
    h-1. **다중 태스크 분해 처리** (plan 기반 우선, 없으면 PM 자율 판단):
