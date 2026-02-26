@@ -145,6 +145,75 @@ REQ-NNN의 spec.md 하단에 Stitch 섹션 추가:
 - {화면명}: {Stitch URL}
 ```
 
+## PLN 컨텍스트 감지 및 design.md 저장
+
+화면 생성이 완료된 후(메타데이터 기록 이후), 아래 로직을 실행한다.
+
+### PLN 자동 감지
+
+1. `.gran-maestro/plans/PLN-*/plan.json` 파일들을 스캔
+2. `status`가 `"active"` 또는 `"in_progress"`인 항목 추출
+3. 여러 개인 경우: `created_at` 기준 가장 최근 것을 선택
+4. 없으면: 이 단계 전체를 skip (기존 REQ 기반 동작 그대로 유지)
+
+### design.md 생성/갱신
+
+활성 PLN 감지 시 `.gran-maestro/plans/PLN-NNN/design.md` 파일에 기록한다.
+
+**신규 파일 생성 시 헤더 (파일이 없는 경우에만):**
+```markdown
+# 디자인 시안 — PLN-NNN
+
+> mst:stitch로 생성된 화면입니다.
+
+---
+```
+
+**각 생성된 화면에 대해 append:**
+```markdown
+## {screen_title}
+
+[Stitch에서 보기 ↗]({stitch_web_url})
+
+![{screen_title} 미리보기]({image_url})
+
+{screen_description_or_empty_string}
+
+---
+```
+
+**필드 출처:**
+- `screen_title`: `stitch_screens[].title` (또는 `"시안 N"` 자동 생성)
+- `stitch_web_url`: `https://stitch.withgoogle.com/projects/{project_id}/screens/{screen_id}` 형식으로 구성
+- `image_url`: `get_screen()` 응답의 `imageUrl` 또는 `screenshotUrl` 필드; 없으면 이미지 라인 생략하고 링크만 표시
+- `screen_description`: 생성 시 사용된 프롬프트 요약 (없으면 생략)
+
+### plan.json stitch_screens[] 갱신
+
+`design.md` 기록 후 `.gran-maestro/plans/PLN-NNN/plan.json`의 `stitch_screens[]` 배열에 추가:
+
+```json
+{
+  "screen_id": "uuid-{random}",
+  "stitch_screen_id": "{Stitch의 실제 screen_id}",
+  "pln_id": "PLN-NNN",
+  "title": "{screen_title}",
+  "url": "{stitch_web_url}",
+  "image_url": "{image_url_or_null}",
+  "created_at": "{ISO timestamp}",
+  "status": "active"
+}
+```
+
+`plan.json`에 `stitch_screens` 키가 없으면 빈 배열로 초기화 후 추가한다.
+
+### 완료 보고 (기존 사용자 보고 메시지 이후 추가 출력)
+
+```
+✅ design.md에 {N}개 시안이 기록되었습니다. (PLN-NNN)
+   → .gran-maestro/plans/PLN-NNN/design.md
+```
+
 ## 사용자 보고
 
 생성 완료 후:
