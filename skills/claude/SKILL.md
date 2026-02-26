@@ -7,11 +7,7 @@ argument-hint: "{프롬프트} [--prompt-file {경로}] [--dir {경로}] [--trac
 
 # maestro:claude
 
-Claude `general-purpose` 서브에이전트에게 구현 작업을 위임합니다. PM Conductor가 직접 코드를 작성하는 대신, 별도 Claude 서브에이전트 프로세스를 스폰하여 구현을 분리합니다.
-
-## 목적
-
-PM Conductor의 "I conduct, I don't code" 원칙을 유지하면서 Codex/Gemini CLI가 설치되지 않은 환경이나 Claude의 파일 편집 도구(Read/Write/Edit/Bash/Glob/Grep)가 필요한 작업에 활용합니다.
+PM Conductor 원칙 유지 목적으로 general-purpose 서브에이전트에 구현을 위임합니다. Codex/Gemini CLI 미설치 환경이나 Claude 파일 편집 도구(Read/Write/Edit/Bash/Glob/Grep)가 필요한 작업에 사용합니다.
 
 ## 실행 프로토콜
 
@@ -61,38 +57,18 @@ PM Conductor의 "I conduct, I don't code" 원칙을 유지하면서 Codex/Gemini
 
 ## Codex/Gemini와의 차이점
 
-| 항목 | Codex/Gemini | Claude (`/mst:claude`) |
-|------|-------------|----------------------|
-| 실행 방식 | `Bash(command: "codex exec ...")` | `Task(subagent_type: "general-purpose", ...)` |
-| 병렬 실행 | `run_in_background: true` + TaskOutput 폴링 | `Task`에 `run_in_background: true` |
-| CLI 의존성 | Codex/Gemini CLI 설치 필요 | 불필요 (Claude 자체 기능) |
-| 파일 접근 | CLI 도구 권한 | 모든 Claude 도구 (Read/Write/Edit/Bash/Glob/Grep) |
-| 적합한 작업 | 대규모 코드 구현, 복잡한 리팩토링 | 문서/설정 파일, 소규모 코드, 스킬 파일 수정 |
+- Codex/Gemini: `Bash("codex exec ...")`, CLI 설치 필요, 대규모 코드 구현에 적합
+- Claude: `Task(subagent_type:"general-purpose")`, CLI 불필요, 모든 Claude 도구(Read/Write/Edit/Bash) 사용 가능, 문서/설정/소규모 코드에 적합
+- 병렬 실행: 양쪽 모두 `run_in_background: true` 지원
 
 ## Trace 파일 형식
 
-```markdown
-# Claude Execution Trace — {label}
-
-- Request: {REQ-ID} / Task: {TASK-NUM}
-- Timestamp: {ISO timestamp}
-- Prompt file: {path or "inline"}
-- Working dir: {dir or "N/A"}
-
-## 실행 결과
-
-{서브에이전트 출력 요약}
-```
+저장 경로: `.gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/traces/claude-{label}-{timestamp}.md`
+내용: `# Claude Execution Trace — {label}` + Request/Task/Timestamp/Prompt file/Working dir 헤더 + 실행 결과 요약
 
 ## 예시
 
 ```
-# 인라인 프롬프트
 /mst:claude "README의 설치 섹션을 업데이트해줘"
-
-# prompt-file 방식 (워크플로우 내 표준)
 /mst:claude --prompt-file .gran-maestro/requests/REQ-001/tasks/01/prompts/phase2-impl.md --dir .gran-maestro/worktrees/REQ-001-01 --trace REQ-001/01/phase2-impl
-
-# trace 없이
-/mst:claude --prompt-file prompts/fix.md --dir worktrees/REQ-002-01
 ```

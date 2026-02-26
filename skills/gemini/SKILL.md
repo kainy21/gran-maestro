@@ -7,60 +7,34 @@ argument-hint: "{프롬프트} [--prompt-file {경로}] [--files {패턴}] [--sa
 
 # maestro:gemini
 
-Gemini CLI 호출의 단일 진입점입니다. Gran Maestro 워크플로우 내·외부 모든 Gemini 호출이 이 스킬을 경유합니다.
-대용량 문서, 프론트엔드, 넓은 컨텍스트가 필요한 작업에 적합합니다.
-이 스킬은 Maestro 모드 활성 여부에 관계없이 사용 가능합니다.
+Gemini CLI 호출의 단일 진입점. 대용량 문서/프론트엔드/넓은 컨텍스트 작업에 적합. Maestro 모드 활성 여부 무관.
 
 ## 실행 프로토콜
 
-1. `$ARGUMENTS`에서 프롬프트와 옵션 파싱
-2. **프롬프트 소스 결정**:
-   - `--prompt-file` 있음 → 파일 존재 여부 확인, 없으면 에러 메시지 출력 후 중단 → 프롬프트 소스를 파일로 설정
-   - `--prompt-file` 없음 → 인라인 프롬프트를 소스로 사용 (기존 동작)
-   - `--prompt-file`과 인라인 프롬프트가 동시에 있으면 `--prompt-file` 우선
-3. 파일 패턴 지정 시 해당 파일들을 컨텍스트로 포함
-4. `--files` 옵션의 패턴으로 파일 목록 확인. 매칭 파일이 없으면 경고 출력
-5. **`--trace` 모드 판별** (아래 "Trace 모드" 섹션 참조)
-6. **기본 모델 결정**: `.gran-maestro/config.json`의 `models.gemini.default` 값을 읽어 `{model}`로 사용. 해당 키가 없거나 파일이 없으면 `--model` 플래그 없이 실행
-7. Gemini CLI 실행:
+1. 프롬프트/옵션 파싱
+2. **프롬프트 소스**: `--prompt-file` 있으면 파일 우선 (미존재 시 에러 중단); 없으면 인라인 사용
+3. `--files` 패턴으로 파일 목록 확인; 매칭 없으면 경고
+4. `--trace` 모드 판별 (아래 섹션 참조)
+5. **기본 모델**: `config.json`의 `models.gemini.default` 사용; 없으면 `--model` 플래그 생략
+6. Gemini CLI 실행:
    ```bash
-   # 인라인 프롬프트 (기본 모델 적용)
    gemini -p "{prompt}" --model {model} --approval-mode yolo
-
-   # 프롬프트 파일 (--prompt-file 지정 시) — 셸 치환으로 Claude 컨텍스트 미경유
    gemini -p "$(cat {prompt_file})" --model {model} --approval-mode yolo
-
-   # trace 모드 (실행 로그 기록, {task_dir}=.gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/)
    gemini -p "$(cat {prompt_file})" --model {model} --approval-mode yolo 2>&1 | tee {task_dir}/running.log
    ```
-7. **결과 처리 분기**:
-   - `--trace` 있음 → Trace 문서 작성 후 경로만 출력 (전체 stdout 반환 금지)
-   - 없음 → 실행 결과를 사용자에게 표시
+7. **결과 처리**: `--trace` → Trace 문서 작성 후 경로만 출력; 없음 → 결과 표시
 
 ## Trace 모드 (워크플로우 내 자동 문서화)
 
-> **목적**: MST 워크플로우 내에서 호출 시 결과를 자동으로 문서 파일로 저장하여 히스토리를 추적합니다.
-> 전체 stdout을 부모 컨텍스트로 반환하지 않으므로 토큰이 절약됩니다.
+워크플로우 내 결과를 파일로 저장해 히스토리 추적; 전체 stdout 부모 컨텍스트 반환 안 함 (토큰 절약).
 
-### 옵션 형식
+형식: `--trace {REQ-ID}/{TASK-NUM}/{label}`
 
-```
---trace {REQ-ID}/{TASK-NUM}/{label}
-```
-
-- `{REQ-ID}`: 요청 ID (예: `REQ-001`)
-- `{TASK-NUM}`: 태스크 번호 (예: `01`)
-- `{label}`: 용도 레이블 (예: `phase1-analysis`, `phase2-impl`, `phase3-review`)
-
-### 실행 절차
-
-1. Trace 경로 파싱: `--trace REQ-001/01/phase1-analysis`
-2. 출력 디렉토리 결정: `.gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/traces/`
-3. 디렉토리 없으면 생성
-4. 파일명 생성: `gemini-{label}-{YYYYMMDD-HHmmss}.md`
-   - 예: `gemini-phase1-analysis-20260215-103000.md`
-5. Gemini CLI 실행
-6. **Trace 문서 작성** (Write 도구로 직접 저장):
+실행 절차:
+1. 출력 디렉토리: `requests/{REQ-ID}/tasks/{TASK-NUM}/traces/` (없으면 생성)
+2. 파일명: `gemini-{label}-{YYYYMMDD-HHmmss}.md`
+3. Gemini CLI 실행
+4. **Trace 문서 작성** (Write 도구로 직접 저장):
 
 ```markdown
 ---
@@ -93,86 +67,30 @@ files_pattern: {--files 패턴, 없으면 생략}
 {stderr 내용, 없으면 이 섹션 생략}
 ```
 
-7. **부모 컨텍스트에는 경로만 반환**:
+5. **부모 컨텍스트에는 경로만 반환** (필요 시 Read 도구로 접근):
    ```
-   Trace 저장 완료: .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/traces/gemini-{label}-{timestamp}.md
+   Trace 저장 완료: requests/{REQ-ID}/tasks/{TASK-NUM}/traces/gemini-{label}-{timestamp}.md
    ```
-   - 전체 stdout을 출력하지 않음 (토큰 절약)
-   - 호출자가 내용이 필요하면 Read 도구로 해당 파일을 읽음
-
-### Trace 호출 예시 (PM Conductor에서)
-
-```
-# Phase 1: 대규모 컨텍스트 분석 (prompt-file 패턴)
-Write → .gran-maestro/requests/REQ-001/tasks/01/prompts/phase1-context-analysis.md
-Skill(skill: "mst:gemini", args: "--prompt-file .gran-maestro/requests/REQ-001/tasks/01/prompts/phase1-context-analysis.md --files src/**/*.ts --trace REQ-001/01/phase1-context-analysis")
-
-# Phase 3: 전체 일관성 검토 (prompt-file 패턴)
-Write → .gran-maestro/requests/REQ-001/tasks/01/prompts/phase3-consistency-review.md
-Skill(skill: "mst:gemini", args: "--prompt-file .gran-maestro/requests/REQ-001/tasks/01/prompts/phase3-consistency-review.md --files src/**/*.ts --trace REQ-001/01/phase3-consistency-review")
-
-# 독립 호출 (인라인 — 기존 호환성 유지)
-Skill(skill: "mst:gemini", args: "{프롬프트} --files src/**/*.ts --trace REQ-001/01/phase1-analysis")
-```
 
 ## 옵션
 
-- `--prompt-file {path}`: 프롬프트를 파일에서 읽기 (인라인 프롬프트 대신). 셸 치환(`$(cat)`)으로 파일→CLI 직접 전달하여 Claude 컨텍스트를 경유하지 않으므로 토큰 절약
+- `--prompt-file {path}`: 파일에서 프롬프트 읽기 (셸 치환으로 Claude 컨텍스트 미경유, 토큰 절약)
 - `--files {pattern}`: 컨텍스트에 포함할 파일 패턴 (예: `src/**/*.ts`)
-- `--sandbox`: 샌드박스 환경에서 실행
+- `--sandbox`: 샌드박스(Docker) 환경에서 실행
 - `-y`: 자동 승인 모드
-- `--trace {REQ/TASK/label}`: 워크플로우 trace 문서 자동 생성 (stdout 반환 안 함)
-
-## CLI 커맨드
-
-```bash
-# 기본 실행 (인라인 프롬프트, config 기본 모델 적용)
-gemini -p "{prompt}" --model {model} --approval-mode yolo
-
-# 프롬프트 파일 — 셸 치환으로 Claude 컨텍스트 미경유
-gemini -p "$(cat {prompt_file})" --model {model} --approval-mode yolo
-
-# trace 모드 (실시간 로그 기록)
-gemini -p "$(cat {prompt_file})" --model {model} --approval-mode yolo 2>&1 | tee {task_dir}/running.log
-
-# 자동 승인
-gemini -p "{prompt}" --model {model} -y
-
-# 샌드박스
-gemini -p "{prompt}" --model {model} --sandbox
-```
-
-> `{model}`: `.gran-maestro/config.json`의 `models.gemini.default` 값 (예: `gemini-3.1-pro-preview`). 키가 없으면 `--model` 플래그 생략.
+- `--trace {REQ/TASK/label}`: Trace 문서 자동 생성 (stdout 반환 안 함)
 
 ## 예시
 
 ```
-# 독립 호출 (인라인 프롬프트 — 기존 동작 유지)
-/mst:gemini "전체 코드베이스의 문서를 생성해줘"
-/mst:gemini --files src/**/*.ts "이 파일들의 API 문서를 작성해줘"
-/mst:gemini "대규모 리팩토링 영향 분석"
-
-# 프롬프트 파일 호출 (토큰 절약, 감사 추적)
-/mst:gemini --prompt-file .gran-maestro/requests/REQ-001/tasks/01/prompts/phase1-context-analysis.md --files src/**/*.ts
-/mst:gemini --prompt-file ./my-prompt.md
-
-# 워크플로우 내 호출 (prompt-file + trace)
-/mst:gemini --prompt-file {prompt_path} --files src/**/*.ts --trace REQ-001/01/phase1-context-analysis
-/mst:gemini --prompt-file {prompt_path} --files src/**/*.ts --trace REQ-001/01/phase3-consistency-review
+/mst:gemini "전체 코드베이스 문서 생성해줘"
+/mst:gemini --prompt-file {prompt_path} --files src/**/*.ts --trace REQ-001/01/phase1-analysis
 ```
 
-## 주의사항
+## 주의사항 / 문제 해결
 
-- Gemini CLI가 설치되어 있어야 합니다 (`gemini --version`으로 확인)
-- Gemini의 컨텍스트 윈도우는 최대 1M 토큰입니다. 대용량 파일은 분할 처리를 권장합니다
-- `--approval-mode yolo` / `-y` 옵션은 모든 작업을 자동 승인하므로 주의하여 사용
-- 워크플로우 외부에서 독립 호출 시 요청 상태에 영향을 주지 않음. 워크플로우 내에서는 PM Conductor가 컨텍스트를 전달
-- `--trace` 모드에서는 전체 결과가 파일에만 저장되고 부모 컨텍스트에 반환되지 않음
-
-## 문제 해결
-
-- "gemini: command not found" → Gemini CLI가 설치되지 않았습니다. `npm install -g @google/gemini-cli`로 설치
-- "파일 패턴 매칭 없음" → `--files` 패턴이 올바른지 확인. glob 패턴 사용 (예: `src/**/*.ts`)
-- "컨텍스트 윈도우 초과" → 파일 수를 줄이거나 특정 디렉토리로 범위 한정. `--files` 패턴을 더 구체적으로 지정
-- "샌드박스 실행 실패" → Docker가 설치/실행 중인지 확인. `--sandbox` 옵션은 Docker 기반 격리 환경을 사용
-- "trace 디렉토리 생성 실패" → `.gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/` 경로가 존재하는지 확인
+- Gemini CLI 필수 (`gemini --version`); 미설치 시 `npm install -g @google/gemini-cli`
+- 컨텍스트 윈도우 최대 1M 토큰; 대용량 파일은 `--files` 패턴을 구체적으로 지정
+- `--trace` 모드에서 전체 결과는 파일에만 저장, 부모 컨텍스트 반환 안 됨
+- "샌드박스 실패" → Docker 설치/실행 상태 확인
+- "trace 디렉토리 생성 실패" → `requests/{REQ-ID}/tasks/{TASK-NUM}/` 경로 확인

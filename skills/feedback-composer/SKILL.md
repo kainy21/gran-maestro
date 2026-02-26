@@ -95,15 +95,8 @@ Write the feedback document in the following format:
 
 ## 스킬 호출 방식
 
-모든 외부 AI 호출은 내부 스킬(`/mst:codex`)을 경유합니다.
-
-**CRITICAL — Prompt-File 패턴**: 워크플로우 내에서는 이 템플릿의 변수를 치환한 뒤 파일로 저장하고, `--prompt-file`로 전달합니다.
-
-### Codex 실행 (2단계: Write → Skill)
+**CRITICAL — Prompt-File 패턴**: 변수 치환 후 파일 저장 → `--prompt-file`로 전달:
 ```
-# Step 1: 템플릿 치환 후 파일에 저장
-Write → .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase4-feedback.md
-
-# Step 2: 파일 경로로 호출
-/mst:codex --prompt-file .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase4-feedback.md --output .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/feedback-R{N}.md --trace {REQ-ID}/{TASK-NUM}/phase4-feedback
+Write → requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase4-feedback.md
+/mst:codex --prompt-file {위 경로} --output requests/{REQ-ID}/tasks/{TASK-NUM}/feedback-R{N}.md --trace {REQ-ID}/{TASK-NUM}/phase4-feedback
 ```

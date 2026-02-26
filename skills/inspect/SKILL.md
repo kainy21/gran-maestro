@@ -7,18 +7,13 @@ argument-hint: "{REQ-ID}"
 
 # maestro:status
 
-특정 요청의 상세 상태를 터미널에 표시합니다. Phase 진행 상황, 태스크 상태,
-에이전트 활동, 피드백 라운드 이력 등을 포함합니다.
+특정 요청의 Phase 진행 상황, 태스크 상태, 에이전트 활동, 피드백 라운드 이력을 터미널에 표시합니다.
 
 ## 실행 프로토콜
 
 **스크립트 우선 실행**: `python3 {PLUGIN_ROOT}/scripts/mst.py request inspect {REQ-ID}` 실행. 성공 시 출력 그대로 사용. 실패 시 fallback.
 
-**Fallback:**
-1. `$ARGUMENTS`에서 REQ ID 파싱
-2. `.gran-maestro/requests/{REQ-ID}/request.json` 읽기
-3. 각 태스크의 `status.json` 읽기
-4. 상세 상태 포맷팅 및 출력
+**Fallback:** `$ARGUMENTS`에서 REQ ID 파싱 → `request.json` 읽기 → 각 태스크 `status.json` 읽기 → 포맷팅 후 출력
 
 ## 출력 형식
 
@@ -52,14 +47,7 @@ Phase 진행:
   blocks: [REQ-002]
 ```
 
-## 예시
-
-```
-/mst:inspect REQ-001
-/mst:inspect REQ-003
-```
-
 ## 문제 해결
 
-- "REQ-ID를 찾을 수 없음" → ID 형식이 `REQ-NNN`인지 확인. `/mst:list`로 현재 요청 목록 조회
-- `request.json` 읽기 실패 → 파일 손상 가능. `.gran-maestro/requests/{REQ-ID}/` 디렉토리 내용 확인
+- "REQ-ID를 찾을 수 없음" → `REQ-NNN` 형식 확인; `/mst:list`로 목록 조회
+- `request.json` 읽기 실패 → 파일 손상 가능; `.gran-maestro/requests/{REQ-ID}/` 확인

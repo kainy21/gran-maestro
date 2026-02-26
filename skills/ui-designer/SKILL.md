@@ -106,30 +106,11 @@ Page
 
 ## 스킬 호출 방식
 
-모든 외부 AI 호출은 내부 스킬(`/mst:codex`, `/mst:gemini`)을 경유합니다.
-
-**CRITICAL — Prompt-File 패턴**: 워크플로우 내에서는 이 템플릿의 변수를 치환한 뒤 파일로 저장하고, `--prompt-file`로 전달합니다.
-
-### Codex 실행 — 기본 (컴포넌트 단위 설계)
+**CRITICAL — Prompt-File 패턴**: 변수 치환 후 파일 저장 → `--prompt-file`로 전달:
 ```
-# Step 1: 템플릿 치환 후 파일에 저장
-Write → .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase1-ui-design.md
-
-# Step 2: 파일 경로로 호출
-/mst:codex --prompt-file .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase1-ui-design.md --output .gran-maestro/requests/{REQ-ID}/design/ui-spec.md --trace {REQ-ID}/{TASK-NUM}/phase1-ui-design
+Write → requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase1-ui-design.md
+/mst:codex --prompt-file {위 경로} --output requests/{REQ-ID}/design/ui-spec.md --trace {REQ-ID}/{TASK-NUM}/phase1-ui-design
+/mst:gemini --prompt-file {위 경로} --files {component_pattern} --trace {REQ-ID}/{TASK-NUM}/phase1-ui-crossview  # 멀티 화면 일관성
 ```
 
-### Gemini 보조 — 크로스뷰 통합 (멀티 화면 일관성)
-```
-# 다수 화면 간 디자인 일관성, 전체 흐름 통합 검토 시
-/mst:gemini --prompt-file .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase1-ui-design.md --files {component_pattern} --trace {REQ-ID}/{TASK-NUM}/phase1-ui-crossview
-```
-
-### 사용 기준
-
-| 조건 | 프로바이더 | 사유 |
-|------|----------|------|
-| 단일 컴포넌트/페이지 설계 | Codex | 컨텍스트 제한 내, 구조화된 출력 |
-| 다수 화면 간 일관성 검토 | Gemini (보조) | 대용량 컨텍스트로 전체 뷰 조망 |
-| 디자인 시스템 적합성 검토 | Codex | 토큰/컴포넌트 매칭은 제한적 컨텍스트로 충분 |
-| 전체 UX 흐름 통합 | Gemini (보조) | 다수 화면 + 인터랙션 흐름 동시 분석 |
+사용 기준: 단일 컴포넌트/페이지 → Codex; 다수 화면 일관성/전체 UX 흐름 → Gemini (보조)

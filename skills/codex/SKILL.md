@@ -7,59 +7,33 @@ argument-hint: "{프롬프트} [--prompt-file {경로}] [--dir {경로}] [--json
 
 # maestro:codex
 
-Codex CLI 호출의 단일 진입점입니다. Gran Maestro 워크플로우 내·외부 모든 Codex 호출이 이 스킬을 경유합니다.
-이 스킬은 Maestro 모드 활성 여부에 관계없이 사용 가능합니다.
+Codex CLI 호출의 단일 진입점. 워크플로우 내·외부 모든 Codex 호출이 이 스킬을 경유합니다. Maestro 모드 활성 여부 무관.
 
 ## 실행 프로토콜
 
-1. `$ARGUMENTS`에서 프롬프트와 옵션 파싱
-2. **프롬프트 소스 결정**:
-   - `--prompt-file` 있음 → 파일 존재 여부 확인, 없으면 에러 메시지 출력 후 중단 → 프롬프트 소스를 파일로 설정
-   - `--prompt-file` 없음 → 인라인 프롬프트를 소스로 사용 (기존 동작)
-   - `--prompt-file`과 인라인 프롬프트가 동시에 있으면 `--prompt-file` 우선
-3. `--dir` 지정 시 해당 디렉토리 존재 여부 확인. 없으면 에러 메시지 출력 후 중단
-4. 작업 디렉토리 결정 (--dir 또는 현재 디렉토리). 경로가 상대경로이면 현재 작업 디렉토리(cwd) 기준으로 해석
-5. **`--trace` 모드 판별** (아래 "Trace 모드" 섹션 참조)
-6. Codex CLI 실행:
+1. 프롬프트/옵션 파싱
+2. **프롬프트 소스**: `--prompt-file` 있으면 파일 우선 (미존재 시 에러 중단); 없으면 인라인 사용
+3. `--dir` 지정 시 디렉토리 존재 확인 (없으면 에러 중단); 상대경로는 cwd 기준
+4. `--trace` 모드 판별 (아래 섹션 참조)
+5. Codex CLI 실행:
    ```bash
-   # 인라인 프롬프트 (기존)
-   codex exec --full-auto -C {working_dir} "{prompt}"
-
-   # 프롬프트 파일 (--prompt-file 지정 시) — 셸 치환으로 Claude 컨텍스트 미경유
-   codex exec --full-auto -C {working_dir} "$(cat {prompt_file})"
-
-   # trace 모드 (실행 로그 기록, {task_dir}=.gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/)
-   codex exec --full-auto -C {working_dir} "$(cat {prompt_file})" 2>&1 | tee {task_dir}/running.log
+   codex exec --full-auto -C {working_dir} "{prompt}"                         # 인라인
+   codex exec --full-auto -C {working_dir} "$(cat {prompt_file})"             # --prompt-file
+   codex exec --full-auto -C {working_dir} "$(cat {prompt_file})" 2>&1 | tee {task_dir}/running.log  # trace
    ```
-7. **결과 처리 분기**:
-   - `--trace` 있음 → Trace 문서 작성 후 경로만 출력 (전체 stdout 반환 금지)
-   - `--output` 있음 → 해당 파일에 stdout 저장 + 결과 표시
-   - 둘 다 없음 → 실행 결과를 사용자에게 표시
+6. **결과 처리**: `--trace` → Trace 문서 작성 후 경로만 출력; `--output` → 파일 저장; 둘 다 없음 → 결과 표시
 
 ## Trace 모드 (워크플로우 내 자동 문서화)
 
-> **목적**: MST 워크플로우 내에서 호출 시 결과를 자동으로 문서 파일로 저장하여 히스토리를 추적합니다.
-> 전체 stdout을 부모 컨텍스트로 반환하지 않으므로 토큰이 절약됩니다.
+워크플로우 내 결과를 파일로 저장해 히스토리 추적; 전체 stdout을 부모 컨텍스트로 반환하지 않아 토큰 절약.
 
-### 옵션 형식
+형식: `--trace {REQ-ID}/{TASK-NUM}/{label}` (예: `REQ-001/01/phase2-impl`)
 
-```
---trace {REQ-ID}/{TASK-NUM}/{label}
-```
-
-- `{REQ-ID}`: 요청 ID (예: `REQ-001`)
-- `{TASK-NUM}`: 태스크 번호 (예: `01`)
-- `{label}`: 용도 레이블 (예: `phase1-analysis`, `phase2-impl`, `phase3-review`)
-
-### 실행 절차
-
-1. Trace 경로 파싱: `--trace REQ-001/01/phase1-analysis`
-2. 출력 디렉토리 결정: `.gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/traces/`
-3. 디렉토리 없으면 생성
-4. 파일명 생성: `codex-{label}-{YYYYMMDD-HHmmss}.md`
-   - 예: `codex-phase1-analysis-20260215-103000.md`
-5. Codex CLI 실행
-6. **Trace 문서 작성** (Write 도구로 직접 저장):
+실행 절차:
+1. 출력 디렉토리: `requests/{REQ-ID}/tasks/{TASK-NUM}/traces/` (없으면 생성)
+2. 파일명: `codex-{label}-{YYYYMMDD-HHmmss}.md`
+3. Codex CLI 실행
+4. **Trace 문서 작성** (Write 도구로 직접 저장):
 
 ```markdown
 ---
@@ -92,31 +66,10 @@ working_dir: {작업 디렉토리}
 {stderr 내용, 없으면 이 섹션 생략}
 ```
 
-7. **부모 컨텍스트에는 경로만 반환**:
+5. **부모 컨텍스트에는 경로만 반환** (전체 stdout 출력 안 함; 필요 시 Read 도구로 파일 접근):
    ```
-   Trace 저장 완료: .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/traces/codex-{label}-{timestamp}.md
+   Trace 저장 완료: requests/{REQ-ID}/tasks/{TASK-NUM}/traces/codex-{label}-{timestamp}.md
    ```
-   - 전체 stdout을 출력하지 않음 (토큰 절약)
-   - 호출자가 내용이 필요하면 Read 도구로 해당 파일을 읽음
-
-### Trace 호출 예시 (PM Conductor에서)
-
-```
-# Phase 1: 코드 구조 분석 (prompt-file 패턴)
-Write → .gran-maestro/requests/REQ-001/tasks/01/prompts/phase1-analysis.md
-Skill(skill: "mst:codex", args: "--prompt-file .gran-maestro/requests/REQ-001/tasks/01/prompts/phase1-analysis.md --dir {path} --trace REQ-001/01/phase1-analysis")
-
-# Phase 2: 코드 구현 (prompt-file 패턴)
-Write → .gran-maestro/requests/REQ-001/tasks/01/prompts/phase2-impl.md
-Skill(skill: "mst:codex", args: "--prompt-file .gran-maestro/requests/REQ-001/tasks/01/prompts/phase2-impl.md --dir {worktree} --trace REQ-001/01/phase2-impl")
-
-# Phase 3: 코드 검증 (prompt-file 패턴)
-Write → .gran-maestro/requests/REQ-001/tasks/01/prompts/phase3-review.md
-Skill(skill: "mst:codex", args: "--prompt-file .gran-maestro/requests/REQ-001/tasks/01/prompts/phase3-review.md --dir {path} --trace REQ-001/01/phase3-review")
-
-# 독립 호출 (인라인 — 기존 호환성 유지)
-Skill(skill: "mst:codex", args: "{프롬프트} --dir {path} --trace REQ-001/01/phase1-analysis")
-```
 
 ## 옵션
 
@@ -130,53 +83,17 @@ Skill(skill: "mst:codex", args: "{프롬프트} --dir {path} --trace REQ-001/01/
 > `--trace`와 `--output`이 동시에 지정되면 `--trace`가 우선합니다.
 > `--prompt-file`과 인라인 프롬프트가 동시에 지정되면 `--prompt-file`이 우선합니다.
 
-## CLI 커맨드
-
-```bash
-# 기본 실행 (인라인 프롬프트)
-codex exec --full-auto -C {working_dir} "{prompt}"
-
-# 프롬프트 파일 — 셸 치환으로 Claude 컨텍스트 미경유
-codex exec --full-auto -C {working_dir} "$(cat {prompt_file})"
-
-# trace 모드 (실시간 로그 기록)
-codex exec --full-auto -C {working_dir} "$(cat {prompt_file})" 2>&1 | tee {task_dir}/running.log
-
-# JSON 출력
-codex exec --full-auto --json -C {working_dir} "{prompt}"
-
-# 파일 출력
-codex exec --full-auto -C {working_dir} -o {output_file} "{prompt}"
-```
-
 ## 예시
 
 ```
-# 독립 호출 (인라인 프롬프트 — 기존 동작 유지)
 /mst:codex "이 프로젝트의 아키텍처를 분석해줘"
-/mst:codex --dir ./src "이 모듈의 의존성을 리팩토링해줘"
-/mst:codex --json "package.json 의존성 분석"
-
-# 프롬프트 파일 호출 (토큰 절약, 감사 추적)
-/mst:codex --prompt-file .gran-maestro/requests/REQ-001/tasks/01/prompts/phase2-impl.md --dir {worktree}
-/mst:codex --prompt-file ./my-prompt.md --trace REQ-001/01/phase1-analysis
-
-# 워크플로우 내 호출 (prompt-file + trace)
-/mst:codex --prompt-file {prompt_path} --dir {worktree} --trace REQ-001/01/phase2-impl
-/mst:codex --prompt-file {prompt_path} --trace REQ-001/01/phase3-review
+/mst:codex --prompt-file .gran-maestro/requests/REQ-001/tasks/01/prompts/phase2-impl.md --dir {worktree} --trace REQ-001/01/phase2-impl
 ```
 
-## 주의사항
+## 주의사항 / 문제 해결
 
-- Codex CLI가 설치되어 있어야 합니다 (`codex --version`으로 확인)
-- `--full-auto` 모드는 파일 수정 권한이 있으므로 주의하여 사용
-- 워크플로우 외부에서 독립 호출 시 요청 상태에 영향을 주지 않음. 워크플로우 내에서는 PM Conductor가 컨텍스트를 전달
-- `--trace` 모드에서는 전체 결과가 파일에만 저장되고 부모 컨텍스트에 반환되지 않음
-
-## 문제 해결
-
-- "codex: command not found" → Codex CLI가 설치되지 않았습니다. `npm install -g @openai/codex`로 설치
-- "작업 디렉토리를 찾을 수 없음" → `--dir` 경로가 존재하는지 확인. 상대경로는 현재 디렉토리 기준으로 해석됨
-- "타임아웃" → 대규모 작업 시 `/mst:settings timeouts.cli_large_task_ms`로 타임아웃 값 확인. 필요 시 증가
-- "실행 결과 없음" → Codex CLI의 `--json` 출력을 확인. 프롬프트가 명확한지 검토
-- "trace 디렉토리 생성 실패" → `.gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/` 경로가 존재하는지 확인
+- Codex CLI 필수 (`codex --version`); 미설치 시 `npm install -g @openai/codex`
+- `--full-auto` 모드는 파일 수정 권한 있으므로 주의
+- `--trace` 모드에서는 전체 결과가 파일에만 저장되고 부모 컨텍스트에 반환 안 됨
+- "타임아웃" → `/mst:settings timeouts.cli_large_task_ms` 확인
+- "trace 디렉토리 생성 실패" → `requests/{REQ-ID}/tasks/{TASK-NUM}/` 경로 확인

@@ -7,8 +7,7 @@ argument-hint: "[{REQ-ID}] [--limit {N}]"
 
 # maestro:history
 
-완료된 Gran Maestro 요청의 이력을 조회합니다.
-요청별 요약, 소요 시간, 에이전트 사용량, 피드백 라운드 수 등을 확인할 수 있습니다.
+완료된 요청의 이력을 조회합니다 (요약, 소요 시간, 에이전트 사용량, 피드백 라운드 수 등).
 
 ## 실행 프로토콜
 
@@ -98,14 +97,10 @@ requests:
 
 ### `--archive {ID}` (상세 조회)
 
-1. ID 접두사(REQ/IDN/DSC/DBG)로 타입을 결정하고 `.gran-maestro/{type_dir}/archived/`에서 해당 ID를 포함하는 .tar.gz 파일 탐색
-2. 대상 세션 디렉토리를 임시 위치에 추출:
-   ```bash
-   tar -xzf {archive_file} -C /tmp/gran-maestro-archive-view/ {session_dir}
-   ```
-3. `session.json` (또는 `request.json`)을 읽어 상세 정보 표시
-4. 주요 파일 내용 요약 표시 (synthesis.md, consensus.md 등)
-5. 임시 파일 정리
+1. ID 접두사(REQ/IDN/DSC/DBG)로 타입 결정 → `archived/`에서 해당 ID 포함 tar.gz 탐색
+2. 임시 위치에 추출: `tar -xzf {archive_file} -C /tmp/gran-maestro-archive-view/ {session_dir}`
+3. `session.json`/`request.json` 읽어 상세 정보 + 주요 파일 요약 표시
+4. 임시 파일 정리
 
 ```
 Gran Maestro — 아카이브 상세: IDN-003
@@ -136,8 +131,8 @@ Gran Maestro — 아카이브 상세: IDN-003
 
 ## 문제 해결
 
-- "완료된 요청이 없음" → 아직 Phase 5까지 완료된 요청이 없음. `/mst:list --all`로 전체 요청 상태 확인
-- "REQ-ID를 찾을 수 없음" → ID 형식이 `REQ-NNN`인지 확인. `/mst:list --completed`로 완료된 요청 ID 조회
-- "이력 데이터 불완전" → `request.json`의 Phase 기록이 누락되었을 수 있음. `.gran-maestro/requests/{REQ-ID}/` 디렉토리 내용 확인
-- "아카이브에서 ID를 찾을 수 없음" → `/mst:history --archive`로 전체 아카이브 목록을 확인하거나 `/mst:archive --list`로 상세 조회
-- "아카이브 조회 시 tar 오류" → 아카이브 파일이 손상되었을 수 있음. 파일 크기가 0이 아닌지 확인
+- "완료 요청 없음" → `/mst:list --all`로 전체 상태 확인
+- "ID 없음" → ID 형식 `REQ-NNN` 확인; `/mst:list --completed`로 완료 ID 조회
+- "이력 불완전" → `requests/{REQ-ID}/request.json` Phase 기록 확인
+- "아카이브 ID 없음" → `/mst:history --archive` 또는 `/mst:archive --list`
+- "tar 오류" → 아카이브 파일 크기 0 여부 확인 (손상 가능)

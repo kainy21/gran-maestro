@@ -7,15 +7,11 @@ argument-hint: "{TASK-ID} --before {TASK-ID}"
 
 # maestro:priority
 
-태스크의 우선순위나 실행 순서를 변경합니다.
-PM이 자동 결정한 순서를 사용자가 오버라이드할 때 사용합니다.
+PM이 자동 결정한 태스크 실행 순서를 사용자가 오버라이드합니다.
 
 ## 실행 프로토콜
 
-1. `$ARGUMENTS`에서 태스크 ID와 순서 지정 파싱
-2. `request.json`의 `execution_order` 배열 변경
-3. 종속성 충돌 확인 (blockedBy 관계 위반 시 경고)
-4. 변경 결과를 사용자에게 표시
+태스크 ID + 순서 지정 파싱 → `execution_order` 배열 변경 → 종속성 충돌 확인 (blockedBy 위반 시 경고) → 변경 결과 표시
 
 ## 사용법
 
@@ -40,6 +36,6 @@ REQ-001 태스크 실행 순서:
 
 ## 문제 해결
 
-- "태스크 ID를 찾을 수 없음" → ID 형식이 `REQ-NNN-NN`인지 확인. `/mst:inspect {REQ-ID}`로 태스크 목록 조회
-- "종속성 충돌" → blockedBy 관계를 위반하는 순서 변경은 경고만 표시되며 강제 적용. 종속성을 먼저 확인하고 싶으면 `/mst:inspect {REQ-ID}`로 종속성 그래프 확인
-- "이미 실행 중인 태스크" → 실행 중인 태스크의 순서는 변경할 수 없음. 대기 중(pending/queued) 태스크만 순서 변경 가능
+- "태스크 ID를 찾을 수 없음" → `REQ-NNN-NN` 형식 확인; `/mst:inspect {REQ-ID}`로 목록 조회
+- "종속성 충돌" → 경고만 표시되며 강제 적용; `/mst:inspect`로 종속성 그래프 사전 확인 권장
+- "이미 실행 중인 태스크" → pending/queued 태스크만 순서 변경 가능

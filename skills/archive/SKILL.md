@@ -7,8 +7,7 @@ argument-hint: "[--run [--type {ideation|discussion|requests}]] [--restore {ID}]
 
 # maestro:archive
 
-Gran Maestro 세션 아카이브를 관리합니다.
-타입별(ideation/discussion/requests) 최근 N개 세션만 활성 유지하고, 초과분은 각 타입 디렉토리 하위 `archived/`에 tar.gz 압축 보관합니다.
+타입별(ideation/discussion/requests) 최근 N개 세션만 활성 유지하고, 초과분을 `archived/`에 tar.gz 압축 보관합니다.
 
 ## 설정 참조
 
@@ -25,15 +24,7 @@ Gran Maestro 세션 아카이브를 관리합니다.
 
 ### 인자 없음: 아카이브 현황 표시
 
-1. `config.json`에서 `archive` 설정 로드
-2. 각 타입 디렉토리 스캔:
-   - `.gran-maestro/ideation/` → IDN-* 디렉토리 수
-   - `.gran-maestro/discussion/` → DSC-* 디렉토리 수
-   - `.gran-maestro/requests/` → REQ-* 디렉토리 수
-3. 각 타입의 `archived/` 디렉토리 스캔:
-   - `.gran-maestro/{ideation,discussion,requests,debug}/archived/` 내 .tar.gz 파일 수
-   - 총 디스크 사용량
-4. 현황 표시:
+`archive` 설정 로드 → 각 타입 디렉토리 스캔(IDN-*/DSC-*/REQ-* 수) + `archived/`의 tar.gz 파일 수/디스크 사용량 확인 → 현황 표시:
 
 ```
 Gran Maestro — 아카이브 현황
@@ -52,28 +43,18 @@ requests     23      0         초과 (3개 아카이브 대상)
 
 ### `--run`: 수동 아카이브 실행
 
-선택적으로 `--type {ideation|discussion|requests}`로 특정 타입만 실행 가능.
+`--type {ideation|discussion|requests}`로 특정 타입만 실행 가능.
 
-1. 대상 타입 디렉토리 스캔
-2. 각 세션의 `session.json` (또는 `request.json`) 읽기
-3. **진행 중 세션 보호**: `status`가 `done`, `completed` 또는 `cancelled`이 아닌 세션은 절대 아카이브하지 않음
-4. 완료된 세션을 `created_at` 기준 오래된 순 정렬
-5. `max_active_sessions` 초과분 선별 (가장 오래된 것부터)
-6. `.gran-maestro/{type_dir}/archived/` 디렉토리 생성 (없으면)
-7. 선별된 세션을 tar.gz 압축:
+1. 대상 타입 스캔 → `session.json`/`request.json` 읽기
+2. **진행 중 세션 보호**: `done`/`completed`/`cancelled` 아닌 세션은 절대 아카이브 금지
+3. 완료 세션을 `created_at` 오래된 순 정렬 → `max_active_sessions` 초과분 선별
+4. `{type_dir}/archived/` 생성 후 tar.gz 압축 (원본 삭제):
    ```bash
    tar -czf .gran-maestro/{type_dir}/archived/{type}-{ID_from}-{ID_to}-{YYYYMMDD}.tar.gz \
-     -C .gran-maestro/{type_dir} {session_dir1} {session_dir2} ...
+     -C .gran-maestro/{type_dir} {session_dirs...}
    ```
-   - `{type}`: `ideation`, `discussion`, `requests`
-   - `{ID_from}`: 아카이브 대상 중 가장 작은 ID (예: IDN-001)
-   - `{ID_to}`: 아카이브 대상 중 가장 큰 ID (예: IDN-005)
-   - `{YYYYMMDD}`: 아카이브 실행 날짜
-8. 원본 디렉토리 삭제
-9. `archive_retention_days` 설정 시 만료된 아카이브 .tar.gz 자동 삭제:
-   - 아카이브 파일의 수정 시간(mtime) 기준
-   - `archive_retention_days`일 초과 시 삭제
-10. 결과 요약 표시:
+5. `archive_retention_days` 설정 시 만료된 tar.gz 자동 삭제 (mtime 기준)
+6. 결과 요약 표시:
 
 ```
 아카이브 완료
@@ -87,34 +68,20 @@ requests: 3개 세션 아카이브됨
 
 ### `--restore {ID}`: 아카이브에서 세션 복원
 
-1. ID 접두사(REQ/IDN/DSC/DBG)로 타입을 결정하고 `.gran-maestro/{type_dir}/archived/`에서 해당 ID를 포함하는 .tar.gz 파일 탐색
-2. 대상 아카이브 파일을 임시로 목록 확인:
-   ```bash
-   tar -tzf {archive_file} | grep {ID}
-   ```
-3. 해당 세션 디렉토리만 추출하여 원래 위치에 복원:
-   ```bash
-   tar -xzf {archive_file} -C .gran-maestro/{type_dir} {session_dir}
-   ```
-4. 복원 결과 표시
-5. **주의**: 아카이브 파일 자체는 삭제하지 않음 (다른 세션이 포함되어 있을 수 있음)
+1. ID 접두사(REQ/IDN/DSC/DBG)로 타입 결정 → `archived/`에서 해당 ID 포함 tar.gz 탐색
+2. 목록 확인: `tar -tzf {archive_file} | grep {ID}`
+3. 세션 디렉토리만 추출: `tar -xzf {archive_file} -C .gran-maestro/{type_dir} {session_dir}`
+4. 복원 결과 표시; 아카이브 파일 자체는 삭제 안 함
 
 ### `--purge [--before {YYYY-MM-DD}]`: 오래된 아카이브 삭제
 
-1. `--before` 지정 시: 해당 날짜 이전의 아카이브 .tar.gz 파일 삭제
-2. `--before` 미지정 시: `archive_retention_days` 설정 기준으로 만료된 파일 삭제
-   - `archive_retention_days`가 null이면 "보존 기간이 설정되지 않았습니다" 안내
-3. 삭제 전 대상 목록을 사용자에게 표시하고 확인 요청 (AskUserQuestion)
-4. 확인 후 삭제 실행
+- `--before`: 해당 날짜 이전 tar.gz 삭제
+- 미지정: `archive_retention_days` 기준 만료 파일 삭제 (null이면 "보존 기간 미설정" 안내)
+- 삭제 전 대상 목록 표시 + `AskUserQuestion` 확인 후 실행
 
 ### `--list`: 아카이브된 세션 목록 표시
 
-1. 각 `.gran-maestro/{ideation,discussion,requests,debug}/archived/` 디렉토리의 모든 .tar.gz 파일 스캔
-2. 각 파일의 내용 목록 확인:
-   ```bash
-   tar -tzf {archive_file}
-   ```
-3. 타입별로 그룹화하여 표시:
+각 타입 `archived/`의 tar.gz 파일 스캔 → `tar -tzf {archive_file}`로 내용 확인 → 타입별 그룹화 표시:
 
 ```
 Gran Maestro — 아카이브 목록
@@ -137,35 +104,19 @@ requests (1 archive):
 
 ## 자동 아카이브 프로토콜 (다른 스킬에서 호출)
 
-`config.json`의 `archive.auto_archive_on_create`가 true이면, ideation/discussion/start 스킬이 새 세션 생성 시 자동으로 아카이브 체크를 수행합니다.
-
-자동 아카이브 로직:
-
-1. 해당 타입 디렉토리의 세션 수 확인
-2. `archive.max_active_sessions` 초과 시:
-   a. 완료된(done/completed/cancelled) 세션만 아카이브 대상
-   b. 오래된 순 정렬 → 초과분 선별
-   c. tar.gz 압축 → 원본 삭제
-3. 아카이브 완료 후 간략한 알림 표시:
-   ```
-   [Archive] {type} {N}개 세션 아카이브됨 → {archive_filename}
-   ```
-4. 정상적으로 새 세션 생성 진행
+`archive.auto_archive_on_create=true` 시 새 세션 생성 시점에 자동 체크:
+1. 해당 타입 세션 수 확인 → `max_active_sessions` 초과 시:
+   - 완료된(done/completed/cancelled) 세션만 아카이브 대상 → 오래된 순 정렬 → tar.gz 압축 + 원본 삭제
+   - `[Archive] {type} {N}개 세션 아카이브됨 → {archive_filename}` 알림
+2. 완료 후 새 세션 생성 진행
 
 ## 진행 중 세션 보호 규칙
 
-**절대 아카이브하지 않는 세션**:
-- `status`가 `done`, `completed` 또는 `cancelled`이 **아닌** 모든 세션
-- 예: `analyzing`, `collecting`, `synthesizing`, `discussing`, `debating`, `phase1_analysis`, `phase2_execution` 등
-- 이 규칙은 자동/수동 아카이브 모두에 적용
+`done`/`completed`/`cancelled` 아닌 모든 세션은 자동/수동 아카이브 모두에서 절대 아카이브 금지 (예: `analyzing`, `collecting`, `phase1_analysis`, `phase2_execution` 등).
 
 ## counter.json 보호 규칙
 
-**절대 삭제하지 않는 파일**: 각 타입 디렉토리의 `counter.json`
-- `counter.json`은 세션 ID 채번의 단조 증가 카운터로, 아카이브/정리 시 절대 삭제하지 않음
-- 위치: `.gran-maestro/{ideation,discussion,debug,requests}/counter.json`
-- 이 파일은 세션 디렉토리가 아니므로 tar.gz 아카이브 대상이 아님
-- `--run` 실행 시 세션 디렉토리(IDN-*, DSC-*, DBG-*, REQ-*)만 대상으로 하며, `counter.json`은 건드리지 않음
+각 타입 디렉토리의 `counter.json`은 절대 삭제 금지 — 세션 ID 단조 증가 카운터로 아카이브/정리 대상 아님. `--run` 시 세션 디렉토리(IDN-*/DSC-*/DBG-*/REQ-*)만 처리, `counter.json`은 건드리지 않음.
 
 ## 디렉토리 구조
 
@@ -214,7 +165,7 @@ requests (1 archive):
 
 ## 문제 해결
 
-- "아카이브 대상이 없음" → 모든 세션이 진행 중이거나, 활성 세션 수가 `max_active_sessions` 이하
-- "tar 명령을 찾을 수 없음" → 시스템에 tar가 설치되어 있는지 확인 (macOS/Linux 기본 포함)
-- "복원 후 세션이 보이지 않음" → 복원된 세션의 `session.json`/`request.json` 상태 확인
-- "디스크 공간 부족" → `--purge`로 오래된 아카이브 정리 또는 `archive_retention_days` 설정
+- "아카이브 대상 없음" → 모든 세션 진행 중이거나 활성 수가 `max_active_sessions` 이하
+- "tar 없음" → tar 설치 확인 (macOS/Linux 기본 포함)
+- "복원 후 세션 미표시" → 복원된 `session.json`/`request.json` 상태 확인
+- "디스크 부족" → `--purge` 또는 `archive_retention_days` 설정

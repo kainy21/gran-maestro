@@ -92,21 +92,9 @@ Write the design document in the following format:
 
 ## 스킬 호출 방식
 
-모든 외부 AI 호출은 내부 스킬(`/mst:codex`)을 경유합니다.
-
-**CRITICAL — Prompt-File 패턴**: 워크플로우 내에서는 이 템플릿의 변수를 치환한 뒤 파일로 저장하고, `--prompt-file`로 전달합니다.
-
-### Codex 실행 (2단계: Write → Skill)
+**CRITICAL — Prompt-File 패턴**: 변수 치환 후 파일 저장 → `--prompt-file`로 전달:
 ```
-# Step 1: 템플릿 치환 후 파일에 저장
-Write → .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase1-schema-design.md
-
-# Step 2: 파일 경로로 호출
-/mst:codex --prompt-file .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase1-schema-design.md --output .gran-maestro/requests/{REQ-ID}/design/data-model.md --trace {REQ-ID}/{TASK-NUM}/phase1-schema-design
-```
-
-### 대규모 스키마 시 Gemini 보조 (선택)
-```
-# 기존 스키마가 대규모(다수 테이블, 복잡한 관계)인 경우 Gemini의 대용량 컨텍스트 활용
-/mst:gemini --prompt-file .gran-maestro/requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase1-schema-design.md --files {schema_pattern} --trace {REQ-ID}/{TASK-NUM}/phase1-schema-design-gemini
+Write → requests/{REQ-ID}/tasks/{TASK-NUM}/prompts/phase1-schema-design.md
+/mst:codex --prompt-file {위 경로} --output requests/{REQ-ID}/design/data-model.md --trace {REQ-ID}/{TASK-NUM}/phase1-schema-design
+/mst:gemini --prompt-file {위 경로} --files {schema_pattern} --trace {REQ-ID}/{TASK-NUM}/phase1-schema-design-gemini  # 대규모 스키마 시 Gemini 보조 (선택)
 ```

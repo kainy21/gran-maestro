@@ -13,10 +13,7 @@ argument-hint: "[--all | --active | --completed]"
 
 **스크립트 우선 실행**: `python3 {PLUGIN_ROOT}/scripts/mst.py request list --active` 실행. 성공(exit 0)이면 출력 그대로 사용. 실패 시 아래 fallback으로 진행.
 
-**Fallback (python3 미설치 또는 오류 시):**
-1. `.gran-maestro/requests/` 디렉토리 스캔
-2. 각 `request.json` 읽기
-3. 상태별 분류 및 포맷팅
+**Fallback:** `requests/` 스캔 → 각 `request.json` 읽기 → 상태별 분류/포맷팅
 
 ## 출력 형식
 
@@ -46,5 +43,5 @@ REQ-002  "로그인 페이지 디자인"
 
 ## 문제 해결
 
-- `.gran-maestro/requests/` 디렉토리 없음 → Maestro 모드가 활성화되지 않았습니다. `/mst:on`으로 활성화하거나 `/mst:request`로 첫 요청을 시작하세요
-- 빈 목록 표시 → `--all` 옵션으로 완료/취소된 요청 포함 여부 확인
+- `requests/` 디렉토리 없음 → `/mst:on` 또는 `/mst:request`로 활성화
+- 빈 목록 → `--all`로 완료/취소 요청 포함 확인

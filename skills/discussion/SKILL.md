@@ -7,9 +7,7 @@ argument-hint: "{주제 또는 IDN-NNN} [--max-rounds {N}] [--focus {분야}]"
 
 # maestro:discussion
 
-설정된 AI 팀원들이 **합의에 도달할 때까지** 반복 토론합니다.  
-PM(Claude)이 사회자 역할로 발산점을 식별하고, 각 AI에게 반론을 전달하며 수렴을 유도합니다.
-이 스킬은 Maestro 모드 활성 여부에 관계없이 사용 가능합니다.
+설정된 AI 팀원들이 **합의에 도달할 때까지** 반복 토론합니다. PM(Claude)이 사회자 역할로 발산점을 식별하고 수렴을 유도합니다. Maestro 모드 활성 여부에 관계없이 사용 가능합니다.
 
 ## ideation과의 차이
 
@@ -78,26 +76,22 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
 }
 ```
 
-`participants`는 config의 `discussion.agents`를 읽어 다음 규칙으로 생성합니다.
-### participants 동적 생성 규칙 (공통)
-1. 각 provider(codex, gemini, claude)의 count를 읽음
-2. count == 1이면 key는 `{role}(provider)` 형태로 생성
-3. count > 1이면 role 키를 순차 생성해 `{role}(provider)` 형태로 유지
-4. 각 participant 항목에 `provider` 필드를 기록하여 실제 호출 대상을 식별
+`participants`는 config의 `discussion.agents`를 읽어 생성합니다.
+### participants 동적 생성 규칙
+1. 각 provider(codex, gemini, claude)의 count 읽기
+2. count == 1 → key는 `{role}(provider)` 형태
+3. count > 1 → role 키를 순차 생성, `{role}(provider)` 형태 유지
+4. 각 항목에 `provider` 필드 기록
 5. 합계 검증: 2~7명, 위반 시 에러 후 중단
-6. count가 0이면 해당 provider는 완전 skip
+6. count == 0 → 해당 provider 완전 skip
 
-`participants` 키가 없으면 기본값 `{ codex:1, gemini:1, claude:1 }` 사용.
+`participants` 키 없으면 기본값 `{ codex:1, gemini:1, claude:1 }` 사용.
 
 ### Step 1.5: PM 역할 배정
 
 PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하고 `critics`를 결정합니다.
-
 - Codex/Gemini/Claude 강점에 맞춰 관점 배정
-- Critic 규칙
-  - Claude 1명 이상: Claude 우선 배정
-  - Claude 0명: Codex 1명, 다음 Gemini
-  - critic_count 2: 1순위가 Claude(또는 대체), 2순위 Codex(또는 Gemini)
+- Critic 규칙: Claude 1명+ → Claude 우선, Claude 0명 → Codex → Gemini. critic_count 2 → 2명 배정
 
 `session.json`에 `participants`, `critics`, `critic_count`, `participant_config`, `status: "initializing"` 기록.
 
@@ -118,15 +112,10 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 
 ### Step 2: 초기 의견 수집
 
-**입력이 IDN-NNN인 경우**
+**IDN-NNN 입력 시**: ideation 의견 파일들을 `rounds/00/{participant.key}.md`로 복사 → Step 4 진입
 
-1. 아이디에 해당하는 ideation의 의견 파일들을 `rounds/00/`로 복사
-   - `rounds/00/{participant.key}.md`
-2. 초기 `synthesis.md`(또는 합성 결과) 기준으로 Step 4로 진입
-
-**새 주제인 경우**
-
-1. `participants`를 순회해 `rounds/00/prompts/{participant.key}-prompt.md` 작성
+**새 주제인 경우**:
+1. `participants` 순회 → `rounds/00/prompts/{participant.key}-prompt.md` 작성
 2. 병렬 호출:
 
    > **모델 결정**: config.json `models.claude.discussion` 참조 (opus / sonnet)
@@ -161,38 +150,26 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 
 ### Step 3: PM 초기 종합
 
-`rounds/00/synthesis.md` 생성 절차:
-- 의견 목록: `rounds/00/{participant.key}.md` 순회
-- 템플릿: `templates/discussion-round-synthesis.md` + `role/provider` 동적 표기
-- 결과 저장 후 `status: "debating"`, `current_round: 0`
+`rounds/00/synthesis.md` 생성: `rounds/00/{participant.key}.md` 순회 → `templates/discussion-round-synthesis.md` 템플릿 사용 → `status: "debating"`, `current_round: 0`
 
 #### Step 3.5: Critic 초기 평가 (단일 라운드 수렴 시)
 
-- `critics` 객체가 존재하고 `critic_count >= 1`이면 실행
-- `rounds/00` 응답 파일들을 기반으로 `rounds/00/prompts/critique-{criticKey}-prompt.md` 생성
-- Step 4c와 동일한 호출 방식으로 `rounds/00/critique-{criticKey}.md` 저장
-- 이후 Step 4e(수렴 판단)에서 조기 수렴이 판정되어 Step 4가 미실행되더라도 Critic 평가는 보장됨
+`critic_count >= 1`이면: `rounds/00` 응답 기반으로 `rounds/00/prompts/critique-{criticKey}-prompt.md` 생성 → Step 4c와 동일 방식으로 `rounds/00/critique-{criticKey}.md` 저장. Step 4 미실행 시에도 Critic 평가 보장.
 
 ### Step 3.6: Round 0 완료 상태 업데이트
 
-`participants` 순회 → `rounds/00/{participant.key}.md` 존재 + 비어있지 않음 여부 확인:
-- 성공: `participant.status = "done"`
-- 실패: `participant.status = "failed"`
+`participants` 순회 → `rounds/00/{participant.key}.md` 존재 여부 확인 (성공: `"done"`, 실패: `"failed"`)
 
-`session.json` 단일 Write로 업데이트:
-- `participants` 상태 반영 (위 결과)
-- `rounds` 배열에 `{ "round": 0, "status": "completed" }` 추가
-- `current_round: 0`
-- `status: "debating"` (Step 3에서 이미 설정되나 participants 업데이트와 동시에 기록)
+`session.json` 단일 Write:
+- `participants` 상태 반영, `rounds` 배열에 `{ "round": 0, "status": "completed" }` 추가, `current_round: 0`, `status: "debating"`
 
 ### Step 4: 토론 라운드 (반복)
 
 #### 4a. PM이 맞춤 프롬프트 작성
 
-이전 라운드에서 수렴되지 않은 발산점을 기반으로 각 역할에 적합한 반론형 프롬프트 작성:
-- 응답 파일명: `rounds/NN/{participant.key}.md`
-- 프롬프트 파일: `rounds/NN/prompts/{participant.key}-prompt.md`
-- 핵심: 이전 라운드 입장 요약 + 타 AI의 반론 반영
+이전 라운드 발산점 기반으로 각 역할에 반론형 프롬프트 작성:
+- 응답: `rounds/NN/{participant.key}.md`, 프롬프트: `rounds/NN/prompts/{participant.key}-prompt.md`
+- 핵심: 이전 라운드 입장 요약 + 타 AI 반론 반영
 
 #### 4b. 역할 기반 병렬 호출
 
@@ -262,48 +239,31 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 
 ### Step 4d. 라운드 종합
 
-> **사전 조건**: `critic_count > 0`인 경우 `rounds/NN/critique-{criticKey}.md` 파일이 존재해야 진행 가능.
-> 파일 없으면 Step 4c로 되돌아가 Critic 평가를 수행할 것.
+> **사전 조건**: `critic_count > 0`이면 `rounds/NN/critique-{criticKey}.md` 존재 필수. 없으면 Step 4c로 복귀.
 
 - 입력: `rounds/{NN-1}/synthesis.md` + `rounds/NN/{participant.key}.md` + `rounds/NN/critique-{criticKey}.md`
-- 템플릿: `templates/discussion-round-synthesis.md`의 동적 표 사용
-- 출력: `rounds/NN/synthesis.md`
+- 출력: `rounds/NN/synthesis.md` (`templates/discussion-round-synthesis.md` 동적 표 사용)
 - `status`, `current_round` 업데이트
 
 ### Step 4d.5: Round N 완료 상태 업데이트
 
-`participants` 순회 → `rounds/NN/{participant.key}.md` 존재 + 비어있지 않음 여부 확인:
-- 성공: `participant.status = "done"`
-- 실패: `participant.status = "failed"`
+`participants` 순회 → `rounds/NN/{participant.key}.md` 존재 여부 (성공: `"done"`, 실패: `"failed"`)
+`critics` 순회 → `rounds/NN/critique-{criticKey}.md` 존재 여부 (성공: `"done"`, 실패: `"failed"`)
 
-`critics` 순회 → `rounds/NN/critique-{criticKey}.md` 존재 + 비어있지 않음 여부 확인:
-- 성공: `critics[key].status = "done"`
-- 실패: `critics[key].status = "failed"`
-
-`session.json` 단일 Write로 업데이트:
-- `participants` 상태 반영 (위 결과)
-- `critics` 상태 반영 (위 결과)
-- `rounds` 배열에 `{ "round": N, "status": "completed" }` 추가
-- `current_round: N`
+`session.json` 단일 Write: `participants`/`critics` 상태 반영, `rounds` 배열에 `{ "round": N, "status": "completed" }` 추가, `current_round: N`
 
 ### Step 4e. 수렴 판단
 
-PM이 4d 결과의 합의 정도를 판정:
-- 합의 판단 기준 충족 또는 최대 라운드 도달 시 Step 5
-- 미충족 시 다음 라운드 수행
+PM이 합의 정도 판정: 기준 충족 또는 최대 라운드 도달 시 Step 5, 미충족 시 다음 라운드 수행.
 
 ### Step 5: 합의문 작성
 
-최종 consensus.md를 생성.
-- 참여자 목록: `participants` 키/Provider를 동적 나열
-- 미합의 사항: `participants` 기준 행 반복
-- 각 라운드 합의 이력 및 critic 기여 기록 반영
+최종 consensus.md 생성: `participants` 키/Provider 동적 나열, 미합의 사항 행 반복, 라운드 합의 이력 및 critic 기여 기록.
 
 ## 에러 처리
 
-실패율 기반 정책:
-- 과반 이상 성공: 실패한 항목은 제외하고 진행
-- 과반 미만 성공: PM 자체 보완 분석으로 보완
+- 과반 이상 성공: 실패 항목 제외 후 진행
+- 과반 미만 성공: PM 자체 보완 분석
 - 전원 실패: 에러 + 재시도 안내
 
 ## 세션 파일 구조
@@ -331,4 +291,4 @@ PM이 4d 결과의 합의 정도를 판정:
 
 ## 참고
 
-총합 2~7명 규칙 및 participants/critics의 동적 배정은 ideation과 동일.
+총합 2~7명 규칙과 participants/critics 동적 배정은 ideation과 동일.
