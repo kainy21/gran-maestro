@@ -31,13 +31,18 @@ async function buildReqToPlanMap(baseDir: string): Promise<Map<string, string>> 
   if (!(await dirExists(plansDir))) return map;
 
   const planDirs = (await listDirs(plansDir)).filter((dir) => /^PLN-/.test(dir));
-  for (const dir of planDirs) {
-    const planJson = await readJsonFile<{ id?: string; linked_requests?: string[] }>(
-      `${plansDir}/${dir}/plan.json`
-    );
+  const planJsons = await Promise.all(
+    planDirs.map((dir) =>
+      readJsonFile<{ id?: string; linked_requests?: string[] }>(
+        `${plansDir}/${dir}/plan.json`
+      )
+    )
+  );
+  for (let i = 0; i < planDirs.length; i++) {
+    const planJson = planJsons[i];
     if (!planJson?.linked_requests) continue;
 
-    const planId = planJson.id || dir;
+    const planId = planJson.id || planDirs[i];
     for (const reqId of planJson.linked_requests) {
       if (!map.has(reqId)) {
         map.set(reqId, planId);
@@ -46,6 +51,27 @@ async function buildReqToPlanMap(baseDir: string): Promise<Map<string, string>> 
   }
 
   return map;
+}
+
+async function findLinkedPlan(baseDir: string, reqId: string): Promise<string | null> {
+  const plansDir = `${baseDir}/plans`;
+  if (!(await dirExists(plansDir))) return null;
+
+  const planDirs = (await listDirs(plansDir)).filter((dir) => /^PLN-/.test(dir));
+  const planJsons = await Promise.all(
+    planDirs.map((dir) =>
+      readJsonFile<{ id?: string; linked_requests?: string[] }>(
+        `${plansDir}/${dir}/plan.json`
+      )
+    )
+  );
+  for (let i = 0; i < planDirs.length; i++) {
+    const planJson = planJsons[i];
+    if (planJson?.linked_requests?.includes(reqId)) {
+      return planJson.id || planDirs[i];
+    }
+  }
+  return null;
 }
 
 projectRequestsApi.get("/requests", async (c) => {
@@ -143,8 +169,8 @@ projectRequestsApi.get("/requests/:id", async (c) => {
   if (!reqJson) {
     return c.json({ error: "Request not found" }, 404);
   }
-  const reqToPlanMap = await buildReqToPlanMap(baseDir);
   const requestId = reqJson.id || id;
+  const linkedPlan = await findLinkedPlan(baseDir, requestId);
   let createdAt = reqJson.created_at as string | undefined;
   if (!createdAt || createdAt.includes("T00:00:00")) {
     try {
@@ -160,7 +186,7 @@ projectRequestsApi.get("/requests/:id", async (c) => {
     ...reqJson,
     id: requestId,
     created_at: createdAt,
-    linked_plan: reqToPlanMap.get(requestId) ?? null,
+    linked_plan: linkedPlan ?? null,
   });
 });
 

@@ -18,11 +18,14 @@ projectPlansApi.get("/plans", async (c) => {
     return c.json([]);
   }
 
-  const plans: Array<PlanMeta & { has_design: boolean }> = [];
   const planDirs = (await listDirs(plansDir)).filter((dir) => /^PLN-/.test(dir));
-  for (const dir of planDirs) {
-    const planJson = await readJsonFile<PlanMeta>(`${plansDir}/${dir}/plan.json`);
-    if (planJson) {
+  const planResults = await Promise.all(
+    planDirs.map(async (dir) => {
+      const planJson = await readJsonFile<PlanMeta>(`${plansDir}/${dir}/plan.json`);
+      if (!planJson) {
+        return null;
+      }
+
       let createdAt = planJson.created_at;
       let hasDesign = false;
       try {
@@ -41,14 +44,19 @@ projectPlansApi.get("/plans", async (c) => {
           // ignore fallback failure
         }
       }
-      plans.push({
+      return {
         ...planJson,
         id: planJson.id || dir,
         created_at: createdAt,
         has_design: hasDesign,
-      });
-    }
-  }
+      };
+    })
+  );
+
+  const plans = planResults.filter((plan): plan is PlanMeta & { has_design: boolean } =>
+    plan !== null
+  );
+
   plans.sort((a, b) => {
     const aTime = a.created_at ?? "";
     const bTime = b.created_at ?? "";
