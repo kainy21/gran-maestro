@@ -15,7 +15,8 @@
     "auto_approve_spec": false,
     "auto_accept_result": true,
     "default_agent": "codex-dev",
-    "spec_prereview": true
+    "spec_prereview": true,
+    "auto_approve_on_unblock": false
   },
   "concurrency": {
     "max_parallel_tasks": 5,
