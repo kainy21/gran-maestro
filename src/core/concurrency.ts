@@ -166,29 +166,98 @@ export async function updateStatusAtomic(
 // ---------------------------------------------------------------------------
 
 /**
- * Allocate the next sequential request ID using atomic `mkdir`.
+ * Allocate the next sequential request ID using a counter file.
  *
- * Scans REQ-001 through REQ-999 and creates the first directory that
- * does not yet exist. Because `mkdir` with `recursive: false` is atomic,
- * concurrent callers will never receive the same ID.
+ * Reads `{basePath}/counter.json`, increments `last_id`, persists it
+ * atomically, and creates the corresponding request directory.
+ *
+ * If `counter.json` does not exist, the function scans existing REQ-
+ * directories to initialize the counter before allocation.
  *
  * @param basePath - Root requests directory (e.g. `.gran-maestro/requests`).
- * @returns The allocated ID string (e.g. `"REQ-007"`).
- * @throws {Error} If all 999 IDs are exhausted.
+ * @returns The allocated ID string (e.g. `"REQ-007"` or `"REQ-1000"`).
  */
 export async function allocateRequestId(basePath: string): Promise<string> {
-  for (let n = 1; n <= 999; n++) {
-    const id = `REQ-${String(n).padStart(3, '0')}`;
+  const counterPath = `${basePath}/counter.json`;
+  const lockPath = `${counterPath}.lock`;
+
+  const lock = await acquireLock(lockPath, 5_000);
+  try {
+    let lastId = 0;
+
     try {
-      // Node.js fallback: fs.promises.mkdir(path, { recursive: false })
-      await Deno.mkdir(`${basePath}/${id}`, { recursive: false });
-      return id;
-    } catch (e) {
-      if (e instanceof Deno.errors.AlreadyExists) continue;
-      throw e;
+      const raw = await Deno.readTextFile(counterPath);
+      const data = JSON.parse(raw) as { last_id?: number };
+      lastId = typeof data.last_id === 'number' ? data.last_id : 0;
+    } catch {
+      lastId = await scanMaxReqId(basePath);
     }
+
+    const nextId = lastId + 1;
+    await writeCounterId(counterPath, nextId);
+
+    const reqId = formatRequestId(nextId);
+    // Node.js fallback: fs.promises.mkdir(path, { recursive: false })
+    await Deno.mkdir(`${basePath}/${reqId}`, { recursive: false });
+    return reqId;
+  } finally {
+    await releaseLock(lock);
   }
-  throw new Error('REQ ID exhausted (max 999)');
+}
+
+/**
+ * Persist `last_id` to a counter file, creating parent directory if needed.
+ *
+ * @param counterPath - Counter JSON file path.
+ * @param nextId - Next request id number.
+ */
+async function writeCounterId(counterPath: string, nextId: number): Promise<void> {
+  const counterDir = counterPath.replace(/[/\\][^/\\]*$/, '');
+  await Deno.mkdir(counterDir, { recursive: true });
+  await atomicWriteJSON(counterPath, { last_id: nextId });
+}
+
+/**
+ * Find the maximum existing REQ number from `basePath` directories.
+ *
+ * @param basePath - Root requests directory.
+ * @returns Maximum request number already used, or 0 if none.
+ */
+async function scanMaxReqId(basePath: string): Promise<number> {
+  let max = 0;
+
+  try {
+    for await (const entry of Deno.readDir(basePath)) {
+      if (!entry.isDirectory) continue;
+
+      const match = entry.name.match(/^REQ-(\d+)$/);
+      if (!match) continue;
+
+      const parsed = Number.parseInt(match[1], 10);
+      if (!Number.isNaN(parsed)) {
+        max = Math.max(max, parsed);
+      }
+    }
+  } catch {
+    // ignore; caller will initialize from zero
+  }
+
+  return max;
+}
+
+/**
+ * Convert numeric request id into REQ identifier.
+ *
+ * - 1000 미만: 3자리 zero-pad (`REQ-001`)
+ * - 1000 이상: 그대로 (`REQ-1000`)
+ *
+ * @param id - Numeric request id.
+ */
+function formatRequestId(id: number): string {
+  if (id < 1000) {
+    return `REQ-${String(id).padStart(3, '0')}`;
+  }
+  return `REQ-${id}`;
 }
 
 // ---------------------------------------------------------------------------
