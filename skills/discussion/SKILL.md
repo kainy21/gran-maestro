@@ -119,6 +119,7 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 1. **단일 응답에서 동시 Write**:
    - `rounds/00/shared-context.md` — 주제 배경 + 핵심 논점
    - `rounds/00/prompts/{participant.key}-prompt.md` × N — 경량 프롬프트
+   - `rounds/00/prompts/critique-{criticKey}-prompt.md` × M — critic 프롬프트 (critics 동적 순회, 아래 템플릿 적용)
 
 개별 프롬프트 포맷 (Round 0):
 ```markdown
@@ -138,16 +139,35 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 - {response_char_limit}자 이내
 ```
 
-2. 병렬 호출:
+Critic 프롬프트 템플릿 (Round 0):
+```markdown
+# Critic 평가 요청 — {session_id}  Round 0
+
+## 대기 지시
+다음 의견 파일들이 모두 생성될 때까지 대기하세요 (최대 10회, 30초 간격):
+{participants 순회 → {absolute_path}/rounds/00/{participant.key}.md 절대 경로 목록}
+
+모든 파일이 존재하고 내용이 있으면 다음 단계를 수행합니다.
+
+## 역할
+비판적 시각에서 모든 의견의 허점, 엣지 케이스, 반론을 식별합니다.
+
+## 출력 요구사항
+- {absolute_path}/rounds/00/critique-{criticKey}.md에 저장
+- {critique_char_limit}자 이내
+```
+
+2. **participant Task() + critic Task() 동시 발송** (단일 응답):
 
    > **모델 결정**: config.json `models.claude.discussion` 참조 (opus / sonnet)
 
+   participant 발송 (`participants` 동적 순회):
    - `provider: "codex"`:
      ```
      Task(
        subagent_type: "general-purpose",
        run_in_background: true,
-      prompt: "Skill(skill: 'mst:codex', args: '--prompt-file {absolute_path}/rounds/00/prompts/{participant.key}-prompt.md --output {absolute_path}/rounds/00/{participant.key}.md') 실행 후 완료 보고"
+       prompt: "Skill(skill: 'mst:codex', args: '--prompt-file {absolute_path}/rounds/00/prompts/{participant.key}-prompt.md --output {absolute_path}/rounds/00/{participant.key}.md') 실행 후 완료 보고"
      )
      ```
    - `provider: "gemini"`:
@@ -155,7 +175,7 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
      Task(
        subagent_type: "general-purpose",
        run_in_background: true,
-      prompt: "Skill(skill: 'mst:gemini', args: '--prompt-file {absolute_path}/rounds/00/prompts/{participant.key}-prompt.md --sandbox > {absolute_path}/rounds/00/{participant.key}.md') 실행 후 완료 보고"
+       prompt: "Skill(skill: 'mst:gemini', args: '--prompt-file {absolute_path}/rounds/00/prompts/{participant.key}-prompt.md --sandbox > {absolute_path}/rounds/00/{participant.key}.md') 실행 후 완료 보고"
      )
      ```
    - `provider: "claude"`:
@@ -164,9 +184,53 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
        subagent_type: "general-purpose",
        model: "{config.models.claude.discussion}",
        run_in_background: true,
-      prompt: "{absolute_path}/rounds/00/prompts/{participant.key}-prompt.md 파일을 Read하고 지시에 따라 분석. 결과를 {absolute_path}/rounds/00/{participant.key}.md에 Write. 완료 후 '완료'"
+       prompt: "{absolute_path}/rounds/00/prompts/{participant.key}-prompt.md 파일을 Read하고 지시에 따라 분석. 결과를 {absolute_path}/rounds/00/{participant.key}.md에 Write. 완료 후 '완료'"
      )
      ```
+
+   critic 동시 발송 (`critics` 동적 순회):
+   - `provider: "codex"`:
+     ```
+     Task(
+       subagent_type: "general-purpose",
+       run_in_background: true,
+       prompt: "Skill(skill: 'mst:codex', args: '--prompt-file {absolute_path}/rounds/00/prompts/critique-{criticKey}-prompt.md --output {absolute_path}/rounds/00/critique-{criticKey}.md') 실행 후 완료 보고"
+     )
+     ```
+   - `provider: "gemini"`:
+     ```
+     Task(
+       subagent_type: "general-purpose",
+       run_in_background: true,
+       prompt: "Skill(skill: 'mst:gemini', args: '--prompt-file {absolute_path}/rounds/00/prompts/critique-{criticKey}-prompt.md > {absolute_path}/rounds/00/critique-{criticKey}.md') 실행 후 완료 보고"
+     )
+     ```
+   - `provider: "claude"`:
+     ```
+     Task(
+       subagent_type: "general-purpose",
+       model: "{config.models.claude.discussion}",
+       run_in_background: true,
+       prompt: "{absolute_path}/rounds/00/prompts/critique-{criticKey}-prompt.md 파일을 Read하고 비판적 시각으로 분석. 결과를 {absolute_path}/rounds/00/critique-{criticKey}.md에 Write. 완료 후 '완료'"
+     )
+     ```
+
+3. **진행 상황 출력** (모든 Task() dispatch 완료 직후):
+
+```
+의견 수집 중  ({session_id}  Round 0)
+─────────────────────────────
+  [→] {participant.role}  ({participant.provider})   ← participants 배열 동적 순회
+  ...
+
+  ── 비평 ──
+  [→] critic: {criticKey}  ({critic.provider})       ← critics 객체 동적 순회
+─────────────────────────────
+완료 알림을 기다리는 중...
+```
+
+- critics가 없으면 `── 비평 ──` 섹션 전체 생략
+- 목록은 `participants` 배열, `critics` 객체를 각각 동적 순회 (고정 인원 표기 금지)
 
 각 호출은 `Task(run_in_background: true)`로 병렬 실행됩니다.
 
@@ -232,7 +296,27 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 
 #### 4b. 역할 기반 병렬 호출
 
-역할별 병렬 호출:
+**단일 응답에서** participant 프롬프트 파일 + critic 프롬프트 파일을 함께 생성 후, participant Task() + critic Task() 동시 발송.
+
+Critic 프롬프트 템플릿 (Round N):
+```markdown
+# Critic 평가 요청 — {session_id}  Round {N}
+
+## 대기 지시
+다음 의견 파일들이 모두 생성될 때까지 대기하세요 (최대 10회, 30초 간격):
+{participants 순회 → {absolute_path}/rounds/NN/{participant.key}.md 절대 경로 목록}
+
+모든 파일이 존재하고 내용이 있으면 다음 단계를 수행합니다.
+
+## 역할
+비판적 시각에서 모든 의견의 허점, 엣지 케이스, 반론을 식별합니다.
+
+## 출력 요구사항
+- {absolute_path}/rounds/NN/critique-{criticKey}.md에 저장
+- {critique_char_limit}자 이내
+```
+
+participant 발송 (`participants` 동적 순회):
 - `provider: "codex"`:
   ```
   Task(
@@ -259,17 +343,7 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
   )
   ```
 
-### Step 4c. Critic 평가 ⚠️ MANDATORY
-
-> **절대 건너뛰기 금지**: `critic_count > 0`이면 Step 4b 완료 직후 반드시 실행.
-> Step 4d로 진행하기 전 `critique-{criticKey}.md` 파일이 존재해야 한다.
-
-- `critics` 키 순회하여 `rounds/NN/prompts/critique-{criticKey}-prompt.md` 생성
-- `provider` 규칙에 따라 역할별 배정 수행
-- `rounds/NN/critique-{criticKey}.md` 저장
-
-호출 방식:
-
+critic 동시 발송 (`critics` 동적 순회):
 - `provider: "codex"`:
   ```
   Task(
@@ -295,6 +369,30 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
     prompt: "{absolute_path}/rounds/NN/prompts/critique-{criticKey}-prompt.md 파일을 Read하고 비판적 시각으로 분석. 결과를 {absolute_path}/rounds/NN/critique-{criticKey}.md에 Write. 완료 후 '완료'"
   )
   ```
+
+**진행 상황 출력** (모든 Task() dispatch 완료 직후):
+
+```
+토론 라운드 {N}  ({session_id})
+─────────────────────────────
+  [→] {participant.role}  ({participant.provider})   ← participants 배열 동적 순회
+  ...
+
+  ── 비평 ──
+  [→] critic: {criticKey}  ({critic.provider})       ← critics 객체 동적 순회
+─────────────────────────────
+완료 알림을 기다리는 중...
+```
+
+- critics가 없으면 `── 비평 ──` 섹션 전체 생략
+- 목록은 `participants` 배열, `critics` 객체를 각각 동적 순회 (고정 인원 표기 금지)
+
+### Step 4c. Critic 완료 확인 ⚠️ MANDATORY
+
+> **절대 건너뛰기 금지**: `critic_count > 0`이면 Step 4d로 진행하기 전 `critique-{criticKey}.md` 파일이 존재해야 한다.
+
+`critics` 키 순회 → `rounds/NN/critique-{criticKey}.md` 존재 + 비어있지 않음: `"done"`, 아니면: `"failed"`.
+실패 시 에러 처리는 기존 에러 처리 섹션 준수.
 
 ### Step 4d. 라운드 종합
 
