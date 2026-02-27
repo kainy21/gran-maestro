@@ -59,13 +59,14 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
   "max_rounds": "{config.json의 discussion.default_max_rounds}",
   "current_round": 0,
   "created_at": "{TS — mst.py timestamp now 출력값}",
+  "dispatch_started_at": null,
   "participants": [
-    { "key": "architect(codex)", "role": "architect", "perspective": "", "type": "opinion", "status": "pending", "provider": "codex" },
-    { "key": "ux(codex)", "role": "ux", "perspective": "", "type": "opinion", "status": "pending", "provider": "codex" },
-    { "key": "security(codex)", "role": "security", "perspective": "", "type": "opinion", "status": "pending", "provider": "codex" },
-    { "key": "architecture(gemini)", "role": "architecture", "perspective": "", "type": "opinion", "status": "pending", "provider": "gemini" },
-    { "key": "cost(gemini)", "role": "cost", "perspective": "", "type": "opinion", "status": "pending", "provider": "gemini" },
-    { "key": "risk(claude)", "role": "risk", "perspective": "", "type": "opinion", "status": "pending", "provider": "claude" }
+    { "key": "architect(codex)", "role": "architect", "perspective": "", "type": "opinion", "status": "pending", "provider": "codex", "started_at": null, "completed_at": null },
+    { "key": "ux(codex)", "role": "ux", "perspective": "", "type": "opinion", "status": "pending", "provider": "codex", "started_at": null, "completed_at": null },
+    { "key": "security(codex)", "role": "security", "perspective": "", "type": "opinion", "status": "pending", "provider": "codex", "started_at": null, "completed_at": null },
+    { "key": "architecture(gemini)", "role": "architecture", "perspective": "", "type": "opinion", "status": "pending", "provider": "gemini", "started_at": null, "completed_at": null },
+    { "key": "cost(gemini)", "role": "cost", "perspective": "", "type": "opinion", "status": "pending", "provider": "gemini", "started_at": null, "completed_at": null },
+    { "key": "risk(claude)", "role": "risk", "perspective": "", "type": "opinion", "status": "pending", "provider": "claude", "started_at": null, "completed_at": null }
   ],
   "critics": {
     "claude": { "status": "pending", "provider": "claude" }

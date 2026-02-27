@@ -58,9 +58,10 @@ config.json의 `archive.auto_archive_on_create`가 true이면:
   "focus": "{--focus 값 또는 null}",
   "status": "analyzing",
   "created_at": "{TS — mst.py timestamp now 출력값}",
+  "dispatch_started_at": null,
   "investigators": {
-    "codex": { "role": "", "status": "pending", "provider": "codex" },
-    "gemini": { "role": "", "status": "pending", "provider": "gemini" }
+    "codex": { "role": "", "status": "pending", "provider": "codex", "started_at": null, "completed_at": null },
+    "gemini": { "role": "", "status": "pending", "provider": "gemini", "started_at": null, "completed_at": null }
   },
   "participant_config": { "codex": 1, "gemini": 1, "claude": 0 },
   "merge_wait_ms": 60000

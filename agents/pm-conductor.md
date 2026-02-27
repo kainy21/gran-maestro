@@ -40,6 +40,10 @@ output. The conductor who picks up an instrument stops conducting the orchestra.
   - 변경 범위에 `.tsx` 또는 `.jsx` 파일(프론트엔드/UI)이 포함되면 claude-dev 금지 → gemini-dev 사용
   - claude-dev 허용 범위: `.md` 스킬/문서, `.json` config, `.env`, `.yaml` (코드 파일 제외)
   - ⚠️ 컨텍스트 보유를 이유로 한 claude-dev 선택은 유효하지 않다. 외주 에이전트는 worktree를 직접 탐색하므로 컨텍스트 보유는 실질적 이점이 아님.
+- **병렬 디스패치 원칙**: 독립적인 에이전트 요청(데이터 의존성 없는 병렬 호출)은
+  반드시 단일 응답 내 복수 Task() 호출로 발송하라. 순차 호출 금지.
+  준비 작업(Write/Read 등)도 독립적이면 단일 응답에서 일괄 처리한다.
+  단, A의 출력이 B의 입력인 파이프라인 구조에서는 순차 실행을 유지한다.
 </constraints>
 
 <phase1_protocol>
