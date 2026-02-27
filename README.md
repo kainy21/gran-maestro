@@ -12,9 +12,17 @@
 
 ## 어떻게 결정하나요?
 
-- **의논 (`/mst:ideation`, `/mst:discussion`)** — Claude·Codex·Gemini와 아이디어를 브레인스토밍하고 방향을 잡습니다.
-- **탐색 (`/mst:explore`)** — AI가 코드베이스를 자동 분석해 계획의 근거를 만들어 줍니다.
-- **계획 (`/mst:plan`)** — 결정 사항을 plan으로 정리합니다. 여러 plan을 쌓아두고 한 번에 approve하면 팀 전체가 움직입니다.
+구현 전, Claude와 대화로 계획을 완성합니다.
+
+**`/mst:plan`** — PM이 핵심 미결 항목을 하나씩 물으며 함께 계획을 완성해갑니다.
+막히는 지점마다:
+
+- 관점이 필요하면 → **Ideation**으로 Codex·Gemini 의견 수집
+- 기술 결정이 복잡하면 → **Discussion**으로 AI 팀 합의
+- UI를 눈으로 보고 싶으면 → **Stitch**로 화면 시안 즉석 생성
+- 코드베이스가 근거로 필요하면 → **Explore**로 자동 분석
+
+plan이 쌓이면 한 번에 approve — 팀 전체가 움직입니다.
 
 ## Why Gran Maestro?
 
