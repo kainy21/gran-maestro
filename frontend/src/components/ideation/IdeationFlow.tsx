@@ -1,4 +1,5 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MarkdownRenderer } from '@/components/shared/MarkdownRenderer';
 import { ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -132,6 +133,27 @@ function FlowSection({ title, defaultOpen = false, variant = 'default', children
 function Cards({ items, fallbackText }: { items: FlowItem[]; fallbackText: string }) {
   if (items.length === 0) {
     return <div className="text-sm text-muted-foreground">{fallbackText}</div>;
+  }
+
+  if (items.length >= 3) {
+    return (
+      <Tabs defaultValue={`${items[0].title}-${0}`}>
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
+          {items.map((item, index) => (
+            <TabsTrigger key={`${item.title}-${index}`} value={`${item.title}-${index}`} className="text-xs">
+              {item.title}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {items.map((item, index) => (
+          <TabsContent key={`${item.title}-${index}`} value={`${item.title}-${index}`} className="mt-3">
+            <div className="rounded-lg border bg-card p-3">
+              <MarkdownRenderer content={item.content} className="text-sm text-foreground" />
+            </div>
+          </TabsContent>
+        ))}
+      </Tabs>
+    );
   }
 
   const colClass = items.length === 1 ? 'grid-cols-1' : items.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3';
