@@ -924,22 +924,42 @@ def cmd_wait_files(args):
     total = len(files)
 
     # 타임아웃 우선순위: CLI 인자 > config.json > 기본값 600s
+    cfg = load_json(BASE_DIR / "config.json") or {}
     if args.timeout is not None:
         timeout_s = args.timeout
     else:
-        cfg = load_json(BASE_DIR / "config.json") or {}
         timeout_ms = cfg.get("timeouts", {}).get("wait_files_ms", 600000)
         timeout_s = timeout_ms / 1000
+    min_content_wait = cfg.get("min_content_wait", 5)
+    try:
+        min_content_wait = float(min_content_wait)
+    except (TypeError, ValueError):
+        min_content_wait = 5
 
     completed = set()
+    empty_files_seen = {}
     start = time.time()
 
     while time.time() - start < timeout_s:
         for f in files:
-            if f not in completed and os.path.exists(f) and os.path.getsize(f) > 0:
-                completed.add(f)
-                name = os.path.basename(f)
-                print(f"[{len(completed)}/{total}] {name} 완료", flush=True)
+            if f in completed:
+                continue
+
+            if os.path.exists(f):
+                size = os.path.getsize(f)
+                if size > 0:
+                    completed.add(f)
+                    name = os.path.basename(f)
+                    print(f"[{len(completed)}/{total}] {name} 완료", flush=True)
+                else:
+                    now = time.time()
+                    if f not in empty_files_seen:
+                        empty_files_seen[f] = now
+                    elif min_content_wait > 0 and now - empty_files_seen[f] < min_content_wait:
+                        continue
+                    # 빈 파일이 생성되어도 즉시 완료로 처리하지 않고 재확인
+            else:
+                empty_files_seen.pop(f, None)
 
         if len(completed) == total:
             print("ALL_READY", flush=True)
@@ -956,7 +976,44 @@ def cmd_wait_files(args):
 # ---------------------------------------------------------------------------
 
 def cmd_priority(args):
-    print(f"priority management for {args.task_id} — stub (not yet implemented)")
+    task_id = args.task_id.upper()
+    parts = task_id.split("-")
+    if len(parts) != 3:
+        print(f"Error: invalid task ID '{args.task_id}'. Expected REQ-XXX-YY format.", file=sys.stderr)
+        return 1
+
+    req_id = f"{parts[0]}-{parts[1]}"
+    task_num = parts[2]
+
+    status_paths = [
+        BASE_DIR / "requests" / req_id / "tasks" / task_num / "status.json",
+        BASE_DIR / "requests" / "completed" / req_id / "tasks" / task_num / "status.json",
+    ]
+    status_path = next((p for p in status_paths if p.exists()), None)
+    if status_path is None:
+        print(f"Error: task {args.task_id} not found", file=sys.stderr)
+        return 1
+
+    data = load_json(status_path)
+    if data is None:
+        print(f"Error: failed to load status.json for {args.task_id}", file=sys.stderr)
+        return 1
+
+    if args.before:
+        data["priority"] = "high"
+        data["priority_before"] = args.before.upper()
+        data.pop("priority_after", None)
+    elif args.after:
+        data["priority"] = "low"
+        data["priority_after"] = args.after.upper()
+        data.pop("priority_before", None)
+    else:
+        data["priority"] = "normal"
+        data.pop("priority_before", None)
+        data.pop("priority_after", None)
+
+    save_json(status_path, data)
+    print(f"priority updated: {task_id}")
     return 0
 
 
