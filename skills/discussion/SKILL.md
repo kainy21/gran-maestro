@@ -108,7 +108,7 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 ### 병렬 Write 원칙 (CRITICAL)
 
 독립 파일 Write는 하나의 응답에서 동시에 수행:
-- `session.json`, 프롬프트 여러 개를 함께 생성
+- `session.json`, `shared-context.md`(공유 배경 컨텍스트), 프롬프트 여러 개를 함께 생성
 - 순차 쓰기를 피해 병렬성 보장
 
 ### Step 2: 초기 의견 수집
@@ -116,7 +116,28 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 **IDN-NNN 입력 시**: ideation 의견 파일들을 `rounds/00/{participant.key}.md`로 복사 → Step 4 진입
 
 **새 주제인 경우**:
-1. `participants` 순회 → `rounds/00/prompts/{participant.key}-prompt.md` 작성
+1. **단일 응답에서 동시 Write**:
+   - `rounds/00/shared-context.md` — 주제 배경 + 핵심 논점
+   - `rounds/00/prompts/{participant.key}-prompt.md` × N — 경량 프롬프트
+
+개별 프롬프트 포맷 (Round 0):
+```markdown
+# {Role} 관점 의견 요청 — DSC-NNN Round 0
+
+## 공유 컨텍스트
+{absolute_path}/rounds/00/shared-context.md 파일을 Read하세요.
+
+## 당신의 역할
+{perspective} 관점에서 분석합니다.
+
+## 질문
+{역할별 핵심 질문 1~3개}
+
+## 출력 요구사항
+- {absolute_path}/rounds/00/{participant.key}.md에 저장
+- {response_char_limit}자 이내
+```
+
 2. 병렬 호출:
 
    > **모델 결정**: config.json `models.claude.discussion` 참조 (opus / sonnet)
@@ -168,9 +189,46 @@ PM이 주제/포커스를 분석해 `participants` 수만큼 관점을 배정하
 
 #### 4a. PM이 맞춤 프롬프트 작성
 
-이전 라운드 발산점 기반으로 각 역할에 반론형 프롬프트 작성:
-- 응답: `rounds/NN/{participant.key}.md`, 프롬프트: `rounds/NN/prompts/{participant.key}-prompt.md`
-- 핵심: 이전 라운드 입장 요약 + 타 AI 반론 반영
+이전 라운드 발산점 기반으로 **단일 응답에서 동시 Write**:
+- `rounds/NN/shared-context.md` — 이전 라운드 입장 요약 테이블 + 발산점 목록
+- `rounds/NN/prompts/{participant.key}-prompt.md` × N — 경량 프롬프트
+
+`shared-context.md` 구조 (Round N):
+```markdown
+# DSC-NNN Round N — 공유 컨텍스트
+
+## 이전 라운드 입장 요약
+| 역할 | 핵심 주장 |
+|------|----------|
+| {role} ({provider}) | {1~2줄 요약} |
+...
+
+## 핵심 발산점
+1. {발산점 1}
+2. {발산점 2}
+
+## 이번 라운드 목표
+{PM이 수렴 방향 제시}
+```
+
+개별 프롬프트 포맷 (Round N):
+```markdown
+# {Role} 반론 수용 요청 — DSC-NNN Round N
+
+## 공유 컨텍스트
+{absolute_path}/rounds/NN/shared-context.md 파일을 Read하세요.
+
+## 당신의 역할
+{role} 관점에서 응답합니다.
+이전 라운드 당신의 핵심 입장: {1~2줄}
+
+## 이번 라운드 질문
+{역할에 맞춘 반론/수렴 질문 1~3개}
+
+## 출력 요구사항
+- {absolute_path}/rounds/NN/{participant.key}.md에 저장
+- {response_char_limit}자 이내
+```
 
 #### 4b. 역할 기반 병렬 호출
 
@@ -274,14 +332,22 @@ PM이 합의 정도 판정: 기준 충족 또는 최대 라운드 도달 시 Ste
 ├── session.json
 ├── rounds/
 │   ├── 00/
+│   │   ├── shared-context.md           # 공유 배경 컨텍스트 (Step 2 병렬 Write)
 │   │   ├── prompts/
-│   │   │   ├── {participant.key}-prompt.md
+│   │   │   ├── {participant.key}-prompt.md  # 경량 프롬프트 (shared-context.md Read 지시 포함)
 │   │   │   ├── critique-{criticKey}-prompt.md
 │   │   │   └── synthesis-prompt.md
 │   │   ├── {participant.key}.md
 │   │   ├── critique-{criticKey}.md
 │   │   └── synthesis.md
-│   └── ...
+│   └── NN/
+│       ├── shared-context.md           # 이전 입장 요약 + 발산점 (Step 4a 병렬 Write)
+│       ├── prompts/
+│       │   ├── {participant.key}-prompt.md  # 경량 프롬프트 (shared-context.md Read 지시 포함)
+│       │   └── critique-{criticKey}-prompt.md
+│       ├── {participant.key}.md
+│       ├── critique-{criticKey}.md
+│       └── synthesis.md
 ├── consensus.md
 ```
 
