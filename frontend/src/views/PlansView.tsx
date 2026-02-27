@@ -3,10 +3,11 @@ import { useAppContext } from '@/context/AppContext';
 import { apiFetch } from '@/hooks/useApi';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { MarkdownRenderer } from '@/components/shared/MarkdownRenderer';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { ClipboardList, FileText, Palette } from 'lucide-react';
+import { ClipboardList, ExternalLink, FileText, Palette } from 'lucide-react';
 import { SessionCard } from '@/components/shared/SessionCard';
 import { RefreshButton } from '@/components/shared/RefreshButton';
 import { EditModeToolbar } from '@/components/EditModeToolbar';
@@ -18,10 +19,44 @@ interface PlanMeta {
   status?: string;
   created_at?: string;
   linked_requests?: string[];
+  has_design?: boolean;
 }
 
 interface PlanDetail {
   content?: string;
+}
+
+interface DesignSection {
+  title: string;
+  imageUrl: string | null;
+  stitchUrl: string | null;
+  stitchLabel: string;
+  description: string;
+}
+
+function parseDesignSections(content: string): DesignSection[] {
+  return content
+    .split(/\r?\n---\r?\n/)
+    .map(block => block.trim())
+    .filter(Boolean)
+    .map(block => {
+      const titleMatch = block.match(/^##\s+(.+)$/m);
+      const imageMatch = block.match(/!\[[^\]]*\]\(([^)]+)\)/);
+      const linkMatch = block.match(/\[([^\]]+)\]\((https:\/\/stitch\.[^)]+)\)/);
+      const description = block
+        .replace(/^##\s+.+$/m, '')
+        .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+        .replace(/\[[^\]]+\]\([^)]+\)/g, '')
+        .trim();
+
+      return {
+        title: titleMatch?.[1] ?? '',
+        imageUrl: imageMatch?.[1] ?? null,
+        stitchUrl: linkMatch?.[2] ?? null,
+        stitchLabel: linkMatch?.[1] ?? 'Stitch에서 보기',
+        description,
+      };
+    });
 }
 
 export function PlansView() {
@@ -30,6 +65,7 @@ export function PlansView() {
   const [selectedPlan, setSelectedPlan] = useState<PlanMeta | null>(null);
   const [planContent, setPlanContent] = useState<string | null>(null);
   const [designContent, setDesignContent] = useState<string | null>(null);
+  const [designSections, setDesignSections] = useState<DesignSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -103,6 +139,7 @@ export function PlansView() {
     if (!selectedPlan || !projectId) {
       setPlanContent(null);
       setDesignContent(null);
+      setDesignSections([]);
       return;
     }
     apiFetch<PlanDetail>(`/api/plans/${selectedPlan.id}`, projectId)
@@ -112,6 +149,10 @@ export function PlansView() {
       .then(data => setDesignContent(data.exists ? data.content : null))
       .catch(() => setDesignContent(null));
   }, [selectedPlan?.id, projectId]);
+
+  useEffect(() => {
+    setDesignSections(designContent ? parseDesignSections(designContent) : []);
+  }, [designContent]);
 
   useEffect(() => {
     if (pendingNavigation?.tab !== 'plans' || loading) return;
@@ -224,6 +265,7 @@ export function PlansView() {
                     title={plan.title || plan.id}
                     status={plan.status ?? ''}
                     createdAt={plan.created_at}
+                    hasDesign={plan.has_design}
                     extraLinks={plan.linked_requests}
                     onExtraLinkClick={(reqId) => navigateTo('workflow', reqId)}
                     isSelected={selectedPlan?.id === plan.id}
@@ -258,13 +300,13 @@ export function PlansView() {
                     <FileText className="h-3 w-3 mr-2" />
                     Overview
                   </TabsTrigger>
-                  {designContent && (
+                  {designSections.length > 0 && (
                     <TabsTrigger
                       value="design"
                       className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1"
                     >
                       <Palette className="h-3 w-3 mr-2" />
-                      Design
+                      Design {designSections.length > 0 && `(${designSections.length})`}
                     </TabsTrigger>
                   )}
                 </TabsList>
@@ -280,11 +322,49 @@ export function PlansView() {
                   </div>
                 </ScrollArea>
               </TabsContent>
-              {designContent && (
+              {designSections.length > 0 && (
                 <TabsContent value="design" className="flex-1 overflow-auto m-0">
                   <ScrollArea className="h-full">
-                    <div className="p-8">
-                      <MarkdownRenderer content={designContent} />
+                    <div className="p-8 space-y-6">
+                      {designSections.map((section, index) => (
+                        <Card key={`${section.title}-${index}`} className="overflow-hidden">
+                          {section.imageUrl && (
+                            <a
+                              href={section.stitchUrl ?? section.imageUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <img
+                                src={section.imageUrl}
+                                alt={section.title || 'design image'}
+                                className="w-full object-cover max-h-80"
+                              />
+                            </a>
+                          )}
+                          <CardContent className="p-4">
+                            {section.title && (
+                              <h3 className="font-semibold text-base mb-2">
+                                {section.title}
+                              </h3>
+                            )}
+                            {section.description && (
+                              <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
+                                {section.description}
+                              </p>
+                            )}
+                            {section.stitchUrl && (
+                              <a
+                                href={section.stitchUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                              >
+                                <ExternalLink className="h-3 w-3" /> {section.stitchLabel}
+                              </a>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
                   </ScrollArea>
                 </TabsContent>

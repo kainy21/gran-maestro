@@ -18,12 +18,19 @@ projectPlansApi.get("/plans", async (c) => {
     return c.json([]);
   }
 
-  const plans: PlanMeta[] = [];
+  const plans: Array<PlanMeta & { has_design: boolean }> = [];
   const planDirs = (await listDirs(plansDir)).filter((dir) => /^PLN-/.test(dir));
   for (const dir of planDirs) {
     const planJson = await readJsonFile<PlanMeta>(`${plansDir}/${dir}/plan.json`);
     if (planJson) {
       let createdAt = planJson.created_at;
+      let hasDesign = false;
+      try {
+        await Deno.stat(`${plansDir}/${dir}/design.md`);
+        hasDesign = true;
+      } catch (_error) {
+        hasDesign = false;
+      }
       if (!createdAt || createdAt.includes("T00:00:00")) {
         try {
           const stat = await Deno.stat(`${plansDir}/${dir}/plan.json`);
@@ -34,7 +41,12 @@ projectPlansApi.get("/plans", async (c) => {
           // ignore fallback failure
         }
       }
-      plans.push({ ...planJson, id: planJson.id || dir, created_at: createdAt });
+      plans.push({
+        ...planJson,
+        id: planJson.id || dir,
+        created_at: createdAt,
+        has_design: hasDesign,
+      });
     }
   }
   plans.sort((a, b) => {

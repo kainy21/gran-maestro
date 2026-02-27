@@ -8,6 +8,7 @@ interface SessionCardProps {
   status: string;
   createdAt?: string;
   icon?: React.ReactNode;
+  hasDesign?: boolean;
   extraBadge?: string;
   extraLinks?: string[];
   isSelected: boolean;
@@ -28,6 +29,7 @@ export function SessionCard({
   status,
   createdAt,
   icon,
+  hasDesign,
   extraBadge,
   extraLinks,
   isSelected,
@@ -46,6 +48,7 @@ export function SessionCard({
           <div className="flex items-center gap-1.5 min-w-0">
             {icon}
             <Badge variant="outline" className="text-[10px] font-mono">{id}</Badge>
+            {hasDesign && <span className="text-[11px]" title="Design 시안 있음">🎨</span>}
           </div>
           <StatusBadge status={status} />
         </div>
