@@ -46,6 +46,17 @@ Maestro 모드 비활성 시 자동 활성화:
 
 상세 아카이브 로직은 `/mst:archive` 스킬의 "자동 아카이브 프로토콜" 참조.
 
+### Step 0.5: 에이전트 기본값 취득 (MANDATORY)
+
+> ⚠️ 이 단계는 건너뛸 수 없음: spec.md Assigned Agent 결정 전 반드시 실행.
+> 이 단계 없이 spec.md 작성 금지.
+
+Read(`.gran-maestro/config.json`) → `workflow.default_agent` 추출 → DEFAULT_AGENT 변수 보관.
+
+이후 모든 spec.md의 Assigned Agent 필드는 반드시
+`[config: {DEFAULT_AGENT}] → ...` 형식으로 DEFAULT_AGENT를 명시해야 한다.
+DEFAULT_AGENT 미확인 상태의 Assigned Agent 결정은 에러로 처리한다.
+
 ### Step 1: 요청 생성
 
 1. 새 요청 ID 채번 (REQ-NNN):

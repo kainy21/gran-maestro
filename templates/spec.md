@@ -4,13 +4,14 @@
 - Task ID: {TASK_ID}
 - Created: {DATE}
 - Status: pending | queued | executing | pre_check | pre_check_failed | review | feedback | merging | merge_conflict | done | failed | cancelled
-- Assigned Agent: codex | gemini | claude-dev
+- Assigned Agent: [config: {DEFAULT_AGENT}] → [파일유형: {.ts/.tsx/.md 등}] → 최종: {에이전트}
 - Assigned Team: {에이전트 팀 구성 설명}
 
 <!-- Decision Tree — 에이전트 선택 기준
-0단계: 기본값 결정 (항상 먼저 실행)
-  .gran-maestro/config.json의 workflow.default_agent 값을 읽어 Assigned Agent 기본값으로 설정.
-  이후 1~3단계는 이 기본값의 override 조건이다. 기본값 없이 claude-dev를 선택하는 것은 금지.
+0단계: 기본값 확인 (Step 0.5에서 취득한 DEFAULT_AGENT 사용)
+  Assigned Agent 필드는 "[config: {DEFAULT_AGENT}]"로 시작해야 한다.
+  DEFAULT_AGENT를 명시하지 않고 claude-dev를 직접 기입하는 것은 에러.
+  이후 1~3단계는 파일 유형·특성에 따른 override 조건이다.
 
 1단계: 변경 파일 유형
   .md 스킬/문서, .json config, .env, .yaml    → claude-dev 허용
