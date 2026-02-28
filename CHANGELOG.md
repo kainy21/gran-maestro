@@ -4,6 +4,23 @@
 
 ---
 
+## [0.41.0] — 2026-03-01
+
+### 새 기능
+
+- **CompletionAlarm** — 요청 완료 시 SSE `completion_alert` 이벤트 방출 + 프론트엔드 토스트 알림 컴포넌트 추가 (REQ-221)
+- **Design 탭 신설** — 대시보드에 Stitch 디자인 화면을 전용 탭으로 표시, `DesignView` 컴포넌트 + `/api/designs` 라우트 + 백엔드 DES 타입 지원 (REQ-218)
+- **Stitch DES-NNN 세션 프로토콜** — PLN 세션 의존 제거, Stitch 스킬이 독립 DES 세션 ID로 동작 (REQ-218)
+
+### 개선
+
+- **에이전트 선택 규칙 확정형 전환** — 금지/허용/우선 방식을 IF-THEN 플로우로 재정의하여 에이전트 선택 일관성 향상 (REQ-219)
+- **Stitch multi_style_batch 안정성** — 재진입 감지 로직 추가 + stale_at 기준 15분으로 수정 (REQ-220)
+- **Stitch 폴링 한도 확대** — 최대 폴링 횟수 10회 → 20회 (총 최대 10분 대기)
+- **Design 탭 이미지 표시 수정** — `object-cover max-h-80` → `max-w-[85%] block mx-auto` 로 변경, 이미지 잘림 해결 (REQ-222)
+
+---
+
 ## [0.40.2] — 2026-02-28
 
 ### 개선
