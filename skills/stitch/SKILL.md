@@ -224,25 +224,53 @@ argument-hint: "[--auto] [--variants] [--req REQ-NNN] {화면 설명}"
    - `downloadUrl`이 null인 스타일은 이미지 라인 생략, 스타일명과 "이미지 미확보" 텍스트 표시
    - 대시보드 링크: PLN-NNN이 있으면 PLN 기반, 없으면 REQ 기반
 
-7. **Q1: 어떤 스타일을 기반으로 할까요?** (`AskUserQuestion`):
+7. **Q1: 어떤 스타일을 탐색할까요?** (`AskUserQuestion`, `multiSelect: true`):
    - 선택지: A({스타일명1}) / B({스타일명2}) / C({스타일명3}) / [D({스타일명4})] / 다시 생성 (다른 스타일로)
-   - "다시 생성" 선택 시: Step 1로 돌아가 새 스타일 세트 도출 후 재시도
+   - **복수 선택 가능** — 선택한 스타일 모두에 대해 variants를 생성함
+   - "다시 생성" 단독 선택 시: Step 1로 돌아가 새 스타일 세트 도출 (accumulated_screens 유지)
+   - 스타일 1개 이상 선택 시: Step 8로 진행
 
-8. **Q2: 선택한 시안의 variants를 몇 개 만들까요?** (`AskUserQuestion`):
-   - 선택지: 0개 (이대로 완료) / 1개 / 2개 / 3개
+8. **Q2: 선택한 시안들에 variants를 몇 개씩 만들까요?** (`AskUserQuestion`):
+   - 선택지: 0개 / 1개 / 2개 / 3개 (선택된 모든 스타일에 동일 적용)
+   - **빠른 완료 조건**: Q1에서 정확히 1개 선택 + Q2에서 0개
+     → Step 11(메타데이터 갱신) 직행, 그 1개가 최종 선택 (Q_final 스킵)
+   - 그 외: Step 9로 진행
 
-9. **variants 생성** (Q2 선택이 > 0인 경우):
-   ```
-   mcp__stitch__generate_variants(
-     projectId: {project_id},
-     selectedScreenIds: [{선택된 screen_id}],
-     prompt: "선택된 스타일을 유지하면서 레이아웃과 색상을 다양하게 변형",
-     variantOptions: { variantCount: {Q2 선택값}, creativeRange: "EXPLORE" }
-   )
-   ```
+9. **선택된 스타일별 variants 생성** (Q2 > 0인 경우):
+   - Q1에서 선택된 각 스타일에 대해:
+     ```
+     mcp__stitch__generate_variants(
+       projectId: {project_id},
+       selectedScreenIds: [{스타일의 screen_id}],
+       prompt: "선택된 스타일을 유지하면서 레이아웃과 색상을 다양하게 변형",
+       variantOptions: { variantCount: {Q2 선택값}, creativeRange: "EXPLORE" }
+     )
+     ```
+   - 생성된 variant screen_id들을 accumulated_screens에 추가
 
-10. **메타데이터 갱신**:
-    - 선택된 스타일의 배치 pending 항목을 아래 형식으로 갱신 (active):
+10. **전체 시안 표시 및 탐색 계속 여부** (`AskUserQuestion`):
+    - 지금까지 accumulated_screens에 쌓인 모든 시안을 표시:
+      ```
+      [Stitch] 현재까지 생성된 시안 ({N}개):
+
+      ## A. {스타일명1}
+      ![{스타일명1}]({downloadUrl})
+        └ variant 1: ![v1]({v1_url})
+        └ variant 2: ![v2]({v2_url})
+
+      ## B. {스타일명2}
+      ...
+      ```
+    - 선택지:
+      - "더 탐색하기" → Step 7(Q1)으로 돌아가기 (accumulated_screens 유지)
+      - "이대로 완료" → Step 10.5(Q_final)로 진행
+
+10.5. **Q_final: 최종 시안을 선택해주세요** (`AskUserQuestion`, `multiSelect: false`):
+    - accumulated_screens 전체 시안을 선택지로 제시 (스타일명 + variant 번호)
+    - 사용자가 1개 선택 → Step 11로 진행
+
+11. **메타데이터 갱신**:
+    - 최종 선택된 시안의 배치 pending 항목을 아래 형식으로 갱신 (active):
       ```json
       {
         "stitch_screen_id": "{screen_id}",
@@ -252,7 +280,7 @@ argument-hint: "[--auto] [--variants] [--req REQ-NNN] {화면 설명}"
         "status": "active"
       }
       ```
-    - 선택되지 않은 스타일의 screen_id들은 `archived` 상태로 각각 기록:
+    - 선택되지 않은 시안의 screen_id들은 `archived` 상태로 각각 기록:
       ```json
       {
         "stitch_screen_id": "{screen_id}",
