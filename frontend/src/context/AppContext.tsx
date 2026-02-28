@@ -9,6 +9,11 @@ interface Project {
   path: string;
 }
 
+export interface AlarmItem {
+  id: string;
+  key: number;
+}
+
 interface AppContextType {
   projectId: string;
   setProjectId: (id: string) => void;
@@ -25,6 +30,8 @@ interface AppContextType {
   navigateTo: (tab: string, selectedId?: string) => void;
   pendingNavigation: { tab: string; selectedId?: string } | null;
   clearPendingNavigation: () => void;
+  alarms: AlarmItem[];
+  dismissAlarm: (key: number) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -40,6 +47,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
   const [activeTab, setActiveTab] = useState<string>('plans');
   const [pendingNavigation, setPendingNavigation] = useState<{ tab: string; selectedId?: string } | null>(null);
+  const [alarms, setAlarms] = useState<AlarmItem[]>([]);
+
+  const dismissAlarm = useCallback((key: number) => {
+    setAlarms(prev => prev.filter(a => a.key !== key));
+  }, []);
 
   const setTheme = useCallback((newTheme: 'light' | 'dark') => {
     setThemeState(newTheme);
@@ -95,6 +107,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const onSseEvent = useCallback((event: any) => {
     const eventType = event?.type;
     if (eventType === 'heartbeat' || eventType === 'connected') return;
+
+    if (eventType === 'completion_alert' && event.data?.id) {
+      setAlarms(prev => {
+        const next = [{ id: event.data.id, key: Date.now() }, ...prev];
+        return next.slice(0, 5);
+      });
+    }
+
     setNotifications(prev => [event, ...prev].slice(0, 50));
     setLastSseEvent(event);
     // Trigger re-fetches or other logic based on event type if needed
@@ -126,7 +146,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setActiveTab: setActiveTabState,
       navigateTo,
       pendingNavigation,
-      clearPendingNavigation
+      clearPendingNavigation,
+      alarms,
+      dismissAlarm,
     }}>
       {children}
     </AppContext.Provider>

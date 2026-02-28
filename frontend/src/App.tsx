@@ -4,6 +4,7 @@ import { Header } from './components/layout/Header';
 import { TabNav } from './components/layout/TabNav';
 import { Tabs, TabsContent } from './components/ui/tabs';
 import { KeyboardShortcutsModal } from './components/shared/KeyboardShortcutsModal';
+import { CompletionAlarm } from './components/layout/CompletionAlarm';
 
 // Views
 import { PlansView } from './views/PlansView';
@@ -52,6 +53,7 @@ function AppContent() {
         </div>
       </Tabs>
       <KeyboardShortcutsModal open={showShortcuts} onOpenChange={setShowShortcuts} />
+      <CompletionAlarm />
     </div>
   );
 }
