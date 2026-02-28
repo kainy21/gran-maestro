@@ -17,12 +17,12 @@ Subcommands:
   plan complete      <PLN-ID>
   plan count         [--active | --all]
 
-  archive run         [--type req|idn|dsc|dbg|exp|pln] [--max N] [--dir PATH]
+  archive run         [--type req|idn|dsc|dbg|exp|pln|des] [--max N] [--dir PATH]
   archive list        [--type TYPE]
   archive restore     <ARCHIVE-ID>
 
-  counter next        [--type req|idn|dsc|dbg|exp|pln] [--dir PATH]
-  counter peek        [--type req|idn|dsc|dbg|exp|pln]
+  counter next        [--type req|idn|dsc|dbg|exp|pln|des] [--dir PATH]
+  counter peek        [--type req|idn|dsc|dbg|exp|pln|des]
 
   version get
   version check
@@ -380,6 +380,7 @@ TYPE_DIRS = {
     "dbg": ("debug", "DBG"),
     "exp": ("explore",   "EXP"),
     "pln": ("plans",     "PLN"),
+    "des": ("designs",   "DES"),
 }
 
 
@@ -1167,11 +1168,11 @@ def build_parser():
     ctr_sub = ctr.add_subparsers(dest="subcommand")
 
     ctr_next = ctr_sub.add_parser("next")
-    ctr_next.add_argument("--type", choices=["req", "idn", "dsc", "dbg", "exp", "pln"], default="req")
+    ctr_next.add_argument("--type", choices=["req", "idn", "dsc", "dbg", "exp", "pln", "des"], default="req")
     ctr_next.add_argument("--dir")
 
     ctr_peek = ctr_sub.add_parser("peek")
-    ctr_peek.add_argument("--type", choices=["req", "idn", "dsc", "dbg", "exp", "pln"], default="req")
+    ctr_peek.add_argument("--type", choices=["req", "idn", "dsc", "dbg", "exp", "pln", "des"], default="req")
     ctr_peek.add_argument("--dir")
 
     # --- archive ---
@@ -1179,7 +1180,7 @@ def build_parser():
     arc_sub = arc.add_subparsers(dest="subcommand")
 
     arc_run = arc_sub.add_parser("run")
-    arc_run.add_argument("--type", choices=["req", "idn", "dsc", "dbg", "exp", "pln"], default="req")
+    arc_run.add_argument("--type", choices=["req", "idn", "dsc", "dbg", "exp", "pln", "des"], default="req")
     arc_run.add_argument("--max", type=int)
     arc_run.add_argument("--dir")
 
