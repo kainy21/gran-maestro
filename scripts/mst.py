@@ -971,6 +971,15 @@ def cmd_wait_files(args):
     return 1
 
 
+def cmd_stitch_sleep(args):
+    """Stitch 비동기 생성 대기용 인터벌 sleep."""
+    interval = args.interval
+    print(f"[Stitch] {interval}초 대기 중...", flush=True)
+    time.sleep(interval)
+    print("SLEEP_DONE", flush=True)
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # priority subcommand
 # ---------------------------------------------------------------------------
@@ -1184,6 +1193,16 @@ def build_parser():
     wf.add_argument("--timeout", type=float, default=None,
                     help="타임아웃 (초). 미지정 시 config.json의 timeouts.wait_files_ms 사용")
 
+    # --- stitch ---
+    stitch = sub.add_parser("stitch")
+    stitch_sub = stitch.add_subparsers(dest="subcommand")
+
+    stitch_sleep = stitch_sub.add_parser("sleep")
+    stitch_sleep.add_argument(
+        "--interval", type=float, default=30.0,
+        help="대기 시간(초). 기본값 30."
+    )
+
     # --- notify ---
     notify_parser = sub.add_parser("notify")
     notify_parser.add_argument("event_type")
@@ -1235,6 +1254,7 @@ def main():
         ("session", "complete"): cmd_session_complete,
         ("priority", None): cmd_priority,
         ("notify", None): cmd_notify,
+        ("stitch", "sleep"): cmd_stitch_sleep,
         ("wait-files", None): cmd_wait_files,
     }
 
