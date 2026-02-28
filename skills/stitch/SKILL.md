@@ -196,6 +196,8 @@ REQ-NNN의 spec.md 하단에 Stitch 섹션 추가:
 
 ![{screen_title} 미리보기]({image_url})
 
+> ⚠️ 이미지 URL은 수 시간 후 만료됩니다. 만료 시 `/mst:stitch`로 재생성하세요.
+
 {screen_description_or_empty_string}
 
 ---
@@ -203,8 +205,12 @@ REQ-NNN의 spec.md 하단에 Stitch 섹션 추가:
 
 **필드 출처:**
 - `screen_title`: `stitch_screens[].title` (또는 `"시안 N"` 자동 생성)
-- `stitch_web_url`: `https://stitch.withgoogle.com/projects/{project_id}/screens/{screen_id}` 형식으로 구성
-- `image_url`: `get_screen()` 응답의 `imageUrl` 또는 `screenshotUrl` 필드; 없으면 이미지 라인 생략하고 링크만 표시
+- `stitch_web_url`: `https://stitch.withgoogle.com/projects/{project_id}` 형식으로 구성
+  (Stitch는 SPA — 화면 수준 직접 URL 미지원, `/screens/{screen_id}` 경로는 404 반환)
+- `image_url`: `get_screen()` 응답의 `screenshot.downloadUrl` 필드 (중첩 `FileReference` 객체);
+             `screenshot` 키 미존재 · `downloadUrl` 미존재 · 빈 문자열 → 모두 `null` 처리
+             → 이미지 라인 생략, 프로젝트 링크만 표시
+             (⚠️ `imageUrl`, `screenshotUrl` 필드는 실제 API 응답에 존재하지 않음)
 - `screen_description`: 생성 시 사용된 프롬프트 요약 (없으면 생략)
 
 ### plan.json stitch_screens[] 갱신
@@ -237,9 +243,10 @@ REQ-NNN의 spec.md 하단에 Stitch 섹션 추가:
 
 생성 완료 후:
 ```
-[Stitch] "{화면명}" 화면이 생성되었습니다.
-🔗 Stitch 링크: {URL}
-spec.md에 링크가 첨부되었습니다.
+[Stitch] {N}개 화면이 생성되었습니다.
+📋 생성된 화면: "{화면명1}", "{화면명2}", ...  ← 생성된 screen_title 목록 (단일 화면 시 생략 가능)
+🔗 프로젝트 보기: https://stitch.withgoogle.com/projects/{project_id}
+📄 이미지 미리보기: design.md 참고
 ```
 
 variants 생성 시:
