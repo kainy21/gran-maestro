@@ -28,13 +28,29 @@ docs/                # 문서
 
 ## 버전업 요청 처리
 
+### 전체 버전업 (CHANGELOG 포함, 기본)
+
 사용자가 버전업을 요청하면 다음 순서로 처리합니다:
 
 1. **미커밋 변경사항 확인**: `git status`로 커밋되지 않은 변경사항이 있으면 먼저 커밋
 2. **버전 결정**: 변경 범위에 따라 적절한 버전을 선택 (patch: 버그 수정/소규모 변경, minor: 기능 추가/개선, major: 호환성 깨지는 변경)
-3. **3파일 동시 업데이트**: `package.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`의 버전을 동일하게 변경
-4. **버전업 커밋**: `Bump version to X.Y.Z` 메시지로 커밋
-5. **푸시**: `git push origin master`
+3. **bump 스크립트 실행**: `python3 scripts/bump.py <patch|minor|major>`
+   - 3파일 버전 자동 수정 + 직전 버전 이후 git log 출력
+4. **CHANGELOG.md 업데이트**: 스크립트가 출력한 git log를 참고하여 `CHANGELOG.md` 상단에 새 버전 섹션 추가
+   - `## [X.Y.Z] — YYYY-MM-DD` 헤더
+   - `### 새 기능` / `### 개선` / `### 버그 수정` 섹션 (해당 항목만 포함)
+   - 각 항목은 **사용자 관점**에서 체감할 수 있는 변화를 서술 (내부 리팩토링 제외)
+5. **버전업 커밋**: `Bump version to X.Y.Z` 메시지로 커밋 (CHANGELOG.md 변경 포함)
+6. **푸시**: `git push origin master`
+
+### 버전 bump만 (커밋/푸시 없이)
+
+사용자가 "bump만", "버전만 올려", "커밋 없이" 등으로 요청하면:
+
+1. **미커밋 변경사항 확인**: 위와 동일
+2. **bump 스크립트 실행**: `python3 scripts/bump.py <patch|minor|major>`
+3. **CHANGELOG.md 업데이트**: 위와 동일
+4. 커밋·푸시 없이 종료 (사용자가 직접 커밋/푸시)
 
 ## 커밋 & 푸시 체크리스트
 
