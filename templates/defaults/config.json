@@ -129,6 +129,8 @@
     "ideation_keep_count": 10,
     "discussion_keep_count": 10,
     "debug_keep_count": 10,
+    "plan_keep_count": 10,
+    "request_keep_count": 10,
     "old_request_threshold_hours": 24
   },
   "stitch": {
