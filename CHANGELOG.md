@@ -4,6 +4,21 @@
 
 ---
 
+## [0.39.0] — 2026-02-28
+
+### 새 기능
+
+- **bump.py 버전업 스크립트** — 3파일 버전 자동 동기화 + 직전 버전 이후 git log 출력 (REQ-201)
+
+### 개선
+
+- **frontend useAuth** — token 저장 로직 추가, AppContext projectId 폴백 처리, URL 정리 (REQ-200, REQ-202)
+- **projects.ts 경로 정규화** — `.gran-maestro` 서브디렉토리 자동 감지 및 path 중복 체크 (REQ-200, REQ-202)
+- **plans.ts 타입 오류 수정** — registry 정리 포함 (REQ-202)
+- **accept SKILL.md** — `git branch -D` 강제 삭제 명세 보강 (REQ-199)
+
+---
+
 ## [0.36.0] — 2026-02-27
 
 ### 새 기능
