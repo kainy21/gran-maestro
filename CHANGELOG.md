@@ -4,6 +4,16 @@
 
 ---
 
+## [0.40.1] — 2026-02-28
+
+### 개선
+
+- **Stitch 폴링 신뢰성 향상** — count 비교 → screen ID set 차집합 비교로 전환, 폴링 윈도우 3분 → 5분 연장 (REQ-216)
+- **mst:accept pending Stitch 자동 재확인** — accept 시 pending 상태 stitch_screens를 자동으로 재확인하여 active 갱신 (REQ-216)
+- **Plans 다이어그램 뷰** — 대시보드에 Plans 간 의존 관계를 시각화하는 Diagram 탭 추가 (REQ-215)
+- **mst:stitch 멀티 스타일 생성** — `--multi` 플래그로 여러 스타일 방향 화면을 한 번에 생성, plan Step 4.5에서 자동 제안 (REQ-217)
+- **sync-local 스크립트** — 로컬 플러그인 캐시 동기화 스크립트 추가 (REQ-214)
+
 ## [0.40.0] — 2026-02-28
 
 ### 새 기능
