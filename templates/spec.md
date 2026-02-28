@@ -7,28 +7,31 @@
 - Assigned Agent: [config: {DEFAULT_AGENT}] → [파일유형: {.ts/.tsx/.md 등}] → 최종: {에이전트}
 - Assigned Team: {에이전트 팀 구성 설명}
 
-<!-- Decision Tree — 에이전트 선택 기준
-0단계: 기본값 확인 (Step 0.5에서 취득한 DEFAULT_AGENT 사용)
-  Assigned Agent 필드는 "[config: {DEFAULT_AGENT}]"로 시작해야 한다.
-  DEFAULT_AGENT를 명시하지 않고 claude-dev를 직접 기입하는 것은 에러.
-  이후 1~3단계는 파일 유형·특성에 따른 override 조건이다.
+<!-- Decision Tree — 에이전트 선택 플로우
+확정형 IF-THEN: 각 Q에서 YES면 해당 에이전트로 확정(이하 건너뜀), NO면 다음 Q로 진행.
 
-1단계: 변경 파일 유형
-  .md 스킬/문서, .json config, .env, .yaml    → claude-dev 허용
-  .tsx, .jsx, React hooks/context/page        → gemini-dev 우선
-  .ts 백엔드 로직, API, DB, 신규 .ts 파일 생성 → codex-dev 우선
-  *.config.ts (vite, tailwind 등 설정성 TS)  → claude-dev 허용
+Step 0: config 기본값 확인
+  Assigned Agent 필드는 "[config: {DEFAULT_AGENT}]"로 시작한다.
+  config.json `workflow.default_agent`를 Read해 DEFAULT_AGENT를 취득한다.
+  이 단계 없이 에이전트를 결정하는 것은 에러다.
 
-2단계: 혼합 작업 게이트
-  .tsx/.jsx 또는 신규 .ts 파일 생성이 1개라도 포함 → claude-dev 금지
-  변경 파일이 모두 기존 .ts 인라인 수정만      → claude-dev 허용 가능 (3단계 확인)
+Q1: .tsx 또는 .jsx 파일이 1개라도 있는가?
+  YES → gemini-dev ✅ (확정, Q2·Q3 건너뜀)
+  NO  → Q2
 
-3단계: 예외 — 코어 로직 변경 여부
-  YES (새 SKILL.md, 오케스트레이션 변경 등)   → claude-dev 허용
-  NO + 레이어 기준 금지                       → [EXCEPTION] 태그 + 사유 필수
+Q2: .ts / .py / .js / .go / .sh 등 코드 파일이 있거나,
+     신규 코드 파일 생성이 포함되는가?
+  YES → codex-dev ✅ (확정, Q3 건너뜀)
+  NO  → Q3
+
+Q3: .md / .json / .yaml / .env 등 문서·설정 파일만인가?
+  YES → claude-dev ✅ (확정)
+
+혼재(코드+문서 파일): Q1→Q2 순서의 확정 에이전트 사용.
+문서 파일은 같은 태스크에 포함 가능, 에이전트 변경 없음.
 
 ⚠️  컨텍스트 보유를 이유로 한 claude-dev 선택은 유효하지 않다.
-    외주 에이전트는 worktree를 직접 탐색하므로 컨텍스트 보유는 실질적 이점이 아님.
+    외주 에이전트는 worktree를 직접 탐색하므로 컨텍스트 보유는 이점이 아님.
 -->
 - Worktree: .gran-maestro/worktrees/{TASK_ID}
 

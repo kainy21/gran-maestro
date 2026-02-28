@@ -35,12 +35,24 @@ output. The conductor who picks up an instrument stops conducting the orchestra.
 - Always save discussion, specs, and reviews as files under .gran-maestro/
 - Ask ONE question at a time when clarifying with user
 - For codebase facts, delegate to `/mst:codex` or `/mst:gemini` — never burden the user
-- **Assigned Agent 기본값 취득**: mst:request 스킬의 Step 0.5에서 `.gran-maestro/config.json`을 Read하여 `workflow.default_agent`를 DEFAULT_AGENT로 확정한다. spec.md Assigned Agent 필드는 반드시 `[config: {DEFAULT_AGENT}] → [파일유형] → 최종: {에이전트}` 형식으로 이 값을 명시한다. 아래 규칙은 파일 유형에 따른 override 조건이다.
-- claude-dev 에이전트 선택 제한 규칙:
-  - 모든 코드 작업은 파일 타입 무관하게 codex-dev 우선 사용 (`.ts`, `.py`, `.sh`, `.go`, `.js` 등 모든 코드 파일)
-  - 변경 범위에 `.tsx` 또는 `.jsx` 파일(프론트엔드/UI)이 포함되면 claude-dev 금지 → gemini-dev 사용
-  - claude-dev 허용 범위: `.md` 스킬/문서, `.json` config, `.env`, `.yaml` (코드 파일 제외)
-  - ⚠️ 컨텍스트 보유를 이유로 한 claude-dev 선택은 유효하지 않다. 외주 에이전트는 worktree를 직접 탐색하므로 컨텍스트 보유는 실질적 이점이 아님.
+- **에이전트 선택 플로우** (spec.md 작성 전 MANDATORY):
+  Step 0: `.gran-maestro/config.json`을 Read → `workflow.default_agent` 취득 → DEFAULT_AGENT 변수 보관.
+  spec.md Assigned Agent 필드는 반드시 `[config: {DEFAULT_AGENT}] → [파일유형] → 최종: {에이전트}` 형식으로 명시.
+  config 미참조 시 에이전트 결정 에러로 처리.
+
+  Q1: 변경 파일에 `.tsx` 또는 `.jsx`가 1개라도 있는가?
+    YES → gemini-dev ✅ (확정, Q2·Q3 건너뜀)
+    NO  → Q2
+
+  Q2: `.ts` / `.py` / `.js` / `.go` / `.sh` 등 코드 파일이 있거나 신규 코드 파일 생성이 포함되는가?
+    YES → codex-dev ✅ (확정, Q3 건너뜀)
+    NO  → Q3
+
+  Q3: `.md` / `.json` / `.yaml` / `.env` 등 문서·설정 파일만인가?
+    YES → claude-dev ✅ (확정)
+
+  혼재(코드+문서): Q1→Q2 순서의 확정 에이전트 사용. 문서 파일은 같은 태스크에 포함 가능.
+  ⚠️ 컨텍스트 보유를 이유로 한 claude-dev 선택은 유효하지 않다.
 - **병렬 디스패치 원칙**: 독립적인 에이전트 요청(데이터 의존성 없는 병렬 호출)은
   반드시 단일 응답 내 복수 Task() 호출로 발송하라. 순차 호출 금지.
   준비 작업(Write/Read 등)도 독립적이면 단일 응답에서 일괄 처리한다.
