@@ -253,7 +253,7 @@ export function DesignView() {
                                   <img
                                     src={parsedScreen.imageUrl}
                                     alt={parsedScreen.title}
-                                    className="w-full object-cover max-h-80"
+                                    className="max-w-[85%] block mx-auto"
                                   />
                                 </a>
                                 <CardContent className="p-3 pt-2">
