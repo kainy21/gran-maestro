@@ -9,7 +9,6 @@ import { MarkdownRenderer } from '@/components/shared/MarkdownRenderer';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { ClipboardList, ExternalLink, FileText, Palette } from 'lucide-react';
 import { SessionCard } from '@/components/shared/SessionCard';
-import { PlanDiagramTab } from '@/components/PlanDiagramTab';
 import { RefreshButton } from '@/components/shared/RefreshButton';
 import { EditModeToolbar } from '@/components/EditModeToolbar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -326,12 +325,6 @@ export function PlansView() {
                     <FileText className="h-3 w-3 mr-2" />
                     Overview
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="diagram"
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1"
-                  >
-                    Diagram
-                  </TabsTrigger>
                   {designSections.length > 0 && (
                     <TabsTrigger
                       value="design"
@@ -353,9 +346,6 @@ export function PlansView() {
                     )}
                   </div>
                 </ScrollArea>
-              </TabsContent>
-              <TabsContent value="diagram" className="flex-1 m-0 min-h-0">
-                <PlanDiagramTab planId={selectedPlan.id} projectId={projectId} />
               </TabsContent>
               {designSections.length > 0 && (
                 <TabsContent value="design" className="flex-1 overflow-auto m-0">
