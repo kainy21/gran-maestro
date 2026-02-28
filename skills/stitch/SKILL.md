@@ -56,8 +56,13 @@ argument-hint: "[--auto] [--variants] [--req REQ-NNN] {화면 설명}"
 
 ## 화면 생성 프로토콜
 
+0. **baseline_count 기록**:
+   - `mcp__stitch__list_screens` 호출 → 현재 화면 수를 `baseline_count`로 저장
+
 1. **중복 체크 (diff hash)**:
-   - REQ-NNN이 있을 경우 `request.json`의 `stitch_screens`에서 동일 `route + hash` 조합 확인
+   - REQ-NNN이 있을 경우: `request.json`의 `stitch_screens`에서 동일 `route + hash` 조합 확인 (기존 동일)
+   - REQ-NNN 없고 PLN-NNN이 있을 경우: `plan.json`의 `stitch_screens`에서 확인
+   - 둘 다 없을 경우: 중복 체크 생략
    - `status: "active"` 항목 발견 시: "이미 생성된 화면입니다." 출력 후 기존 URL 반환, 종료
    - `status: "pending"` 항목 발견 시: 이전 생성 시도가 타임아웃됐을 가능성 있음 → 서버 확인 진행
      - `mcp__stitch__list_screens` 호출로 실제 화면 존재 여부 확인
@@ -68,11 +73,16 @@ argument-hint: "[--auto] [--variants] [--req REQ-NNN] {화면 설명}"
        - `stale_at` 경과: pending 항목 제거 → 새 생성 진행
 
 2. **pending 선기록**:
-   - REQ-NNN이 있을 경우, `generate_screen_from_text` 호출 직전 `request.json`의 `stitch_screens`에 임시 항목 기록:
+   - REQ-NNN이 있을 경우: `generate_screen_from_text` 호출 직전 `request.json`의 `stitch_screens`에 임시 항목 기록 (기존 동일):
      ```json
      { "status": "pending", "hash": "{hash}", "route": "{route}", "created_at": "{TS}" }
      ```
-   - 타임아웃 발생 시 이 항목이 재실행 중복 방지에 사용됨
+   - REQ-NNN 없고 PLN-NNN이 있을 경우: `plan.json`의 `stitch_screens`에 기록 (형식 동일):
+     ```json
+     { "status": "pending", "hash": "{hash}", "created_at": "{TS}" }
+     ```
+   - 둘 다 없을 경우: pending 선기록 생략
+   - 빈 응답/타임아웃 발생 시 이 항목이 재실행 중복 방지에 사용됨
 
 3. **대기 안내 메시지 출력**:
    ```
@@ -87,15 +97,24 @@ argument-hint: "[--auto] [--variants] [--req REQ-NNN] {화면 설명}"
      deviceType: "DESKTOP"
    )
    ```
-   - **성공 시**: step 5(get_screen)로 진행
-   - **실패/타임아웃 시**: list_screens 폴백 검증 진행:
-     1. 3~5초 대기 (서버 작업 완료 대기)
-     2. `mcp__stitch__list_screens` 호출
-     3. pending 항목의 `created_at` 이후 생성된 화면 중 최근 3개를 검사하여 매칭되는 화면 탐색
-     4. 발견 시: step 5(get_screen)로 진행하여 URL 확보 → pending 항목을 active로 갱신 → 정상 사용자 보고
-     5. 미발견 시: `stale_at`(= `created_at` + 5분) 경과 여부 확인
-        - `stale_at` 이내: pending 항목 유지 → "[Stitch] 화면 생성 요청이 처리 중입니다 — Stitch 서버가 응답하는 데 수 분이 걸릴 수 있습니다. 잠시 후 다시 실행하면 자동으로 재확인합니다." 출력 후 종료
-        - `stale_at` 경과: pending 항목 제거 → "[Stitch] 화면 생성 실패 — {오류}. 텍스트 명세로 진행합니다." 출력 후 종료
+   - **응답 있음 (screen_id 포함)**: step 5(get_screen)로 진행 (기존 동일)
+   - **빈 응답/null**: 비동기 수락으로 처리 → 폴링 루프(4-1) 진입 (재시도 금지)
+   - **명시적 오류(예외)**: 실패 처리 (기존 동일)
+
+4-1. **폴링 루프** (빈 응답인 경우만):
+   최대 6회, 30초 간격 (총 최대 3분)
+
+   반복마다:
+   a. `python3 {PLUGIN_ROOT}/scripts/mst.py stitch sleep --interval 30` (Bash 호출)
+   b. `mcp__stitch__list_screens` 호출
+   c. 화면 수 > `baseline_count` 인가?
+      - YES: 가장 최근 화면(`updateTime` 기준) 선택 → step 5로 진행
+      - NO: 반복 계속
+
+   6회 모두 미감지 시:
+   - "[Stitch] 화면 생성 요청이 처리 중입니다 — 수 분 내 완료됩니다. 잠시 후 /mst:stitch --list로 확인하세요." 출력
+   - pending 항목 유지 (`stale_at` = `created_at` + 5분 기존 로직 그대로 적용)
+   - 종료
 
 5. **화면 URL 확보** (`get_screen` 최대 3회 재시도):
    ```
@@ -237,7 +256,7 @@ variants 생성 시:
 | 오류 | 처리 |
 |------|------|
 | list_projects 타임아웃 (30초) | "[Stitch] 연결 불가 — 건너뜀. /mst:stitch로 수동 실행 가능." 출력 후 종료 |
-| generate_screen 타임아웃 | 즉시 종료 금지 — 3~5초 대기 후 list_screens 폴백; stale_at(created_at+5분) 이내면 pending 유지, 경과 시 제거 |
+| generate_screen 빈 응답 | 비동기 수락으로 처리 — 재시도 금지. 폴링 루프(30초×6회) 진입. 6회 미감지 시 pending 유지 + 사용자 안내 후 종료. |
 | get_screen 실패 | 5초 간격으로 최대 3회 재시도. 모두 실패 시 screen_id를 pending 항목에 기록하고 URL 미확보 안내 출력 |
 | 화면 생성 실패 | "[Stitch] 화면 생성 실패 — {오류}. 텍스트 명세로 진행합니다." |
 | enabled=false | "[Stitch] 비활성화됨 (config.stitch.enabled=false)" |
