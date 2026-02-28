@@ -16,6 +16,9 @@
   ],
   "author": "myrtlepn",
   "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "sync:local": "bash scripts/sync-local.sh"
+  },
   "devDependencies": {
     "typescript": "^5.0.0"
   }
