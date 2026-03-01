@@ -615,25 +615,27 @@ export function WorkflowView() {
                         )}
                       </div>
                     </TabsContent>
-                    <TabsContent value="logs" className="flex-1 m-0 p-0 overflow-hidden min-h-0 flex flex-col">
-                      <div className="px-4 py-2 border-b bg-muted/10 flex items-center justify-between gap-2">
-                        {streamStatusMeta && (
-                          <span className={`inline-flex items-center gap-1 text-[11px] h-6 px-2 rounded-full border ${streamStatusMeta.badge}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${streamStatusMeta.dot}`} />
-                            {streamStatusMeta.label}
-                          </span>
-                        )}
-                        <div className="ml-auto">
-                          <RefreshButton onClick={handleLogRefresh} isRefreshing={streamStatus === 'connecting'} />
+                    <TabsContent value="logs" className="flex-1 m-0 p-0 overflow-hidden min-h-0">
+                      <div className="h-full flex flex-col">
+                        <div className="px-4 py-2 border-b bg-muted/10 flex items-center justify-between gap-2">
+                          {streamStatusMeta && (
+                            <span className={`inline-flex items-center gap-1 text-[11px] h-6 px-2 rounded-full border ${streamStatusMeta.badge}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${streamStatusMeta.dot}`} />
+                              {streamStatusMeta.label}
+                            </span>
+                          )}
+                          <div className="ml-auto">
+                            <RefreshButton onClick={handleLogRefresh} isRefreshing={streamStatus === 'connecting'} />
+                          </div>
                         </div>
+                        <ScrollArea ref={logScrollAreaRef} className="h-full bg-zinc-950 text-zinc-300 font-mono text-[11px]">
+                          {logs === '' ? (
+                            <div className="p-4 text-muted-foreground">로그 수신 대기 중...</div>
+                          ) : (
+                            <pre className="whitespace-pre-wrap p-4">{logs}</pre>
+                          )}
+                        </ScrollArea>
                       </div>
-                      <ScrollArea ref={logScrollAreaRef} className="h-full bg-zinc-950 text-zinc-300 font-mono text-[11px]">
-                        {logs === '' ? (
-                          <div className="p-4 text-muted-foreground">로그 수신 대기 중...</div>
-                        ) : (
-                          <pre className="whitespace-pre-wrap p-4">{logs}</pre>
-                        )}
-                      </ScrollArea>
                     </TabsContent>
                   </Tabs>
                 ) : (
