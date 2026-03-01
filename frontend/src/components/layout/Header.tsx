@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 
 export function Header({ onShowShortcuts }: { onShowShortcuts: () => void }) {
   const { sseStatus, theme, setTheme, notifications, projectId, setProjectId, projects } = useAppContext();
-  const unreadCount = notifications.length; // Simplified, usually you'd track read state
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <header className="flex items-center justify-between px-6 py-3 border-bottom bg-background sticky top-0 z-40">
