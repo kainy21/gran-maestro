@@ -28,12 +28,6 @@ argument-hint: "{플래닝 주제}"
 
 ## 실행 프로토콜
 
-### Step 0: 아카이브 체크
-
-`config.archive.auto_archive_on_create`가 `true`이면:
-- 스크립트 우선: `python3 {PLUGIN_ROOT}/scripts/mst.py plan count --active`
-- Fallback: `plans/PLN-*` 디렉토리 수 기준으로 초과분 아카이브
-
 ### Step 0.5: 디버그 의도 감지 & 자동 실행
 
 **`--from-debug DBG-NNN` 직접 진입:** `debug/DBG-NNN/debug-report.md` Read (미존재 시 경고 후 Step 1) → `debug_context` 활성화(`linked_debug_id`, `root_cause`, `fix_suggestions`, `affected_files`) → Step 1로 진행
