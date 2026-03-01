@@ -625,6 +625,36 @@ Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_pat
 
 모든 태스크가 `review` 이상 상태에 도달하면 `current_phase`를 `3`으로 변경 → Phase 3 (PM 리뷰) 진입
 
+### Phase 3 리뷰 루프 (auto_review 활성화 시)
+
+모든 태스크가 `committed` 상태에 도달하고 `current_phase`가 3으로 전환된 후:
+
+1. `review.auto_review` 설정 확인 (`.gran-maestro/config.json` 읽기):
+   - `false` (기본): 기존 Phase 3 → Phase 5 흐름 유지 (mst:review 미호출), "최종 수락" 섹션으로 직행
+   - `true` 또는 `--auto` 모드: mst:review 호출 진행
+
+2. mst:review 호출:
+   ```
+   Skill(skill: "mst:review", args: "{REQ_ID}")
+   ```
+   (`--auto` 모드에서는 `review.auto_review=false`이더라도 항상 호출)
+
+3. review 결과 처리:
+   - **`status: "passed"`**: `review_summary.status → "passed"` → "최종 수락 (Phase 3 → Phase 5)" 섹션으로 진행
+     (`workflow.auto_accept_result` 설정 동일 적용)
+   - **`status: "gap_found"`**:
+     1. `request.json.tasks`에서 `generated_by: "review"` + `status: "pending"` 태스크만 선별
+     2. **Step 4a 포함** 재실행: 신규 태스크 worktree 생성 후 4b~4e 실행
+     3. 재실행 완료 후 `current_phase → 3` 재전환 → 이 루프 반복
+   - **`status: "limit_reached"`**:
+     - 일반 모드: AskUserQuestion → [추가 반복 허용 (+1회)] / [현재 상태로 수락] / [중단]
+       - 추가 반복: review 재호출
+       - 현재 수락: "최종 수락" 섹션으로 진행 (`workflow.auto_accept_result` 동일 적용)
+       - 중단: `request.json.status → "cancelled"`
+     - `--auto` 모드: `review_summary.status = "limit_reached"` 기록 후 "최종 수락" 섹션으로 진행
+
+단, `--auto` 플래그 맥락: approve가 `--auto`로 실행된 경우 review 호출 시 컨텍스트로 전달됨.
+
 #### Fallback 규칙
 
 - 최대 깊이: 1단계 (codex → gemini, gemini → codex)

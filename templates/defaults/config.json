@@ -166,5 +166,20 @@
         "agent": "gemini"
       }
     }
+  },
+  "review": {
+    "auto_review": false,
+    "max_iterations": 3,
+    "roles": {
+      "code_reviewer": {
+        "agent": "codex"
+      },
+      "arch_reviewer": {
+        "agent": "gemini"
+      },
+      "ui_reviewer": {
+        "agent": "gemini"
+      }
+    }
   }
 }
