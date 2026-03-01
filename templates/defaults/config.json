@@ -189,5 +189,19 @@
         "agent": "gemini"
       }
     }
+  },
+  "phase1_exploration": {
+    "roles": {
+      "symbol_tracing": {
+        "agent": "codex",
+        "enabled": true,
+        "model": "gpt-5.3-codex"
+      },
+      "broad_scan": {
+        "agent": "gemini",
+        "enabled": true,
+        "model": "gemini-3.1-pro-preview"
+      }
+    }
   }
 }
