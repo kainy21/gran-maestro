@@ -18,6 +18,7 @@ Subcommands:
   plan count         [--active | --all]
 
   archive run         [--type req|idn|dsc|dbg|exp|pln|des] [--max N] [--dir PATH]
+  archive run-all     [--max N]
   archive list        [--type TYPE]
   archive restore     <ARCHIVE-ID>
 
@@ -56,6 +57,7 @@ import sys
 import glob
 import tarfile
 import time
+from typing import Optional
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -776,25 +778,57 @@ def cmd_agents_sync(args):
 
 def cmd_archive_run(args):
     type_key = getattr(args, "type", None) or "req"
+    max_active = args.max or 20
+    _archive_run_type(type_key, max_active, emit_output=True)
+    return 0
+
+
+def _load_archive_max_active(cli_max: Optional[int]) -> int:
+    if cli_max is not None:
+        return cli_max
+
+    config_paths = [
+        BASE_DIR / ".." / ".gran-maestro" / "config.json",
+        BASE_DIR.parent / "config.json",
+    ]
+    cfg = None
+    for path in config_paths:
+        loaded = load_json(path)
+        if loaded is not None:
+            cfg = loaded
+            break
+
+    max_active = 20
+    if isinstance(cfg, dict):
+        max_active = cfg.get("archive", {}).get("max_active_sessions", 20)
+    try:
+        max_active = int(max_active)
+    except (TypeError, ValueError):
+        max_active = 20
+    return max_active
+
+
+def _archive_run_type(type_key: str, max_active: int, emit_output: bool) -> int:
     subdir, prefix = TYPE_DIRS.get(type_key, ("requests", "REQ"))
     src_dir = BASE_DIR / subdir
     dst_dir = type_archived_dir(type_key)
     dst_dir.mkdir(parents=True, exist_ok=True)
 
     dirs = sorted(src_dir.glob(f"{prefix}-*"))
-    max_active = args.max or 20
     json_file = "request.json" if type_key == "req" else "session.json"
 
     completed = [d for d in dirs if d.is_dir() and
                  (load_json(d / json_file) or {}).get("status") in ("completed", "cancelled")]
 
     if len(dirs) - len(completed) <= max_active:
-        print("No archiving needed.")
+        if emit_output:
+            print("No archiving needed.")
         return 0
 
     to_archive = completed[:len(dirs) - max_active]
     if not to_archive:
-        print("No completed sessions to archive.")
+        if emit_output:
+            print("No completed sessions to archive.")
         return 0
 
     ids = [d.name for d in to_archive]
@@ -809,7 +843,30 @@ def cmd_archive_run(args):
     for d in to_archive:
         shutil.rmtree(d)
 
-    print(f"Archived {len(to_archive)} sessions → {archive_name}")
+    if emit_output:
+        print(f"Archived {len(to_archive)} sessions → {archive_name}")
+    return len(to_archive)
+
+
+def cmd_archive_run_all(args):
+    max_active = _load_archive_max_active(args.max)
+
+    counts = {}
+    had_error = False
+    for type_key in TYPE_DIRS:
+        try:
+            counts[type_key] = _archive_run_type(type_key, max_active=max_active, emit_output=False)
+        except Exception as exc:
+            print(f"[Archive] {type_key} 정리 실패: {exc}", file=sys.stderr)
+            counts[type_key] = 0
+            had_error = True
+
+    if sum(counts.values()) == 0 and not had_error:
+        print("[Archive] 정리 대상 없음")
+        return 0
+
+    summary = ", ".join(f"{k}:{counts[k]}" for k in counts.keys())
+    print(f"[Archive] 전체 정리 완료 — {summary}")
     return 0
 
 
@@ -1247,6 +1304,9 @@ def build_parser():
     arc_run.add_argument("--max", type=int)
     arc_run.add_argument("--dir")
 
+    arc_run_all = arc_sub.add_parser("run-all")
+    arc_run_all.add_argument("--max", type=int)
+
     arc_list = arc_sub.add_parser("list")
     arc_list.add_argument("--type")
 
@@ -1372,6 +1432,7 @@ def main():
         ("agents", "check"):   cmd_agents_check,
         ("agents", "sync"):    cmd_agents_sync,
         ("archive", "run"): cmd_archive_run,
+        ("archive", "run-all"): cmd_archive_run_all,
         ("archive", "list"): cmd_archive_list,
         ("archive", "restore"): cmd_archive_restore,
         ("cleanup", None): cmd_cleanup,
