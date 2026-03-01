@@ -11,6 +11,7 @@ import { SessionCard } from '@/components/shared/SessionCard';
 import { RefreshButton } from '@/components/shared/RefreshButton';
 import { ExternalLink, Palette } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { parseDesignSections } from '@/shared/designUtils';
 
 interface DesignScreen {
   id: string;
@@ -31,6 +32,11 @@ interface DesignSession {
   linked_req?: string | null;
   screens?: DesignScreen[];
   screen_files?: string[];
+  source?: 'plan_design';
+  plan_design?: boolean;
+  design_content?: string | null;
+  stitch_project_id?: string | null;
+  stitch_project_url?: string | null;
 }
 
 interface ScreenContent {
@@ -63,6 +69,8 @@ export function DesignView() {
   const [selectedSession, setSelectedSession] = useState<DesignSession | null>(null);
   const [selectedScreenFile, setSelectedScreenFile] = useState<string | null>(null);
   const [screenContent, setScreenContent] = useState<string | null>(null);
+  const [planDesignSections, setPlanDesignSections] = useState<ReturnType<typeof parseDesignSections>>([]);
+  const [selectedPlanSection, setSelectedPlanSection] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -104,6 +112,7 @@ export function DesignView() {
     if (!selectedSession || !projectId) {
       setSelectedScreenFile(null);
       setScreenContent(null);
+      setPlanDesignSections([]);
       return;
     }
 
@@ -113,14 +122,24 @@ export function DesignView() {
           if (!prev) return data;
           return { ...prev, ...data };
         });
-        const files = data.screen_files ?? [];
-        setSelectedScreenFile(prev =>
-          prev && files.includes(prev) ? prev : (files.length > 0 ? files[0] : null)
-        );
+
+        if (data.plan_design && data.design_content) {
+          const sections = parseDesignSections(data.design_content);
+          setPlanDesignSections(sections);
+          setSelectedPlanSection(0);
+          setSelectedScreenFile(null);
+        } else {
+          setPlanDesignSections([]);
+          const files = data.screen_files ?? [];
+          setSelectedScreenFile(prev =>
+            prev && files.includes(prev) ? prev : (files.length > 0 ? files[0] : null)
+          );
+        }
       })
       .catch(() => {
         setSelectedScreenFile(null);
         setScreenContent(null);
+        setPlanDesignSections([]);
       });
   }, [selectedSession?.id, projectId]);
 
@@ -168,6 +187,8 @@ export function DesignView() {
   const parsedScreen = screenContent ? parseScreenContent(screenContent) : null;
   const parsedScreenTitle = parsedScreen?.title ? parsedScreen.title : 'Design 화면';
 
+  const isPlanDesign = selectedSession?.source === 'plan_design';
+
   return (
     <div className="grid grid-cols-12 gap-0 h-full overflow-hidden">
       <div className="col-span-4 border-r flex flex-col min-h-0">
@@ -192,11 +213,13 @@ export function DesignView() {
                   status={session.status}
                   createdAt={session.created_at}
                   extraBadge={
-                    session.linked_plan
-                      ? `PLN ${session.linked_plan}`
-                      : session.linked_req
-                        ? `REQ ${session.linked_req}`
-                        : undefined
+                    session.source === 'plan_design'
+                      ? `PLN ${session.linked_plan ?? session.id.replace('PLN-', '')}`
+                      : session.linked_plan
+                        ? `PLN ${session.linked_plan}`
+                        : session.linked_req
+                          ? `REQ ${session.linked_req}`
+                          : undefined
                   }
                   isSelected={selectedSession?.id === session.id}
                   onClick={() => setSelectedSession(session)}
@@ -215,9 +238,91 @@ export function DesignView() {
                 <h2 className="font-bold text-lg">{selectedSession.title || selectedSession.id}</h2>
                 <p className="text-xs text-muted-foreground">{selectedSession.created_at?.slice(0, 10)}</p>
               </div>
-              <StatusBadge status={selectedSession.status} />
+              <div className="flex items-center gap-2">
+                {selectedSession.stitch_project_url && (
+                  <a
+                    href={selectedSession.stitch_project_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Stitch 프로젝트
+                  </a>
+                )}
+                <StatusBadge status={selectedSession.status} />
+              </div>
             </div>
-            {screenFiles.length > 0 ? (
+
+            {isPlanDesign ? (
+              planDesignSections.length > 0 ? (
+                <Tabs
+                  value={String(selectedPlanSection)}
+                  onValueChange={(v) => setSelectedPlanSection(Number(v))}
+                  className="flex-1 flex flex-col overflow-hidden"
+                >
+                  <div className="px-4 border-b">
+                    <TabsList className="bg-transparent h-10 p-0 gap-4 overflow-x-auto">
+                      {planDesignSections.map((section, index) => (
+                        <TabsTrigger
+                          key={index}
+                          value={String(index)}
+                          className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1"
+                        >
+                          {section.title || `섹션 ${index + 1}`}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </div>
+                  {planDesignSections.map((section, index) => (
+                    <TabsContent key={index} value={String(index)} className="flex-1 m-0 p-0">
+                      <ScrollArea className="h-full">
+                        <div className="p-8">
+                          <h3 className="text-lg font-semibold mb-3">{section.title || `섹션 ${index + 1}`}</h3>
+                          {section.imageUrl && (
+                            <Card className="mb-4 overflow-hidden">
+                              <a
+                                href={section.stitchUrl ?? section.imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <img
+                                  src={section.imageUrl}
+                                  alt={section.title}
+                                  className="max-w-[85%] block mx-auto"
+                                />
+                              </a>
+                              <CardContent className="p-3 pt-2">
+                                {section.stitchUrl && (
+                                  <a
+                                    href={section.stitchUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                  >
+                                    <ExternalLink className="h-3 w-3" /> {section.stitchLabel}
+                                  </a>
+                                )}
+                              </CardContent>
+                            </Card>
+                          )}
+                          {section.description ? (
+                            <MarkdownRenderer content={section.description} />
+                          ) : (
+                            <div className="text-sm text-muted-foreground">디자인 상세가 없습니다</div>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              ) : (
+                <EmptyState
+                  icon={<Palette className="h-8 w-8" />}
+                  title="섹션 없음"
+                  description="design.md에 --- 구분 섹션이 없습니다"
+                />
+              )
+            ) : screenFiles.length > 0 ? (
               <Tabs
                 value={selectedScreenFile ?? ''}
                 onValueChange={setSelectedScreenFile}

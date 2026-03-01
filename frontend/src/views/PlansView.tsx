@@ -12,6 +12,7 @@ import { SessionCard } from '@/components/shared/SessionCard';
 import { RefreshButton } from '@/components/shared/RefreshButton';
 import { EditModeToolbar } from '@/components/EditModeToolbar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { parseDesignSections } from '@/shared/designUtils';
 
 interface PlanMeta {
   id: string;
@@ -19,6 +20,7 @@ interface PlanMeta {
   status?: string;
   created_at?: string;
   linked_requests?: string[];
+  linked_designs?: string[];
   has_design?: boolean;
 }
 
@@ -26,38 +28,14 @@ interface PlanDetail {
   content?: string;
 }
 
-interface DesignSection {
-  title: string;
-  imageUrl: string | null;
-  stitchUrl: string | null;
-  stitchLabel: string;
-  description: string;
+interface LinkedDesignDetail {
+  id: string;
+  screen_files?: string[];
 }
 
-function parseDesignSections(content: string): DesignSection[] {
-  return content
-    .split(/\r?\n---\r?\n/)
-    .map(block => block.trim())
-    .filter(Boolean)
-    .map(block => {
-      const titleMatch = block.match(/^##\s+(.+)$/m);
-      const imageMatch = block.match(/!\[[^\]]*\]\(([^)]+)\)/);
-      const linkMatch = block.match(/\[([^\]]+)\]\((https:\/\/stitch\.[^)]+)\)/);
-      const description = block
-        .replace(/^##\s+.+$/m, '')
-        .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
-        .replace(/\[[^\]]+\]\([^)]+\)/g, '')
-        .trim();
-
-      return {
-        title: titleMatch?.[1] ?? '',
-        imageUrl: imageMatch?.[1] ?? null,
-        stitchUrl: linkMatch?.[2] ?? null,
-        stitchLabel: linkMatch?.[1] ?? 'Stitch에서 보기',
-        description,
-      };
-    })
-    .filter(section => section.imageUrl !== null || section.stitchUrl !== null);
+interface ScreenContent {
+  exists: boolean;
+  content: string | null;
 }
 
 export function PlansView() {
@@ -66,7 +44,11 @@ export function PlansView() {
   const [selectedPlan, setSelectedPlan] = useState<PlanMeta | null>(null);
   const [planContent, setPlanContent] = useState<string | null>(null);
   const [designContent, setDesignContent] = useState<string | null>(null);
-  const [designSections, setDesignSections] = useState<DesignSection[]>([]);
+  const [designSections, setDesignSections] = useState<ReturnType<typeof parseDesignSections>>([]);
+  const [linkedDesignScreenFiles, setLinkedDesignScreenFiles] = useState<string[]>([]);
+  const [linkedDesignId, setLinkedDesignId] = useState<string | null>(null);
+  const [selectedLinkedScreenFile, setSelectedLinkedScreenFile] = useState<string | null>(null);
+  const [linkedScreenContent, setLinkedScreenContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -148,6 +130,10 @@ export function PlansView() {
       setPlanContent(null);
       setDesignContent(null);
       setDesignSections([]);
+      setLinkedDesignScreenFiles([]);
+      setLinkedDesignId(null);
+      setSelectedLinkedScreenFile(null);
+      setLinkedScreenContent(null);
       return;
     }
     apiFetch<PlanDetail>(`/api/plans/${selectedPlan.id}`, projectId)
@@ -156,11 +142,43 @@ export function PlansView() {
     apiFetch<{ exists: boolean; content: string | null }>(`/api/plans/${selectedPlan.id}/design`, projectId)
       .then(data => setDesignContent(data.exists ? data.content : null))
       .catch(() => setDesignContent(null));
+
+    // linked_designs의 첫 번째 DES-NNN 로드
+    const firstLinked = selectedPlan.linked_designs?.[0] ?? null;
+    setLinkedDesignId(firstLinked);
+    if (firstLinked) {
+      apiFetch<LinkedDesignDetail>(`/api/designs/${firstLinked}`, projectId)
+        .then(data => {
+          const files = data.screen_files ?? [];
+          setLinkedDesignScreenFiles(files);
+          setSelectedLinkedScreenFile(files[0] ?? null);
+        })
+        .catch(() => {
+          setLinkedDesignScreenFiles([]);
+          setSelectedLinkedScreenFile(null);
+        });
+    } else {
+      setLinkedDesignScreenFiles([]);
+      setSelectedLinkedScreenFile(null);
+    }
   }, [selectedPlan?.id, projectId]);
 
   useEffect(() => {
     setDesignSections(designContent ? parseDesignSections(designContent) : []);
   }, [designContent]);
+
+  useEffect(() => {
+    if (!linkedDesignId || !selectedLinkedScreenFile || !projectId) {
+      setLinkedScreenContent(null);
+      return;
+    }
+    apiFetch<ScreenContent>(
+      `/api/designs/${linkedDesignId}/screens/${selectedLinkedScreenFile}`,
+      projectId
+    )
+      .then(data => setLinkedScreenContent(data.exists ? data.content : null))
+      .catch(() => setLinkedScreenContent(null));
+  }, [linkedDesignId, selectedLinkedScreenFile, projectId]);
 
   useEffect(() => {
     if (pendingNavigation?.tab !== 'plans' || loading) return;
@@ -250,6 +268,29 @@ export function PlansView() {
     );
   }
 
+  const hasDesignContent = designSections.length > 0 || linkedDesignScreenFiles.length > 0;
+
+  // linked DES 스크린 파싱 (parseScreenContent 인라인)
+  function parseScreenContent(content: string) {
+    const titleMatch = content.match(/^##\s+(.+)$/m);
+    const imageMatch = content.match(/!\[[^\]]*\]\(([^)]+)\)/);
+    const linkMatch = content.match(/\[([^\]]+)\]\((https:\/\/stitch\.[^)]+)\)/);
+    const description = content
+      .replace(/^##\s+.+$/m, '')
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+      .replace(/\[[^\]]+\]\([^)]+\)/g, '')
+      .trim();
+    return {
+      title: titleMatch?.[1] ?? '',
+      imageUrl: imageMatch?.[1] ?? null,
+      stitchUrl: linkMatch?.[2] ?? null,
+      stitchLabel: linkMatch?.[1] ?? 'Stitch에서 보기',
+      description,
+    };
+  }
+
+  const parsedLinkedScreen = linkedScreenContent ? parseScreenContent(linkedScreenContent) : null;
+
   return (
     <div className="grid grid-cols-12 gap-0 h-full overflow-hidden">
       <div className="col-span-4 border-r flex flex-col min-h-0">
@@ -326,7 +367,7 @@ export function PlansView() {
                     <FileText className="h-3 w-3 mr-2" />
                     Overview
                   </TabsTrigger>
-                  {designSections.length > 0 && (
+                  {hasDesignContent && (
                     <TabsTrigger
                       value="design"
                       className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1"
@@ -348,7 +389,7 @@ export function PlansView() {
                   </div>
                 </ScrollArea>
               </TabsContent>
-              {designSections.length > 0 && (
+              {hasDesignContent && (
                 <TabsContent value="design" className="flex-1 overflow-auto m-0">
                   <ScrollArea className="h-full">
                     <div className="p-8 space-y-6">
@@ -389,6 +430,78 @@ export function PlansView() {
                           </CardContent>
                         </Card>
                       ))}
+
+                      {linkedDesignScreenFiles.length > 0 && (
+                        <div>
+                          {designSections.length > 0 && (
+                            <div className="border-t pt-6 mb-4">
+                              <p className="text-xs text-muted-foreground mb-3">
+                                연결된 DES 세션 ({linkedDesignId})
+                              </p>
+                            </div>
+                          )}
+                          <Tabs
+                            value={selectedLinkedScreenFile ?? ''}
+                            onValueChange={setSelectedLinkedScreenFile}
+                            className="w-full"
+                          >
+                            <TabsList className="bg-transparent h-10 p-0 gap-4 overflow-x-auto border-b w-full justify-start rounded-none">
+                              {linkedDesignScreenFiles.map((file) => (
+                                <TabsTrigger
+                                  key={file}
+                                  value={file}
+                                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1"
+                                >
+                                  {file}
+                                </TabsTrigger>
+                              ))}
+                            </TabsList>
+                            {linkedDesignScreenFiles.map((file) => (
+                              <TabsContent key={file} value={file} className="mt-4">
+                                {file === selectedLinkedScreenFile && parsedLinkedScreen ? (
+                                  <Card className="overflow-hidden">
+                                    {parsedLinkedScreen.imageUrl && (
+                                      <a
+                                        href={parsedLinkedScreen.stitchUrl ?? parsedLinkedScreen.imageUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        <img
+                                          src={parsedLinkedScreen.imageUrl}
+                                          alt={parsedLinkedScreen.title}
+                                          className="max-w-[85%] block mx-auto"
+                                        />
+                                      </a>
+                                    )}
+                                    <CardContent className="p-4">
+                                      {parsedLinkedScreen.title && (
+                                        <h3 className="font-semibold text-base mb-2">
+                                          {parsedLinkedScreen.title}
+                                        </h3>
+                                      )}
+                                      {parsedLinkedScreen.description && (
+                                        <MarkdownRenderer content={parsedLinkedScreen.description} />
+                                      )}
+                                      {parsedLinkedScreen.stitchUrl && (
+                                        <a
+                                          href={parsedLinkedScreen.stitchUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                        >
+                                          <ExternalLink className="h-3 w-3" /> {parsedLinkedScreen.stitchLabel}
+                                        </a>
+                                      )}
+                                    </CardContent>
+                                  </Card>
+                                ) : (
+                                  <div className="text-sm text-muted-foreground">화면을 불러오는 중입니다</div>
+                                )}
+                              </TabsContent>
+                            ))}
+                          </Tabs>
+                        </div>
+                      )}
                     </div>
                   </ScrollArea>
                 </TabsContent>
