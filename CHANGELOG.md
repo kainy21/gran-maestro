@@ -4,6 +4,26 @@
 
 ---
 
+## [0.42.0] — 2026-03-01
+
+### 새 기능
+
+- **mst:review 스킬**: 구현 완성도를 반복 검토하는 신규 스킬 추가 (`/mst:review REQ-NNN`)
+  - spec AC 체크리스트 검증(Claude 인컨텍스트) + 코드/아키텍처/UI 리뷰어 병렬 실행
+  - 갭 발견 시 태스크 자동 생성 → Phase 2 재실행 → max_iterations 도달까지 반복
+  - `--auto` 플래그로 무인 실행 지원
+
+### 개선
+
+- **approve Phase 3 리뷰 루프**: `review.auto_review: true` 시 Phase 3에서 mst:review 자동 호출
+  - passed → Phase 5 직행 / gap_found → 신규 태스크 Phase 2 재실행 / limit_reached → 사용자 선택
+- **대시보드 REQ 카드 리뷰 뱃지**: 리뷰 진행 상태를 뱃지로 표시 (🔍 N회차 리뷰 중 / 🔄 갭 수정 중 / ⚠️ 리뷰 한계 도달)
+- **config.json `review` 섹션 추가**: `auto_review` (기본 true), `max_iterations` (기본 3), 역할별 에이전트 설정
+- **plan 리뷰 루프 (REQ-230)**: plan 확정 전 AI 팀 검토 단계 추가 (Step 3.8)
+- **Pre-review 에이전트 설정**: `prereview` config 섹션으로 에이전트별 참여 수 제어 가능
+
+---
+
 ## [0.41.4] — 2026-03-01
 
 ### 버그 수정
