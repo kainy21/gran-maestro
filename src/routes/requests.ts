@@ -106,11 +106,13 @@ projectRequestsApi.get("/requests", async (c) => {
           // ignore fallback failure
         }
       }
+      const { review_iterations: _ri1, ...reqJsonRest1 } = reqJson as RequestMeta & { review_iterations?: unknown };
       requests.push({
-        ...reqJson,
+        ...reqJsonRest1,
         id: requestId,
         created_at: createdAt,
         linked_plan: reqToPlanMap.get(requestId) ?? null,
+        review_summary: reqJson.review_summary ?? null,
       });
     }
   }
@@ -132,12 +134,14 @@ projectRequestsApi.get("/requests", async (c) => {
           // ignore fallback failure
         }
       }
+      const { review_iterations: _ri2, ...reqJsonRest2 } = reqJson as RequestMeta & { review_iterations?: unknown };
       requests.push({
-        ...reqJson,
+        ...reqJsonRest2,
         id: requestId,
         created_at: createdAt,
         _location: "completed",
         linked_plan: reqToPlanMap.get(requestId) ?? null,
+        review_summary: reqJson.review_summary ?? null,
       });
     }
   }
@@ -182,11 +186,13 @@ projectRequestsApi.get("/requests/:id", async (c) => {
       // ignore fallback failure
     }
   }
+  const { review_iterations: _ri, ...reqJsonRest } = reqJson as RequestMeta & { review_iterations?: unknown };
   return c.json({
-    ...reqJson,
+    ...reqJsonRest,
     id: requestId,
     created_at: createdAt,
     linked_plan: linkedPlan ?? null,
+    review_summary: reqJson.review_summary ?? null,
   });
 });
 

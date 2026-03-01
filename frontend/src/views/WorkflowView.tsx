@@ -15,6 +15,22 @@ import { EditModeToolbar } from '@/components/EditModeToolbar';
 
 type LogStreamStatus = 'idle' | 'connecting' | 'live' | 'ended' | 'error';
 
+interface ReviewSummary {
+  iteration: number;
+  status: "reviewing" | "gap_fixing" | "passed" | "limit_reached";
+}
+
+function getReviewBadge(summary: ReviewSummary | null | undefined): string | undefined {
+  if (!summary) return undefined;
+  if (summary.status === "reviewing" && summary.iteration >= 2)
+    return `🔍 ${summary.iteration}회차 리뷰 중`;
+  if (summary.status === "gap_fixing")
+    return `🔄 갭 수정 중 (${summary.iteration}회차)`;
+  if (summary.status === "limit_reached")
+    return "⚠️ 리뷰 한계 도달";
+  return undefined;
+}
+
 export function WorkflowView() {
   const { projectId, activeTab, lastSseEvent, navigateTo, pendingNavigation, clearPendingNavigation } = useAppContext();
   const [requests, setRequests] = useState<any[]>([]);
@@ -472,6 +488,7 @@ export function WorkflowView() {
                     status={req.status ?? ''}
                     createdAt={req.created_at}
                     extraBadge={req.linked_plan ?? undefined}
+                    reviewBadge={getReviewBadge(req.review_summary)}
                     isSelected={selectedReq?.id === req.id}
                     onClick={() => setSelectedReq(req)}
                   />

@@ -8,6 +8,11 @@ export interface GranMaestroConfig {
   [key: string]: unknown;
 }
 
+export interface ReviewSummary {
+  iteration: number;
+  status: "reviewing" | "gap_fixing" | "passed" | "limit_reached";
+}
+
 export interface RequestMeta {
   id: string;
   title?: string;
@@ -16,6 +21,7 @@ export interface RequestMeta {
   blockedBy?: string[];
   createdAt?: string;
   linked_plan?: string | null;
+  review_summary?: ReviewSummary | null;
   [key: string]: unknown;
 }
 
