@@ -12,7 +12,8 @@ projectDesignsApi.get("/designs", async (c) => {
   }
 
   const designsDir = `${baseDir}/designs`;
-  if (!(await dirExists(designsDir))) {
+  const plansDir = `${baseDir}/plans`;
+  if (!(await dirExists(designsDir)) && !(await dirExists(plansDir))) {
     return c.json([]);
   }
 
@@ -28,7 +29,37 @@ projectDesignsApi.get("/designs", async (c) => {
   );
 
   const sessions = results.filter((s): s is NonNullable<typeof s> => s !== null);
-  sessions.sort((a, b) => {
+  const planDirs = (await listDirs(plansDir)).filter((d) => /^PLN-/.test(d));
+  const legacyPlans = await Promise.all(
+    planDirs.map(async (dir) => {
+      const json = await readJsonFile<{ title?: string; created_at?: string; linked_designs?: unknown }>(
+        `${plansDir}/${dir}/plan.json`,
+      );
+      if (!json) return null;
+      if (Array.isArray(json.linked_designs) && json.linked_designs.length > 0) return null;
+
+      try {
+        const stat = await Deno.stat(`${plansDir}/${dir}/design.md`);
+        if (!stat.isFile) return null;
+      } catch (_error) {
+        return null;
+      }
+
+      return {
+        id: dir,
+        title: json.title,
+        status: "plan_design",
+        created_at: json.created_at,
+        linked_plan: dir,
+        source: "plan_design",
+      };
+    }),
+  );
+
+  const planSessions = legacyPlans.filter((s): s is NonNullable<typeof s> => s !== null);
+
+  const merged = [...sessions, ...planSessions];
+  merged.sort((a, b) => {
     const aTime = a.created_at;
     const bTime = b.created_at;
     if (!aTime && !bTime) return 0;
@@ -37,7 +68,7 @@ projectDesignsApi.get("/designs", async (c) => {
     return bTime.localeCompare(aTime);
   });
 
-  return c.json(sessions);
+  return c.json(merged);
 });
 
 projectDesignsApi.get("/designs/:desId", async (c) => {
@@ -47,6 +78,29 @@ projectDesignsApi.get("/designs/:desId", async (c) => {
   }
 
   const desId = c.req.param("desId");
+  if (/^PLN-/.test(desId)) {
+    const planJson = await readJsonFile<{ title?: string; created_at?: string }>(
+      `${baseDir}/plans/${desId}/plan.json`,
+    );
+    if (!planJson) {
+      return c.json({ error: "Design not found" }, 404);
+    }
+
+    const content = await readTextFile(`${baseDir}/plans/${desId}/design.md`);
+    if (content === null) {
+      return c.json({ error: "Design not found" }, 404);
+    }
+
+    return c.json({
+      id: desId,
+      title: planJson.title,
+      status: "plan_design",
+      plan_design: true,
+      design_content: content,
+      created_at: planJson.created_at,
+    });
+  }
+
   const desDir = `${baseDir}/designs/${desId}`;
   if (!(await dirExists(desDir))) {
     return c.json({ error: "Design not found" }, 404);
