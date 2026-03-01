@@ -10,6 +10,8 @@ import { Search } from 'lucide-react';
 import { SessionCard } from '@/components/shared/SessionCard';
 import { RefreshButton } from '@/components/shared/RefreshButton';
 import { EditModeToolbar } from '@/components/EditModeToolbar';
+import { useResizableSidebar } from '@/hooks/useResizableSidebar';
+import { ResizableHandle } from '@/components/shared/ResizableHandle';
 
 interface ExploreMeta {
   id: string;
@@ -29,6 +31,12 @@ export function ExploreView() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const { sidebarWidth, isResizing, startResizing, sidebarRef } = useResizableSidebar({
+    defaultWidth: 300,
+    minWidth: 250,
+    maxWidth: 600,
+    storageKey: 'explore-sidebar-width',
+  });
 
   const fetchData = useCallback(async () => {
     try {
@@ -182,8 +190,8 @@ export function ExploreView() {
   }
 
   return (
-    <div className="grid grid-cols-12 h-full overflow-hidden">
-      <div className="col-span-4 border-r flex flex-col min-h-0">
+    <div className="flex h-full overflow-hidden">
+      <div ref={sidebarRef} style={{ width: sidebarWidth }} className="border-r flex flex-col min-h-0 shrink-0">
         <div className="p-4 border-b bg-muted/30 flex justify-between items-center">
           <h2 className="font-semibold">Explore Sessions ({sessions.length})</h2>
           <div className="flex items-center gap-2">
@@ -234,7 +242,9 @@ export function ExploreView() {
         </ScrollArea>
       </div>
 
-      <div className="col-span-8 flex flex-col bg-card min-h-0">
+      <ResizableHandle isResizing={isResizing} onMouseDown={startResizing} />
+
+      <div className="flex-1 flex flex-col bg-card min-h-0 overflow-hidden">
         {selectedSession ? (
           <>
             <div className="p-4 border-b flex justify-between items-center bg-muted/10">
