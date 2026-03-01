@@ -369,6 +369,63 @@ def cmd_plan_complete(args):
     return 1
 
 
+def cmd_plan_render_review(args):
+    """plan-review 템플릿을 치환해 prompts/review-{role}.md 파일로 생성한다."""
+    pln_id = args.pln_id.upper()
+
+    # 1. PLN 디렉토리 확인
+    pln_dir = plans_dir() / pln_id
+    if not pln_dir.exists():
+        print(f"Error: {pln_id} not found.", file=sys.stderr)
+        return 1
+
+    # 2. plan_draft 취득 (파일 우선, 없으면 인라인 인자)
+    if args.plan_draft_file:
+        plan_draft = Path(args.plan_draft_file).read_text(encoding="utf-8")
+    else:
+        plan_draft = args.plan_draft or ""
+    qa_summary = args.qa_summary or ""
+
+    # 3. config에서 활성 역할 결정 (기본값 True = 모두 활성)
+    config = load_json(BASE_DIR / "config.json") or {}
+    plan_review = config.get("plan_review", {})
+    roles_config = plan_review.get("roles", {})
+    all_roles = ["architect", "devils_advocate", "completeness", "ux_reviewer"]
+    active_roles = [
+        r for r in all_roles
+        if roles_config.get(r, {}).get("enabled", True)
+    ]
+
+    # 4. 템플릿 디렉토리 (PROJECT_ROOT/templates/plan-review/)
+    # Path(__file__)을 기준으로 project_root 계산: scripts/mst.py → scripts/ → project_root
+    # BASE_DIR.parent는 워크트리에서 항상 메인 repo 루트를 가리키므로 사용 불가
+    project_root = Path(__file__).parent.parent
+    template_dir = project_root / "templates" / "plan-review"
+
+    # 5. prompts/ 디렉토리 생성
+    prompts_dir = pln_dir / "prompts"
+    prompts_dir.mkdir(parents=True, exist_ok=True)
+
+    # 6. 각 역할별 템플릿 읽기 → 치환 → 파일 쓰기 → stdout 출력
+    generated = []
+    for role in active_roles:
+        tmpl_path = template_dir / f"{role}.md"
+        if not tmpl_path.exists():
+            print(f"Warning: template not found: {tmpl_path}", file=sys.stderr)
+            continue
+        content = tmpl_path.read_text(encoding="utf-8")
+        content = content.replace("{{PLAN_DRAFT}}", plan_draft)
+        content = content.replace("{{QA_SUMMARY}}", qa_summary)
+        content = content.replace("{{PLN_ID}}", pln_id)
+
+        out_path = prompts_dir / f"review-{role}.md"
+        out_path.write_text(content, encoding="utf-8")
+        generated.append(str(out_path))
+        print(str(out_path))
+
+    return 0 if generated else 1
+
+
 # ---------------------------------------------------------------------------
 # counter subcommands
 # ---------------------------------------------------------------------------
@@ -1163,6 +1220,12 @@ def build_parser():
     p_plan_sync = plan_sub.add_parser("sync", help="Plan 완료 여부 동기화")
     p_plan_sync.add_argument("plan_id", help="Plan ID (예: PLN-068)")
 
+    plan_render_review = plan_sub.add_parser("render-review", help="plan-review 프롬프트 파일 생성")
+    plan_render_review.add_argument("--pln", dest="pln_id", required=True)
+    plan_render_review.add_argument("--plan-draft", dest="plan_draft", default="")
+    plan_render_review.add_argument("--plan-draft-file", dest="plan_draft_file", default=None)
+    plan_render_review.add_argument("--qa-summary", dest="qa_summary", default="")
+
     # --- counter ---
     ctr = sub.add_parser("counter")
     ctr_sub = ctr.add_subparsers(dest="subcommand")
@@ -1299,6 +1362,7 @@ def main():
         ("plan", "inspect"): cmd_plan_inspect,
         ("plan", "complete"): cmd_plan_complete,
         ("plan", "sync"): cmd_plan_sync,
+        ("plan", "render-review"): cmd_plan_render_review,
         ("counter", "next"): cmd_counter_next,
         ("counter", "peek"): cmd_counter_peek,
         ("version", "get"):    cmd_version_get,

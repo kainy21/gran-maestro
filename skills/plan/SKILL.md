@@ -159,27 +159,29 @@ enabled, parallel, max_user_questions, roles 값을 메모리에 보관
 Q&A 대화 내용을 바탕으로 PM이 플랜 초안 텍스트를 작성한다 (디스크 미저장, 메모리 내).
 이 초안은 Step 4에서 최종 제시될 내용의 초기 버전이다.
 
-#### 3.8.2: 역할별 프롬프트 파일 생성
+#### 3.8.2: 역할별 프롬프트 파일 생성 (스크립트 위임)
 
-`.gran-maestro/plans/PLN-NNN/prompts/` 디렉토리 생성 (미존재 시).
+PLAN_DRAFT 전문을 임시 파일에 저장한 뒤 스크립트를 실행한다:
 
-`Read(templates/plan-review-prompt.md)` → 템플릿 내용 취득.
+```bash
+# PLAN_DRAFT를 임시 파일에 기록
+Write(.gran-maestro/plans/{PLN_ID}/prompts/plan-draft.tmp, {PLAN_DRAFT 전문})
 
-활성화된 역할(`config.plan_review.roles.{role}.enabled == true`)에 대해
-템플릿 내용을 변수 치환 후 `.gran-maestro/plans/PLN-NNN/prompts/review-{role}.md`로 동시 Write:
+# 스크립트 실행
+python3 {PLUGIN_ROOT}/scripts/mst.py plan render-review \
+  --pln {PLN_ID} \
+  --plan-draft-file .gran-maestro/plans/{PLN_ID}/prompts/plan-draft.tmp \
+  --qa-summary "{QA_SUMMARY}"
+```
 
-변수 치환:
-- `{{ROLE}}`: 역할명 (architect | devils_advocate | completeness | ux_reviewer)
-- `{{PERSPECTIVE}}`: 역할별 관점 텍스트 (아래 참조)
-- `{{PLAN_DRAFT}}`: 3.8.1에서 작성한 PM 내부 초안 전문
-- `{{QA_SUMMARY}}`: Step 2~3 Q&A 핵심 결정사항 요약 (500자 이내)
-- `{{PLN_ID}}`: 현재 PLN ID
+스크립트가 `config.plan_review.roles.{role}.enabled == true`인 역할에 대해
+`templates/plan-review/{role}.md` 읽기 → 변수 치환 →
+`.gran-maestro/plans/{PLN_ID}/prompts/review-{role}.md` 일괄 생성.
 
-역할별 PERSPECTIVE:
-- architect: "시스템 정합성·실현 가능성 관점에서 검토하라. 기존 아키텍처와의 충돌, 의존성 누락, 레이어 위반, 기술 부채 관점에서 플랜의 맹점을 찾아라."
-- devils_advocate: "PM의 가정에 반론을 제기하라. 숨겨진 복잡도, 엣지 케이스, 더 나은 대안의 존재 여부를 탐색하라. 낙관적 가정에 의문을 제기하라."
-- completeness: "요구사항 완전성을 검토하라. 누락된 기능, 미정의 동작, 측정 불가능한 수락 조건, 범위 모호함을 찾아라."
-- ux_reviewer: "사용자 경험 일관성을 검토하라. UI 흐름의 모호함, 누락된 인터랙션, 접근성, 기존 시스템과의 UX 불일치를 찾아라."
+stdout에 생성된 파일 경로 목록이 출력된다.
+
+⚠️ 역할별 PERSPECTIVE 텍스트는 더 이상 SKILL.md에 정의되지 않는다.
+각 역할의 관점은 `templates/plan-review/{role}.md`에 고정되어 있다.
 
 #### 3.8.3: 에이전트 dispatch
 
