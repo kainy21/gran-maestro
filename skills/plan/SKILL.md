@@ -149,9 +149,10 @@ ASCII 도식 작성 규칙:
 #### 3.8.0: config 읽기 및 enabled 확인
 
 Read(.gran-maestro/config.json) → plan_review 섹션 취득
-enabled, parallel, max_user_questions, roles 값을 메모리에 보관
+enabled, parallel, max_iterations, roles 값을 메모리에 보관
+iteration 카운터를 1로 초기화 (current_iteration = 1)
 
-- **enabled == false (기본)**: 이 단계 전체 skip → Step 4로 진행
+- **enabled == false**: 이 단계 전체 skip → Step 4로 진행
 - **enabled == true**: 아래 3.8.1부터 실행
 
 #### 3.8.1: PM 내부 초안 작성
@@ -225,18 +226,20 @@ stdout에 생성된 파일 경로 목록이 출력된다.
 - `MAJOR:` 항목: PM이 자체 판단으로 초안에 반영
 - `MINOR:` 항목: PM이 자체 판단으로 초안에 반영 또는 무시
 
-#### 3.8.5: 조건부 사용자 추가 질문
+#### 3.8.5: 조건부 사용자 추가 질문 & 반복 루프
 
-CRITICAL 이슈가 1개 이상 존재 시:
+**CRITICAL 이슈가 1개 이상 존재 시:**
 - 중복·유사 이슈 병합 후 우선순위 정렬
-- `config.plan_review.max_user_questions`(기본 2)개 이내로 선별
-- `AskUserQuestion`으로 질문 제시:
+- **모든** CRITICAL 이슈를 빠짐없이 `AskUserQuestion`으로 질문:
   - 각 선택지: CRITICAL 이슈를 해소할 수 있는 구체적 옵션 제시
   - 또는 직접 입력 유도
-- 사용자 답변 반영하여 PM 초안 재정제 → Step 4로 진행 (재리뷰 없음)
+- 사용자 답변 반영하여 PM 초안 재정제
+- **반복 판단**:
+  - `current_iteration < max_iterations` → `current_iteration++` → **3.8.2로 돌아가 재리뷰** (정제된 초안 기준으로 프롬프트 재생성 후 에이전트 재dispatch)
+  - `current_iteration >= max_iterations` → Step 4로 진행
 
-CRITICAL 이슈 없음(또는 `max_user_questions == 0`) 시:
-- MAJOR/MINOR 이슈만 PM이 자체 반영 → 초안 재정제 → 바로 Step 4 진행
+**CRITICAL 이슈 없음 시:**
+- MAJOR/MINOR 이슈만 PM이 자체 반영 → 초안 재정제 → **반복 없이** 바로 Step 4 진행
 
 Step 4 진입 시 초안은 에이전트 피드백이 반영된 정제 버전이다.
 

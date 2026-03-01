@@ -153,9 +153,9 @@
     }
   },
   "plan_review": {
-    "enabled": false,
+    "enabled": true,
     "parallel": true,
-    "max_user_questions": 2,
+    "max_iterations": 2,
     "roles": {
       "architect": {
         "enabled": true,
