@@ -128,6 +128,16 @@ AC 미충족(갭) 여부와 코드리뷰 이슈 여부에 따라 4개 분기로 
 
 코드리뷰 이슈를 등급별로 분류한 뒤 자동 처리 분기를 수행합니다.
 
+##### (b) enabled 가드
+
+`config.review.severity_auto_fix.enabled` 확인:
+- `false`: 기존 (b) 동작으로 fallback
+  - **`--auto` 모드**: 이슈를 report에만 기록하고 Phase 5 자동 진행. `review.json.status = "passed"`.
+  - **일반 모드**: `AskUserQuestion` → 선택지:
+    - `[이슈 무시하고 수락]`: Phase 5 진행. `review.json.status = "passed"`.
+    - `[이슈를 태스크로 추가]`: **(c)와 동일 경로** (갭별 새 태스크 spec.md 자동 작성 + 재외주).
+- `true`: 아래 등급별 분기 진행 (사전 처리 → b-1/b-2/b-3).
+
 ##### (b) 사전 처리: 이슈 파싱 및 등급 분류
 
 1. **리뷰어 태깅 파싱**: `review-report.md`의 코드/아키텍처/UI 리뷰 발견 사항에서 `[CRITICAL]`, `[MAJOR]`, `[MINOR]` 접두사를 파싱하여 등급별 배열로 분리합니다.
@@ -149,9 +159,9 @@ AC 미충족(갭) 여부와 코드리뷰 이슈 여부에 따라 4개 분기로 
 - **`--auto` 모드**:
   - CRITICAL/MAJOR 이슈에 대해 **(c)와 동일 경로** (갭별 새 태스크 spec.md 자동 작성 + 재외주). `gap_source: "code_review_issues"` 메타 기록.
   - MINOR 이슈는 `review_issues_summary.skipped` 배열에 기록하고 **무조건 스킵** (threshold 무시). `review-report.md`에만 기록.
-- **일반 모드**:
-  - CRITICAL/MAJOR + MINOR 혼재 시: CRITICAL/MAJOR에 대해 **(c)와 동일 경로**, MINOR는 `config.review.severity_auto_fix.minor_skip_threshold` 검사 적용 (b-2/b-3 규칙 동일).
-  - `review.json.status = "gap_found"`. `gap_source: "code_review_issues"` 메타 기록.
+- **일반 모드**: `AskUserQuestion` → 선택지:
+  - `[CRITICAL/MAJOR N건 태스크로 추가]`: **(c)와 동일 경로** (갭별 새 태스크 spec.md 자동 작성 + 재외주). MINOR는 `config.review.severity_auto_fix.minor_skip_threshold` 검사 적용 (b-2/b-3 규칙 동일). `review.json.status = "gap_found"`. `gap_source: "code_review_issues"` 메타 기록.
+  - `[전체 이슈 무시하고 수락]`: Phase 5 진행. `review.json.status = "passed"`.
 
 ##### (b-2) MINOR만 존재 + 개수 <= threshold (스킵+리포트)
 
@@ -250,6 +260,7 @@ approve 루프 밖에서 직접 호출 시 Step 1~4 동일 실행 후 Step 5 결
 | `gaps_found` | 발견된 갭 수. 0이면 갭 없음. |
 | `tasks_created` | 갭으로 생성된 태스크 ID 배열. 갭 없으면 `[]`. |
 | `status` | 항상 `"completed"` (회차 실행 완료 의미). 갭 여부는 `gaps_found > 0`으로 구분. |
+| `review_issues_summary` | (선택) 등급별 코드리뷰 이슈 요약. 이슈가 존재하면 `review.json.review_issues_summary`와 동일 구조로 기록. |
 
 ### review_summary 객체
 
@@ -279,6 +290,7 @@ approve 루프 밖에서 직접 호출 시 Step 1~4 동일 실행 후 Step 5 결
   "created_at": "<ISO8601>",
   "gaps_found": 0,
   "tasks_created": [],
+  "gap_source": "ac_gap | code_review_issues | null",
   "review_issues_summary": {
     "critical": 0,
     "major": 0,
@@ -318,3 +330,17 @@ Step 5(b) 등급별 분류 결과를 기록합니다. `review.json`과 `request.
 | `minor` | number | MINOR 등급 이슈 수. |
 | `auto_fixed` | array | 자동 태스크 생성되어 재외주된 이슈 목록. 각 항목: `{ "severity": string, "description": string, "task_id": string }`. |
 | `skipped` | array | 스킵 처리된 이슈 목록 (threshold 이하 MINOR 또는 `--auto` 모드 MINOR). 각 항목: `{ "severity": string, "description": string }`. |
+
+### gap_source 필드
+
+`review.json`의 `gap_source`는 갭 발생 원인을 구분합니다.
+
+| 값 | 의미 |
+|------|------|
+| `"ac_gap"` | AC 미충족으로 인한 갭 (Step 5 (c)/(d) 분기). |
+| `"code_review_issues"` | 코드리뷰 이슈로 인한 갭 (Step 5 (b) 분기). |
+| `null` | 갭 없음 (`status: "passed"`일 때). |
+
+### approve → review_issues_summary 데이터 전달 경로
+
+approve SKILL.md Phase 3 결과 처리 시 최신 `reviews/RV-NNN/review.json`을 Read하여 `review_issues_summary`를 참조합니다. approve는 이 데이터를 통해 CRITICAL/MAJOR/MINOR 카운트 및 auto_fixed/skipped 내역을 확인하고, 등급별 후속 분기(재외주/PM 직접 수정/스킵)를 결정합니다.
