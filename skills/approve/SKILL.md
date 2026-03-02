@@ -644,12 +644,17 @@ Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_pat
    (`--auto` 모드에서는 `review.auto_review=false`이더라도 항상 호출)
 
 3. review 결과 처리:
+
+   **review_issues_summary 로드**: 최신 `reviews/RV-NNN/review.json`을 Read → `review_issues_summary` 파싱 (critical/major/minor 카운트 + auto_fixed/skipped 배열)
+
    - **`status: "passed"`**: `review_summary.status → "passed"` → "최종 수락 (Phase 3 → Phase 5)" 섹션으로 진행
      (`workflow.auto_accept_result` 설정 동일 적용)
    - **`status: "gap_found"`**:
-     `review_issues_summary`(T02 스키마: critical/major/minor 카운트 + auto_fixed/skipped 배열)를 참조하여 이슈 등급별 분기:
+     `review_issues_summary`를 참조하여 이슈 등급별 분기:
 
      **a. CRITICAL 이슈 존재 시**: CRITICAL은 PM 직접 수정 불가, 항상 재외주. 아래 기존 재외주 경로로 진행.
+
+     **a-2. MINOR 이슈**: `review_issues_summary.skipped`에 기록된 대로 스킵 처리, 재외주 대상에 포함하지 않음. 리포트에만 기록.
 
      **b. MAJOR 이슈 — PM 직접 수정 분기**:
 
@@ -678,7 +683,7 @@ Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_pat
         - spec §5 테스트 명령어 실행 → PASS 필수
         - spec §5 타입 체크 명령어 실행 → PASS 필수
         - **게이트 PASS**: Step 5.5와 동일한 커밋 절차 적용 (add → commit → hash 저장)
-        - **게이트 FAIL**: 수정 롤백 (`git -C {worktree_path} checkout -- .`) 후 재외주 경로(아래 c.)로 전환
+        - **게이트 FAIL**: 수정 롤백 (`git -C {worktree_path} checkout -- .`) → 해당 MAJOR 이슈에 대한 태스크를 `request.json.tasks`에 신규 생성 (`generated_by: "review"`, `status: "pending"`) → 재외주 경로(아래 c.)로 진입
      3. **메타데이터 기록**: `review-report.md`에 아래 항목 기록:
         - `pm_direct_fix: true`
         - 수정된 파일 목록
