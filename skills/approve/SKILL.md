@@ -582,7 +582,11 @@ outsource-brief 템플릿의 `<error_context>` 섹션을 활용하여 수정 프
 Skill(skill: "mst:codex", args: "--prompt-file {prompt_path} --dir {worktree_path} --trace {REQ-ID}/{TASK-NUM}/phase2-fix-R{N}")
 ```
 
-- `pre_check_retries` +1 증가, `request.json` 저장
+- `pre_check_retries` +1 증가
+- `request.json`의 `tasks` 배열에서 현재 태스크 항목 찾기 (id 매칭):
+  - 해당 항목의 `retry_count` 값 읽기 (없으면 0으로 취급)
+  - `retry_count` = (현재 값) + 1 로 업데이트
+- `request.json` 저장 (`pre_check_retries` + `retry_count` 동시 반영)
 - `status` → `executing`
 - 재외주 완료 후 **Step 5 복귀**
 
