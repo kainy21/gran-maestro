@@ -156,6 +156,7 @@ ASCII 도식 작성 규칙:
 Read(.gran-maestro/config.json) → plan_review 섹션 취득
 enabled, parallel, max_iterations, roles 값을 메모리에 보관
 escalation_trigger = config.plan_review.escalation_trigger (미설정 시 기본 "major")
+minor_escalation_threshold = config.plan_review.minor_escalation_threshold (미설정 시 null — 기능 비활성)
 iteration 카운터를 1로 초기화 (current_iteration = 1)
 
 - **enabled == false**: 이 단계 전체 skip → Step 4로 진행
@@ -252,7 +253,24 @@ stdout에 생성된 파일 경로 목록이 출력된다.
   - `current_iteration >= max_iterations` → Step 4로 진행
 
 **escalate 조건 미충족 시** (escalation_trigger 미만 이슈만 또는 전체 NO_ISSUES):
-- escalation_trigger 미만 이슈(예: "major" 기준 시 MINOR만): PM이 자체 반영 → 초안 재정제 → **반복 없이** Step 4 진행
+
+**MINOR 임계값 에스컬레이션 체크** (minor_escalation_threshold != null인 경우):
+- threshold 정규화: threshold <= 0이면 threshold = 1로 치환
+- 전체 MINOR 이슈 갯수 합산 (MINOR_COUNT)
+- MINOR_COUNT > 0 AND MINOR_COUNT >= minor_escalation_threshold → CRITICAL로 취급:
+  ⚠️ 이 로직은 escalate=false 분기 내부에서 별도로 처리한다
+     (escalate=true 분기로 점프하지 않음 — 구조 복잡도 방지).
+  - "[MINOR 임계값 초과] N개 MINOR 이슈가 임계값({threshold})을 초과하여 확인이 필요합니다" 안내 표시
+  - 모든 MINOR 이슈를 `AskUserQuestion`으로 질문:
+    - 각 선택지: 이슈를 해소할 수 있는 구체적 옵션 또는 직접 입력 유도
+    - **"반영 없이 진행"** 옵션 포함 (기존 escalate 흐름과 동일)
+    - **보조 선택지를 PM 판단으로 상황에 맞게 포함** (ideation / discussion / explore 중 적합한 것 — Step 3 참조)
+  - "반영 없이 진행" 선택 시: 즉시 Step 4 진행 (반복 없음)
+  - 그 외: 사용자 답변 반영하여 PM 초안 재정제
+  - 반복 판단: current_iteration < max_iterations → 3.8.2 재리뷰 / >= → Step 4 진행
+- MINOR_COUNT < minor_escalation_threshold 또는 threshold == null → 기존 동작:
+  - escalation_trigger 미만 이슈(예: "major" 기준 시 MINOR만): PM이 자체 반영 → 초안 재정제 → **반복 없이** Step 4 진행
+
 - 전체 NO_ISSUES: PM이 자체 반영 없이 바로 Step 4 진행
 
 Step 4 진입 시 초안은 에이전트 피드백이 반영된 정제 버전이다.
