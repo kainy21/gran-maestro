@@ -16,7 +16,7 @@
     "auto_accept_result": true,
     "default_agent": "codex-dev",
     "spec_prereview": true,
-    "spec_prereview_max_iterations": 2,
+    "spec_prereview_max_iterations": 3,
     "spec_prereview_escalation_trigger": "major",
     "spec_prereview_minor_escalation_threshold": null,
     "auto_approve_on_unblock": false
@@ -103,7 +103,7 @@
   },
   "prereview": {
     "agents": {
-      "codex": 0,
+      "codex": 1,
       "gemini": 0,
       "claude": 1
     }
