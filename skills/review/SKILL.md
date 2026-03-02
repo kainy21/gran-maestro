@@ -81,6 +81,8 @@ background 에이전트는 `run_in_background: true` 옵션으로 dispatch합니
 | `arch_reviewer` | spec 의도 vs 구현 방향 차이, 통합 일관성 | `review.roles.arch_reviewer.agent` |
 | `ui_reviewer` | Stitch 시안 vs 실제 UI, UX 흐름 일관성 | `review.roles.ui_reviewer.agent` |
 
+각 리뷰어(code_reviewer, arch_reviewer, ui_reviewer)는 발견한 이슈에 반드시 `[CRITICAL]`, `[MAJOR]`, `[MINOR]` 등급을 태깅해야 한다 (`templates/review-request.md`의 등급 판별 가이드 및 보안 오버라이드 규칙 적용).
+
 각 에이전트 프롬프트에 출력 파일 경로를 명시하여 전달합니다:
 - code_reviewer → `reviews/RV-NNN/review-code.md`
 - arch_reviewer → `reviews/RV-NNN/review-arch.md`
