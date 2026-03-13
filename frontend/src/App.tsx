@@ -12,6 +12,7 @@ import { DebugView } from './views/DebugView';
 import { DesignView } from './views/DesignView';
 import { DocumentsView } from './views/DocumentsView';
 import { SettingsView } from './views/SettingsView';
+import { AgentsView } from './views/AgentsView';
 
 function AppContent() {
   const { activeTab, setActiveTab } = useAppContext();
@@ -47,6 +48,9 @@ function AppContent() {
           </TabsContent>
           <TabsContent value="settings" className="absolute inset-0 m-0">
             <SettingsView />
+          </TabsContent>
+          <TabsContent value="agents" className="absolute inset-0 m-0 overflow-hidden">
+            <AgentsView />
           </TabsContent>
         </div>
       </Tabs>

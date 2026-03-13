@@ -7,6 +7,7 @@ import {
   Palette,
   Files,
   Settings,
+  Users,
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
@@ -19,6 +20,7 @@ export const TABS = [
   { id: 'designs', label: 'Designs', icon: Palette, key: '5' },
   { id: 'documents', label: 'Documents', icon: Files, key: '6' },
   { id: 'settings', label: 'Settings', icon: Settings, key: '7' },
+  { id: 'agents', label: 'Agents', icon: Users, key: '8' },
 ];
 
 export function TabNav({
