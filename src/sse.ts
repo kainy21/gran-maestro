@@ -147,11 +147,19 @@ sseApi.get("/events", async (c) => {
 
 sseApi.post("/notify", async (c) => {
   const body = await c.req.json();
-  for (const send of activeSenders) {
-    try { send(body as SSEEvent); } catch { /* ignore */ }
-  }
+  broadcastUpdate(body as SSEEvent);
   return c.json({ ok: true });
 });
+
+export function broadcastUpdate(event: SSEEvent): void {
+  for (const send of activeSenders) {
+    try {
+      send(event);
+    } catch {
+      // ignore failed sender
+    }
+  }
+}
 
       /** Classify a filesystem change into an SSE event type. */
 export function classifyFsEvent(

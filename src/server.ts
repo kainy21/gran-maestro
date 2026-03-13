@@ -16,6 +16,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { serveDir } from "https://deno.land/std@0.224.0/http/file_server.ts";
 
 import { sseApi } from "./sse.ts";
+import { agentsApi } from "./routes/agents.ts";
 import { projectConfigApi } from "./routes/config.ts";
 import { projectDiscussionApi } from "./routes/discussion.ts";
 import { projectIdeationApi } from "./routes/ideation.ts";
@@ -43,6 +44,7 @@ import {
 const app = new Hono();
 const projectApi = new Hono();
 const DIST_DIR = new URL("../dist", import.meta.url).pathname;
+const UPLOADS_DIR = new URL("../uploads", import.meta.url).pathname;
 
 projectApi.route("/", projectConfigApi);
 projectApi.route("/", projectRequestsApi);
@@ -54,6 +56,7 @@ projectApi.route("/", projectManageApi);
 projectApi.route("/", projectIdeationApi);
 projectApi.route("/", projectDiscussionApi);
 projectApi.route("/", projectTreeApi);
+projectApi.route("/agents", agentsApi);
 
 app.route("/api/projects", projectRegistryApi);
 app.route("/api/projects/:projectId", projectApi);
@@ -62,6 +65,17 @@ app.route("/", sseApi);
 
 app.get("/*", async (c) => {
   const pathname = new URL(c.req.url).pathname;
+
+  if (pathname.startsWith("/uploads/")) {
+    const response = await serveDir(c.req.raw, {
+      fsRoot: UPLOADS_DIR,
+      urlRoot: "uploads",
+      quiet: true,
+    });
+    if (response.status !== 404) {
+      return response;
+    }
+  }
 
   if (
     pathname.startsWith("/static/") ||
